@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+slowapi
+python-jose[cryptography]
+passlib
+python-dotenv
+google-generativeai
+duckduckgo-search
+pydantic
+pydantic-settings
