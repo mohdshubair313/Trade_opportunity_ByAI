@@ -43,9 +43,10 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends HTMLMotionProps<"button">,
-    VariantProps<typeof buttonVariants> {
+  extends Omit<HTMLMotionProps<"button">, "children">,
+  VariantProps<typeof buttonVariants> {
   isLoading?: boolean;
+  children?: React.ReactNode;
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
