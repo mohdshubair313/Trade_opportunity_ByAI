@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { motion, useMotionValue, useSpring, useTransform, HTMLMotionProps } from "framer-motion";
+import { motion, useMotionValue, useSpring, HTMLMotionProps } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 // Magic Card with hover effect

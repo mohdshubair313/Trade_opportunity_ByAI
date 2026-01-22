@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -212,16 +212,21 @@ export function NumberTicker({
 }) {
   const [displayValue, setDisplayValue] = useState(0);
 
+  const lastValue = useRef(0);
+
   useEffect(() => {
     const startTime = Date.now();
-    const startValue = displayValue;
+    const startValue = lastValue.current;
     const diff = value - startValue;
 
     const tick = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / (duration * 1000), 1);
       const easeOut = 1 - Math.pow(1 - progress, 3);
-      setDisplayValue(Math.floor(startValue + diff * easeOut));
+      const currentValue = Math.floor(startValue + diff * easeOut);
+
+      setDisplayValue(currentValue);
+      lastValue.current = currentValue;
 
       if (progress < 1) {
         requestAnimationFrame(tick);
@@ -229,6 +234,7 @@ export function NumberTicker({
     };
 
     requestAnimationFrame(tick);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, duration]);
 
   return <span className={className}>{displayValue.toLocaleString()}</span>;

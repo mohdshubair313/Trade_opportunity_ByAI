@@ -49,7 +49,7 @@ export function AnalysisLoading({ sector }: AnalysisLoadingProps) {
 
         {/* Progress steps */}
         <div className="space-y-4 text-left">
-          {steps.map((step, index) => (
+          {steps.map((step) => (
             <motion.div
               key={step.label}
               initial={{ opacity: 0, x: -20 }}

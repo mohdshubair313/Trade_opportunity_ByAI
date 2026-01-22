@@ -85,7 +85,7 @@ export function Testimonials() {
 
                 {/* Content */}
                 <p className="text-muted-foreground mb-6">
-                  "{testimonial.content}"
+                  &quot;{testimonial.content}&quot;
                 </p>
 
                 {/* Rating */}

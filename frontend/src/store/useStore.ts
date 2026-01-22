@@ -48,7 +48,7 @@ interface AppState {
 
 export const useStore = create<AppState>()(
   persist(
-    (set, _get) => ({
+    (set) => ({
       // Auth
       user: null,
       token: null,

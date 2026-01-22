@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -31,15 +31,8 @@ function DashboardContent() {
   const [analyzingSector, setAnalyzingSector] = useState("");
   const { analysisHistory, addToHistory, favoriteSectors } = useStore();
 
-  // Check for sector in URL params
-  useEffect(() => {
-    const sector = searchParams.get("sector");
-    if (sector && !isAnalyzing && !currentAnalysis) {
-      handleAnalyze(sector);
-    }
-  }, [searchParams]);
-
-  const handleAnalyze = async (sector: string) => {
+  // Wrap handleAnalyze in useCallback to stabilize it
+  const handleAnalyze = useCallback(async (sector: string) => {
     setIsAnalyzing(true);
     setAnalyzingSector(sector);
     setCurrentAnalysis(null);
@@ -66,7 +59,15 @@ function DashboardContent() {
       setIsAnalyzing(false);
       setAnalyzingSector("");
     }
-  };
+  }, [addToHistory]);
+
+  // Check for sector in URL params
+  useEffect(() => {
+    const sector = searchParams.get("sector");
+    if (sector && !isAnalyzing && !currentAnalysis) {
+      handleAnalyze(sector);
+    }
+  }, [searchParams, isAnalyzing, currentAnalysis, handleAnalyze]);
 
   return (
     <div className="flex h-screen bg-background">
