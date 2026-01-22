@@ -48,7 +48,7 @@ interface AppState {
 
 export const useStore = create<AppState>()(
   persist(
-    (set, get) => ({
+    (set, _get) => ({
       // Auth
       user: null,
       token: null,
@@ -92,7 +92,7 @@ export const useStore = create<AppState>()(
       favoriteSectors: [],
       addFavorite: (sector) =>
         set((state) => ({
-          favoriteSectors: [...new Set([...state.favoriteSectors, sector])],
+          favoriteSectors: Array.from(new Set([...state.favoriteSectors, sector])),
         })),
       removeFavorite: (sector) =>
         set((state) => ({

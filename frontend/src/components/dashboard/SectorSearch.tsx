@@ -19,7 +19,7 @@ export function SectorSearch({ onSearch, isLoading }: SectorSearchProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { analysisHistory, favoriteSectors } = useStore();
 
-  const recentSectors = [...new Set(analysisHistory.map((h) => h.sector))].slice(0, 5);
+  const recentSectors = Array.from(new Set(analysisHistory.map((h) => h.sector))).slice(0, 5);
 
   const filteredSectors = POPULAR_SECTORS.filter((sector) =>
     sector.toLowerCase().includes(query.toLowerCase())
