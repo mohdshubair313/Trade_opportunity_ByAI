@@ -1,4 +1,5 @@
 import logging
+import os
 from google import genai
 from google.genai import types
 from app.config import get_settings
@@ -9,6 +10,13 @@ settings = get_settings()
 
 class AIAnalyzer:
     """Analyzes market data using Google Gemini AI."""
+
+    def __init__(self):
+        """Initialize the AI analyzer with API key."""
+        api_key = settings.gemini_api_key or os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            logger.warning("GEMINI_API_KEY not found. AI analysis will fail.")
+        self.client = genai.Client(api_key=api_key)
 
     def analyze_sector(self, sector: str, market_data: str) -> str:
         """
@@ -82,9 +90,7 @@ Provide a brief 2-3 sentence overview of the current market situation and key op
 
 Be specific, data-driven, and actionable. Use bullet points for clarity. Include numerical data where available from the sources."""
 
-            client = genai.Client()
-
-            response = client.models.generate_content(
+            response = self.client.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=prompt,
                 config=types.GenerateContentConfig(

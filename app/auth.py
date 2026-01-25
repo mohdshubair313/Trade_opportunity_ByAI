@@ -14,7 +14,7 @@ security = HTTPBearer()
 fake_users_db = {
     "demo_user": {
         "username": "demo_user",
-        "hashed_password": pwd_context.hash("demo"),
+        "hashed_password": pwd_context.hash("demo_password"),
         "disabled": False,
     }
 }

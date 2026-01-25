@@ -2,7 +2,8 @@ import logging
 from datetime import timedelta
 from typing import Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Request
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from slowapi.errors import RateLimitExceeded
 import re
@@ -10,8 +11,6 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()  # loads environment variables from .env to os.environ
-
-print(os.getenv("GEMINI_API_KEY")) 
 
 from app.config import get_settings
 from app.auth import (
@@ -40,6 +39,15 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.version,
     description="API for analyzing market data and providing trade opportunity insights for Indian sectors"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Add rate limiter to app
