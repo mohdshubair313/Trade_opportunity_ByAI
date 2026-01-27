@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/Badge";
 import { cn, formatDate } from "@/lib/utils";
 import { AnalysisResponse } from "@/lib/api";
 import { useStore } from "@/store/useStore";
+import { useFavorites } from "@/hooks/useFavorites";
 import toast from "react-hot-toast";
 
 interface AnalysisReportProps {
@@ -29,8 +30,8 @@ interface AnalysisReportProps {
 
 export function AnalysisReport({ analysis }: AnalysisReportProps) {
   const [copied, setCopied] = useState(false);
-  const { favoriteSectors, addFavorite, removeFavorite } = useStore();
-  const isFavorite = favoriteSectors.includes(analysis.sector);
+  const { isFavorite: checkFavorite, toggleFavorite } = useFavorites();
+  const isFavorite = checkFavorite(analysis.sector);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(analysis.report);
@@ -44,9 +45,8 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${analysis.sector.toLowerCase().replace(/\s+/g, "-")}-analysis-${
-      new Date().toISOString().split("T")[0]
-    }.md`;
+    a.download = `${analysis.sector.toLowerCase().replace(/\s+/g, "-")}-analysis-${new Date().toISOString().split("T")[0]
+      }.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -69,14 +69,8 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
     }
   };
 
-  const toggleFavorite = () => {
-    if (isFavorite) {
-      removeFavorite(analysis.sector);
-      toast.success(`Removed ${analysis.sector} from favorites`);
-    } else {
-      addFavorite(analysis.sector);
-      toast.success(`Added ${analysis.sector} to favorites`);
-    }
+  const handleToggleFavorite = () => {
+    toggleFavorite(analysis.sector);
   };
 
   // Extract key metrics from report (simplified parsing)
@@ -127,7 +121,7 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={toggleFavorite}
+              onClick={handleToggleFavorite}
               className={cn(isFavorite && "text-yellow-500 border-yellow-500/50")}
             >
               <Star

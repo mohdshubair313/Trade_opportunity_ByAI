@@ -9,6 +9,7 @@ import {
   TypewriterText,
   BlurIn,
 } from "@/components/animations/AnimatedText";
+import { useSoundEffects } from "@/components/animations/SoundEffects";
 import Link from "next/link";
 
 const sectors = [
@@ -31,6 +32,7 @@ const floatingElements = [
 
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { playSound } = useSoundEffects();
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
@@ -44,18 +46,34 @@ export function Hero() {
       ref={containerRef}
       className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background"
     >
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 overflow-hidden">
-        {/* Main gradient orbs */}
+      {/* Animated gradient background with mesh effect */}
+      <div className="absolute inset-0 mesh-gradient">
+        {/* Main gradient orbs with dynamic colors */}
         <motion.div
           className="absolute top-0 left-1/4 w-[800px] h-[800px] rounded-full"
           style={{
             background: "radial-gradient(circle, rgba(34,197,94,0.15) 0%, transparent 70%)",
           }}
           animate={{
-            scale: [1, 1.2, 1],
-            x: [-50, 50, -50],
-            y: [-30, 30, -30],
+            scale: [1, 1.3, 1],
+            x: [-50, 60, -50],
+            y: [-30, 40, -30],
+          }}
+          transition={{
+            duration: 18,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        <motion.div
+          className="absolute bottom-0 right-1/4 w-[600px] h-[600px] rounded-full"
+          style={{
+            background: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)",
+          }}
+          animate={{
+            scale: [1.2, 1, 1.2],
+            x: [50, -60, 50],
+            y: [30, -40, 30],
           }}
           transition={{
             duration: 15,
@@ -64,25 +82,25 @@ export function Hero() {
           }}
         />
         <motion.div
-          className="absolute bottom-0 right-1/4 w-[600px] h-[600px] rounded-full"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] rounded-full"
           style={{
-            background: "radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%)",
           }}
           animate={{
-            scale: [1.2, 1, 1.2],
-            x: [50, -50, 50],
-            y: [30, -30, 30],
+            scale: [1, 1.4, 1],
+            x: [0, 30, 0],
+            y: [0, -30, 0],
           }}
           transition={{
-            duration: 12,
+            duration: 20,
             repeat: Infinity,
             ease: "easeInOut",
           }}
         />
 
-        {/* Grid pattern */}
-        <div
-          className="absolute inset-0 opacity-[0.02]"
+        {/* Animated grid pattern */}
+        <motion.div
+          className="absolute inset-0 opacity-[0.03]"
           style={{
             backgroundImage: `
               linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
@@ -90,44 +108,78 @@ export function Hero() {
             `,
             backgroundSize: "60px 60px",
           }}
+          animate={{
+            y: [0, 60, 0],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear",
+          }}
         />
 
-        {/* Floating particles */}
-        {Array.from({ length: 30 }).map((_, i) => (
+        {/* Floating particles with twinkling effect */}
+        {Array.from({ length: 50 }).map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-1 h-1 rounded-full bg-primary/30"
+            className="absolute w-1 h-1 rounded-full bg-primary/40"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
             }}
             animate={{
-              y: [-20, 20, -20],
-              opacity: [0.2, 0.8, 0.2],
+              y: [-30, 30, -30],
+              opacity: [0.2, 1, 0.2],
+              scale: [1, 1.5, 1],
             }}
             transition={{
-              duration: 3 + Math.random() * 4,
+              duration: 4 + Math.random() * 5,
               repeat: Infinity,
-              delay: Math.random() * 2,
+              delay: Math.random() * 3,
+            }}
+          />
+        ))}
+
+        {/* Meteor effects */}
+        {Array.from({ length: 3 }).map((_, i) => (
+          <motion.div
+            key={`meteor-${i}`}
+            className="absolute w-1 h-1 bg-gradient-to-r from-primary to-transparent rounded-full"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: "0%",
+              transform: "rotate(215deg)",
+            }}
+            animate={{
+              x: [-500, 0],
+              y: [0, 500],
+              opacity: [0, 1, 0],
+            }}
+            transition={{
+              duration: 3 + Math.random() * 2,
+              repeat: Infinity,
+              delay: i * 2,
+              ease: "linear",
             }}
           />
         ))}
       </div>
 
-      {/* Floating emojis/elements */}
+      {/* Floating emojis/elements with enhanced animations */}
       {floatingElements.map((el, i) => (
         <motion.div
           key={i}
           className="absolute text-3xl opacity-20 select-none hidden md:block"
           style={{ left: el.x, top: el.y }}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 0.2, scale: 1 }}
-          transition={{ delay: el.delay, duration: 0.5 }}
+          initial={{ opacity: 0, scale: 0, rotate: -10 }}
+          animate={{ opacity: 0.2, scale: 1, rotate: 0 }}
+          transition={{ delay: el.delay, duration: 0.5, type: "spring" }}
         >
           <motion.span
             animate={{
-              y: [-10, 10, -10],
-              rotate: [-5, 5, -5],
+              y: [-15, 15, -15],
+              rotate: [-8, 8, -8],
+              scale: [1, 1.1, 1],
             }}
             transition={{
               duration: 4 + i,
@@ -155,7 +207,7 @@ export function Hero() {
         >
           <motion.span
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-primary/30 bg-primary/5 text-sm backdrop-blur-sm"
-            whileHover={{ scale: 1.05, borderColor: "hsl(var(--primary))" }}
+            whileHover={{ scale: 1.05 }}
           >
             <motion.span
               animate={{ rotate: [0, 360] }}
@@ -263,6 +315,8 @@ export function Hero() {
               transition={{ duration: 0.3, delay: 0.8 + i * 0.1 }}
               whileHover={{ scale: 1.05, y: -5 }}
               className="relative p-6 rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm group cursor-pointer"
+              onMouseEnter={() => playSound('hover')}
+              onClick={() => playSound('click')}
             >
               <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative">

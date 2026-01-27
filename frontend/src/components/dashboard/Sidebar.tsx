@@ -19,6 +19,8 @@ import {
   User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useFavorites } from "@/hooks/useFavorites";
 import { useStore } from "@/store/useStore";
 
 const navItems = [
@@ -33,7 +35,9 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { user, logout, analysisHistory, favoriteSectors } = useStore();
+  const { user, logout } = useAuth();
+  const { favorites } = useFavorites();
+  const { analysisHistory } = useStore();
 
   return (
     <motion.aside
@@ -135,7 +139,7 @@ export function Sidebar() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Favorites</span>
-                <span className="font-medium">{favoriteSectors.length}</span>
+                <span className="font-medium">{favorites.length}</span>
               </div>
             </div>
           </motion.div>
@@ -154,7 +158,7 @@ export function Sidebar() {
                 {user?.username || "Guest"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {user?.isGuest ? "Guest Mode" : "Pro User"}
+                {!user?.username || user.username === "guest" ? "Guest Mode" : "Pro User"}
               </p>
             </div>
           )}

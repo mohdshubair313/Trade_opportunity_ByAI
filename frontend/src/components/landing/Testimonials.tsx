@@ -50,8 +50,20 @@ export function Testimonials() {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section className="py-24 px-4" ref={ref}>
-      <div className="container mx-auto">
+    <section className="py-24 px-4 relative overflow-hidden" ref={ref}>
+      {/* Background effects */}
+      <div className="absolute inset-0 dot-pattern opacity-5" />
+      <motion.div
+        className="absolute top-0 left-0 w-full h-full"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1 }}
+      >
+        <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/3 left-1/4 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
+      </motion.div>
+
+      <div className="container mx-auto relative z-10">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -59,9 +71,14 @@ export function Testimonials() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <span className="text-primary text-sm font-semibold tracking-wider uppercase">
+          <motion.span
+            className="text-primary text-sm font-semibold tracking-wider uppercase"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
             Testimonials
-          </span>
+          </motion.span>
           <h2 className="mt-4 text-3xl md:text-5xl font-bold">
             Trusted by <GradientText>Industry Leaders</GradientText>
           </h2>
@@ -70,46 +87,106 @@ export function Testimonials() {
           </p>
         </motion.div>
 
-        {/* Testimonials Grid */}
-        <div className="grid md:grid-cols-2 gap-6">
+        {/* Testimonials Grid with Parallax Effects */}
+        <div className="grid md:grid-cols-2 gap-8">
           {testimonials.map((testimonial, index) => (
             <motion.div
               key={testimonial.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              initial={{ opacity: 0, y: 30, scale: 0.95 }}
+              animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
+              transition={{ 
+                duration: 0.6, 
+                delay: index * 0.15,
+                type: "spring",
+                stiffness: 80
+              }}
+              whileHover={{ 
+                y: -8,
+                scale: 1.02
+              }}
             >
-              <GlowCard className="h-full">
-                {/* Quote icon */}
-                <Quote className="h-8 w-8 text-primary/20 mb-4" />
+              <GlowCard 
+                className="h-full relative overflow-hidden"
+                glowColor={index % 2 === 0 ? "rgba(34, 197, 94, 0.6)" : "rgba(59, 130, 246, 0.6)"}
+              >
+                {/* Floating quote icon */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: index * 0.15 + 0.2 }}
+                >
+                  <Quote className="h-8 w-8 text-primary/20 mb-4" />
+                </motion.div>
 
-                {/* Content */}
-                <p className="text-muted-foreground mb-6">
+                {/* Content with fade-in animation */}
+                <motion.p 
+                  className="text-muted-foreground mb-6"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: index * 0.15 + 0.3 }}
+                >
                   &quot;{testimonial.content}&quot;
-                </p>
+                </motion.p>
 
-                {/* Rating */}
-                <div className="flex gap-1 mb-4">
+                {/* Rating with stagger animation */}
+                <motion.div 
+                  className="flex gap-1 mb-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: index * 0.15 + 0.4 }}
+                >
                   {Array.from({ length: testimonial.rating }).map((_, i) => (
-                    <Star
+                    <motion.div
                       key={i}
-                      className="h-4 w-4 fill-yellow-500 text-yellow-500"
-                    />
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.2, delay: index * 0.15 + 0.4 + i * 0.1 }}
+                    >
+                      <Star
+                        className="h-4 w-4 fill-yellow-500 text-yellow-500"
+                      />
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
 
-                {/* Author */}
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center text-white font-semibold">
+                {/* Author with slide-up animation */}
+                <motion.div 
+                  className="flex items-center gap-4"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.15 + 0.5 }}
+                >
+                  <motion.div 
+                    className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center text-white font-semibold"
+                    whileHover={{ 
+                      scale: 1.1,
+                      rotate: 5
+                    }}
+                    transition={{ duration: 0.2 }}
+                  >
                     {testimonial.name.charAt(0)}
-                  </div>
+                  </motion.div>
                   <div>
                     <div className="font-semibold">{testimonial.name}</div>
                     <div className="text-sm text-muted-foreground">
                       {testimonial.role} at {testimonial.company}
                     </div>
                   </div>
-                </div>
+                </motion.div>
+
+                {/* Decorative elements */}
+                <motion.div 
+                  className="absolute top-0 right-0 w-20 h-20 border-t-2 border-r-2 border-primary/10 rounded-tr-xl"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: index * 0.15 + 0.6 }}
+                />
+                <motion.div 
+                  className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-primary/10 rounded-bl-xl"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: index * 0.15 + 0.7 }}
+                />
               </GlowCard>
             </motion.div>
           ))}

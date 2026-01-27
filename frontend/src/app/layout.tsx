@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
+import { SoundEffects } from "@/components/animations/SoundEffects";
 
 export const metadata: Metadata = {
   title: "TradeInsight AI - AI-Powered Market Intelligence",
@@ -31,7 +32,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="min-h-screen bg-background font-sans antialiased">
-        {children}
+        <SoundEffects>
+          {children}
+        </SoundEffects>
         <Toaster
           position="bottom-right"
           toastOptions={{

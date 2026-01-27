@@ -30,10 +30,10 @@ const footerLinks = {
 };
 
 const socialLinks = [
-  { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
-  { icon: Github, href: "https://github.com", label: "GitHub" },
-  { icon: Linkedin, href: "https://linkedin.com", label: "LinkedIn" },
-  { icon: Mail, href: "mailto:hello@tradeinsight.ai", label: "Email" },
+  { icon: Twitter, href: "https://x.com/Shubair313", label: "Twitter" },
+  { icon: Github, href: "https://github.com/mohdshubair313", label: "GitHub" },
+  { icon: Linkedin, href: "https://www.linkedin.com/in/mohd-shubair-b1a454250/", label: "LinkedIn" },
+  { icon: Mail, href: "mailto:[shubair313@gmail.com]", label: "Email" },
 ];
 
 export function Footer() {
@@ -142,17 +142,6 @@ export function Footer() {
           <p className="text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} TradeInsight AI. All rights
             reserved.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Powered by{" "}
-            <a
-              href="https://ai.google.dev/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              Google Gemini AI
-            </a>
           </p>
         </div>
       </div>

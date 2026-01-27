@@ -27,3 +27,6 @@ export {
   BorderBeamCard,
   NeonCard,
 } from "./AnimatedCard";
+
+// Sound Effects
+export { SoundEffects, useSoundEffects } from "./SoundEffects";
