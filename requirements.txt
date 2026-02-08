@@ -1,10 +1,39 @@
-fastapi
-uvicorn
-slowapi
-python-jose[cryptography]
-passlib
-python-dotenv
-google-generativeai
-duckduckgo-search
-pydantic
-pydantic-settings
+# Trade Opportunities API - Python Requirements
+# Version 2.0.0
+
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+
+# Database
+sqlalchemy==2.0.25
+aiosqlite==0.19.0
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+bcrypt==4.1.2
+passlib==1.7.4
+
+# Validation
+pydantic==2.5.3
+pydantic-settings==2.1.0
+email-validator==2.1.0
+
+# HTTP Client
+httpx==0.26.0
+
+# Rate Limiting
+slowapi==0.1.9
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# Data Collection
+duckduckgo-search==4.4.3
+
+# Google Gemini AI
+google-genai==0.3.0
+
+# Utilities
+python-multipart==0.0.6
+tenacity==8.2.3

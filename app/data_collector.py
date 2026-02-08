@@ -1,6 +1,6 @@
 import logging
 from typing import List, Dict
-from ddgs import DDGS
+from duckduckgo_search import DDGS
 import time
 
 MAX_RETRIES = 3
@@ -13,7 +13,7 @@ class DataCollector:
     """Collects market data from web sources."""
     
     def __init__(self):
-        self.ddgs = DDGS()
+        pass
     
     def search_sector_news(self, sector: str, max_results: int = 10) -> List[Dict]:
         """
@@ -28,35 +28,57 @@ class DataCollector:
         """
         try:
             # Create comprehensive search queries
-            
-            queries = [f"{sector} market news India"]
+            queries = [
+                f"{sector} sector trading opportunities India 2024",
+                f"{sector} market news India outlook",
+                f"India {sector} export import trends"
+            ]
             
             all_results = []
             seen_urls = set()
             
-            for query in queries:
-                for attempt in range(MAX_RETRIES):
-                    try:
-                        results = self.ddgs.text(query, region='in-en', max_results=5)
-                        logger.debug(f"Raw search results: {results}")
-                        for result in results:
-                            if result['href'] not in seen_urls:
-                                all_results.append({
-                                    'title': result.get('title', ''),
-                                    'body': result.get('body', ''),
-                                    'url': result.get('href', ''),
-                                    'query': query
-                                })
-                                seen_urls.add(result['href'])
-                                
-                                if len(all_results) >= max_results:
-                                    break
-                    except Exception as e:
-                        logger.warning(f"Error searching with query '{query}': {str(e)}")
-                        continue
+            # Use context manager for DDGS
+            with DDGS() as ddgs:
+                # Add a generic fallback query
+                queries.append(f"{sector} India news")
                 
-                if len(all_results) >= max_results:
-                    break
+                for query in queries:
+                    for attempt in range(MAX_RETRIES):
+                        try:
+                            # Try with India region first
+                            results = ddgs.text(query, region='in-en', max_results=5)
+                            results = list(results) if results else []
+                            
+                            # If no results with region, try global
+                            if not results:
+                                results = ddgs.text(query, max_results=5)
+                                results = list(results) if results else []
+                            
+                            logger.debug(f"Raw search results count for '{query}': {len(results)}")
+                            
+                            for result in results:
+                                href = result.get('href')
+                                if href and href not in seen_urls:
+                                    all_results.append({
+                                        'title': result.get('title', ''),
+                                        'body': result.get('body', ''),
+                                        'url': href,
+                                        'query': query
+                                    })
+                                    seen_urls.add(href)
+                                    
+                                    if len(all_results) >= max_results:
+                                        break
+                            
+                            # Break retry loop if successful (even if 0 new results found, the query executed)
+                            break
+                        except Exception as e:
+                            logger.warning(f"Error searching with query '{query}' (attempt {attempt+1}): {str(e)}")
+                            time.sleep(1)
+                            continue
+                    
+                    if len(all_results) >= max_results:
+                        break
             
             logger.info(f"Collected {len(all_results)} results for sector: {sector}")
             return all_results[:max_results]
