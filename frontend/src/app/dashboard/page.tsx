@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useCallback } from "react";
+import { useEffect, Suspense, useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -16,7 +16,7 @@ import { SectorSearch } from "@/components/dashboard/SectorSearch";
 import { StatsCard } from "@/components/ui/Card";
 import { MagicCard } from "@/components/animations/AnimatedCard";
 import { GradientText, NumberTicker } from "@/components/animations/AnimatedText";
-import { POPULAR_SECTORS } from "@/lib/api";
+import { POPULAR_SECTORS, getAvailableSectors, SectorInfo, getCurrentUser, isAuthenticated } from "@/lib/api";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useStore } from "@/store/useStore";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
@@ -27,10 +27,43 @@ function DashboardContent() {
   const router = useRouter();
   const { favorites, isFavorite } = useFavorites();
   const { analysisHistory } = useStore();
+  const [sectors, setSectors] = useState<SectorInfo[]>(() =>
+    POPULAR_SECTORS.map((name) => ({ name, icon: "✨", description: "" }))
+  );
+  const [needsPersona, setNeedsPersona] = useState(false);
 
   const handleAnalyze = useCallback((sector: string) => {
     router.push(`/results?sector=${encodeURIComponent(sector)}`);
   }, [router]);
+
+  // Load live sector catalog from the backend; fall back to hardcoded list on error.
+  useEffect(() => {
+    let cancelled = false;
+    getAvailableSectors()
+      .then((res) => {
+        if (!cancelled && res?.sectors?.length) setSectors(res.sectors);
+      })
+      .catch(() => {
+        // keep fallback
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Prompt authenticated users without a persona to complete onboarding.
+  useEffect(() => {
+    if (!isAuthenticated()) return;
+    let cancelled = false;
+    getCurrentUser()
+      .then((p) => {
+        if (!cancelled && !p.persona) setNeedsPersona(true);
+      })
+      .catch(() => { });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Check for sector in URL params
   useEffect(() => {
@@ -59,6 +92,40 @@ function DashboardContent() {
               Analyze any sector to discover trade opportunities in Indian markets
             </p>
           </motion.div>
+
+          {needsPersona && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 flex items-center justify-between gap-4 p-4 rounded-xl border border-primary/40 bg-primary/5"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Tell us who you are — reports will be written for you.</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    An investor sees entry/exit zones; an exporter sees HS codes and tariffs. 30 seconds.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setNeedsPersona(false)}
+                  className="text-xs text-muted-foreground hover:text-foreground px-2"
+                >
+                  Later
+                </button>
+                <button
+                  onClick={() => router.push("/settings")}
+                  className="text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  Set up
+                </button>
+              </div>
+            </motion.div>
+          )}
 
           {/* Search */}
           <motion.div
@@ -89,7 +156,7 @@ function DashboardContent() {
             />
             <StatsCard
               title="Sectors Available"
-              value={<NumberTicker value={POPULAR_SECTORS.length} />}
+              value={<NumberTicker value={sectors.length} />}
               change="+5 new"
               changeType="positive"
               icon={<TrendingUp className="h-5 w-5" />}
@@ -156,21 +223,26 @@ function DashboardContent() {
               </h2>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {POPULAR_SECTORS.slice(0, 10).map((sector, index) => (
+              {sectors.slice(0, 10).map((sector, index) => (
                 <motion.button
-                  key={sector}
+                  key={sector.name}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3 + index * 0.05 }}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => handleAnalyze(sector)}
+                  onClick={() => handleAnalyze(sector.name)}
                   className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
+                  title={sector.description || undefined}
                 >
                   <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2 group-hover:bg-primary/20 transition-colors">
-                    <Sparkles className="h-4 w-4 text-primary" />
+                    {sector.icon && sector.icon !== "✨" ? (
+                      <span className="text-base leading-none">{sector.icon}</span>
+                    ) : (
+                      <Sparkles className="h-4 w-4 text-primary" />
+                    )}
                   </div>
-                  <span className="text-sm font-medium">{sector}</span>
+                  <span className="text-sm font-medium">{sector.name}</span>
                 </motion.button>
               ))}
             </div>

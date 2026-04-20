@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import {
@@ -15,12 +15,12 @@ import {
   TrendingUp,
   AlertTriangle,
   Lightbulb,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { cn, formatDate } from "@/lib/utils";
-import { AnalysisResponse } from "@/lib/api";
-import { useStore } from "@/store/useStore";
+import { AnalysisResponse, AnalysisSource, exportAnalysis, ExportFormat } from "@/lib/api";
 import { useFavorites } from "@/hooks/useFavorites";
 import toast from "react-hot-toast";
 
@@ -30,6 +30,8 @@ interface AnalysisReportProps {
 
 export function AnalysisReport({ analysis }: AnalysisReportProps) {
   const [copied, setCopied] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
+  const [downloading, setDownloading] = useState<ExportFormat | null>(null);
   const { isFavorite: checkFavorite, toggleFavorite } = useFavorites();
   const isFavorite = checkFavorite(analysis.sector);
 
@@ -40,18 +42,44 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownload = () => {
-    const blob = new Blob([analysis.report], { type: "text/markdown" });
+  const downloadBlob = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${analysis.sector.toLowerCase().replace(/\s+/g, "-")}-analysis-${new Date().toISOString().split("T")[0]
-      }.md`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("Report downloaded!");
+  };
+
+  const safeSector = analysis.sector.toLowerCase().replace(/\s+/g, "-");
+  const today = new Date().toISOString().split("T")[0];
+
+  const handleDownloadMarkdown = () => {
+    const blob = new Blob([analysis.report], { type: "text/markdown" });
+    downloadBlob(blob, `${safeSector}-analysis-${today}.md`);
+    toast.success("Markdown downloaded.");
+    setDownloadOpen(false);
+  };
+
+  const handleDownloadServer = async (fmt: ExportFormat) => {
+    if (!analysis.id) {
+      toast.error("Save this analysis first — only stored analyses can be exported.");
+      return;
+    }
+    setDownloading(fmt);
+    try {
+      const blob = await exportAnalysis(analysis.id, fmt);
+      downloadBlob(blob, `${safeSector}-analysis-${today}.${fmt}`);
+      toast.success(`${fmt.toUpperCase()} downloaded.`);
+      setDownloadOpen(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : `Could not export ${fmt}.`;
+      toast.error(msg);
+    } finally {
+      setDownloading(null);
+    }
   };
 
   const handleShare = async () => {
@@ -84,6 +112,23 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
   };
 
   const sections = getReportSections();
+
+  // Rewrite inline [N] tokens into markdown links pointing at the cited source.
+  // Links get a recognisable anchor href (#src-N) so react-markdown preserves
+  // them; the <a> renderer below converts them into nice citation chips.
+  const sourcesById = useMemo(() => {
+    const map = new Map<number, AnalysisSource>();
+    analysis.sources?.forEach((s) => map.set(s.n, s));
+    return map;
+  }, [analysis.sources]);
+
+  const reportWithCitations = useMemo(() => {
+    if (!analysis.sources || analysis.sources.length === 0) return analysis.report;
+    return analysis.report.replace(/\[(\d+)\]/g, (whole, numStr: string) => {
+      const n = Number(numStr);
+      return sourcesById.has(n) ? `[\\[${n}\\]](#src-${n})` : whole;
+    });
+  }, [analysis.report, analysis.sources, sourcesById]);
 
   return (
     <motion.div
@@ -138,10 +183,57 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
             <Button variant="outline" size="sm" onClick={handleShare}>
               <Share2 className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={handleDownload}>
-              <Download className="h-4 w-4" />
-              Download
-            </Button>
+
+            <div className="relative">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDownloadOpen((v) => !v)}
+                isLoading={downloading !== null}
+              >
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+              {downloadOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setDownloadOpen(false)}
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute right-0 mt-2 w-56 rounded-xl border border-border bg-card shadow-lg z-20 overflow-hidden"
+                  >
+                    <ExportOption
+                      label="Markdown (.md)"
+                      description="Original report text"
+                      onClick={handleDownloadMarkdown}
+                      loading={false}
+                    />
+                    <ExportOption
+                      label="PDF"
+                      description="Polished, printable"
+                      onClick={() => handleDownloadServer("pdf")}
+                      loading={downloading === "pdf"}
+                    />
+                    <ExportOption
+                      label="Excel (.xlsx)"
+                      description="Sheets for summary + sources"
+                      onClick={() => handleDownloadServer("xlsx")}
+                      loading={downloading === "xlsx"}
+                    />
+                    <ExportOption
+                      label="PowerPoint (.pptx)"
+                      description="One slide per section · Pro"
+                      onClick={() => handleDownloadServer("pptx")}
+                      loading={downloading === "pptx"}
+                      badge="Pro"
+                    />
+                  </motion.div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -213,10 +305,69 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
                   {children}
                 </blockquote>
               ),
+              a: ({ href, children }) => {
+                // Citation chips use #src-N hrefs; all other links render as normal.
+                const citationMatch = href?.match(/^#src-(\d+)$/);
+                if (citationMatch) {
+                  const n = Number(citationMatch[1]);
+                  const source = sourcesById.get(n);
+                  if (!source) return <>{children}</>;
+                  return (
+                    <a
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={source.title}
+                      className="inline-flex items-center px-1 mx-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors no-underline align-super"
+                    >
+                      [{n}]
+                    </a>
+                  );
+                }
+                return (
+                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                    {children}
+                  </a>
+                );
+              },
             }}
           >
-            {analysis.report}
+            {reportWithCitations}
           </ReactMarkdown>
+
+          {analysis.sources && analysis.sources.length > 0 && (
+            <div className="mt-10 pt-6 border-t border-border">
+              <h3 className="text-lg font-semibold mb-4 text-foreground flex items-center gap-2">
+                <Globe className="h-4 w-4 text-primary" />
+                Sources ({analysis.sources.length})
+              </h3>
+              <ol className="space-y-2 list-none">
+                {analysis.sources.map((source) => (
+                  <li key={source.n} id={`src-${source.n}`} className="flex items-start gap-3 text-sm">
+                    <span className="flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded bg-primary/10 text-primary text-xs font-semibold">
+                      {source.n}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <a
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-foreground hover:text-primary transition-colors inline-flex items-start gap-1 group"
+                      >
+                        <span className="line-clamp-2">{source.title}</span>
+                        <ExternalLink className="h-3 w-3 mt-0.5 flex-shrink-0 opacity-60 group-hover:opacity-100" />
+                      </a>
+                      {source.snippet && (
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                          {source.snippet}
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
         </div>
       </div>
 
@@ -230,5 +381,40 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
         </div>
       )}
     </motion.div>
+  );
+}
+
+function ExportOption({
+  label,
+  description,
+  onClick,
+  loading,
+  badge,
+}: {
+  label: string;
+  description: string;
+  onClick: () => void;
+  loading: boolean;
+  badge?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      className="w-full flex items-start justify-between gap-3 p-3 text-left hover:bg-muted/50 transition-colors border-b border-border/40 last:border-b-0 disabled:opacity-50"
+    >
+      <div className="min-w-0">
+        <p className="text-sm font-medium flex items-center gap-2">
+          {label}
+          {badge && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary font-semibold uppercase tracking-wide">
+              {badge}
+            </span>
+          )}
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+      </div>
+      {loading && <div className="h-3 w-3 mt-1 rounded-full border-2 border-primary border-t-transparent animate-spin flex-shrink-0" />}
+    </button>
   );
 }

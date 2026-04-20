@@ -2,8 +2,7 @@
 
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
-import { motion, HTMLMotionProps } from "framer-motion";
-import { useSoundEffects } from "@/components/animations/SoundEffects";
+import { motion } from "framer-motion";
 
 const badgeVariants = cva(
   "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
@@ -40,8 +39,6 @@ export interface BadgeProps
 }
 
 function Badge({ className, variant, animated = false, ...props }: BadgeProps) {
-  const { playSound } = useSoundEffects();
-
   if (animated) {
     return (
       <motion.div
@@ -49,19 +46,15 @@ function Badge({ className, variant, animated = false, ...props }: BadgeProps) {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         whileHover={{ scale: 1.05 }}
-        onMouseEnter={() => playSound('hover')}
-        onClick={() => playSound('click')}
-        {...(props as any)}
+        {...(props as React.ComponentProps<typeof motion.div>)}
       />
     );
   }
 
   return (
-    <motion.div 
-      className={cn(badgeVariants({ variant }), className)} 
-      onMouseEnter={() => playSound('hover')}
-      onClick={() => playSound('click')}
-      {...(props as any)} 
+    <motion.div
+      className={cn(badgeVariants({ variant }), className)}
+      {...(props as React.ComponentProps<typeof motion.div>)}
     />
   );
 }

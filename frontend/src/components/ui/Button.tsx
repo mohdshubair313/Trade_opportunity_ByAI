@@ -1,11 +1,10 @@
 "use client";
 
 import { forwardRef } from "react";
-import { motion, HTMLMotionProps } from "framer-motion";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Loader2 } from "lucide-react";
-import { useSoundEffects } from "@/components/animations/SoundEffects";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
@@ -52,8 +51,6 @@ export interface ButtonProps
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, isLoading, children, ...props }, ref) => {
-    const { playSound } = useSoundEffects();
-
     return (
       <motion.button
         className={cn(buttonVariants({ variant, size, className }))}
@@ -61,9 +58,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         disabled={isLoading}
-        onMouseEnter={() => playSound('hover')}
-        onClick={() => playSound('click')}
-        {...(props as any)}
+        {...(props as React.ComponentProps<typeof motion.button>)}
       >
         {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
         {children}

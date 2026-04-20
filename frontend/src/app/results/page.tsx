@@ -1,15 +1,22 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { useAnalysis } from "@/hooks/useAnalysis";
-import { SectorVitals, CapitalFlowChart, TrendProjection, CorrelationHeatmap, SentimentBubbles } from "@/components/results/ResultsComponents";
-import { AnalysisReport } from "@/components/dashboard/AnalysisReport";
 import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { WatchButton } from "@/components/dashboard/WatchButton";
 
-export default function ResultsPage() {
+const SectorVitals = dynamic(() => import("@/components/results/ResultsComponents").then(m => ({ default: m.SectorVitals })), { ssr: false });
+const CapitalFlowChart = dynamic(() => import("@/components/results/ResultsComponents").then(m => ({ default: m.CapitalFlowChart })), { ssr: false });
+const TrendProjection = dynamic(() => import("@/components/results/ResultsComponents").then(m => ({ default: m.TrendProjection })), { ssr: false });
+const CorrelationHeatmap = dynamic(() => import("@/components/results/ResultsComponents").then(m => ({ default: m.CorrelationHeatmap })), { ssr: false });
+const SentimentBubbles = dynamic(() => import("@/components/results/ResultsComponents").then(m => ({ default: m.SentimentBubbles })), { ssr: false });
+const AnalysisReport = dynamic(() => import("@/components/dashboard/AnalysisReport").then(m => ({ default: m.AnalysisReport })), { ssr: false });
+
+function ResultsContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const sector = searchParams.get("sector");
@@ -48,7 +55,8 @@ export default function ResultsPage() {
                     </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 items-center">
+                    <WatchButton sector={sector} />
                     <div className="px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary flex items-center gap-2">
                         <Sparkles className="h-3 w-3" /> Gemini Ultra Enabled
                     </div>
@@ -96,7 +104,7 @@ export default function ResultsPage() {
 
                     {/* Middle Row: Charts */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[300px]">
-                        <SentimentBubbles />
+                        <SentimentBubbles sector={sector} />
                         <CorrelationHeatmap />
                         <TrendProjection sector={sector} />
                     </div>
@@ -109,5 +117,18 @@ export default function ResultsPage() {
                 </motion.div>
             )}
         </div>
+    );
+}
+
+export default function ResultsPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-col items-center justify-center min-h-screen">
+                <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+                <p className="text-muted-foreground">Loading...</p>
+            </div>
+        }>
+            <ResultsContent />
+        </Suspense>
     );
 }

@@ -28,5 +28,3 @@ export {
   NeonCard,
 } from "./AnimatedCard";
 
-// Sound Effects
-export { SoundEffects, useSoundEffects } from "./SoundEffects";

@@ -9,7 +9,6 @@ import {
   TypewriterText,
   BlurIn,
 } from "@/components/animations/AnimatedText";
-import { useSoundEffects } from "@/components/animations/SoundEffects";
 import Link from "next/link";
 
 const sectors = [
@@ -32,7 +31,6 @@ const floatingElements = [
 
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { playSound } = useSoundEffects();
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
@@ -315,8 +313,6 @@ export function Hero() {
               transition={{ duration: 0.3, delay: 0.8 + i * 0.1 }}
               whileHover={{ scale: 1.05, y: -5 }}
               className="relative p-6 rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm group cursor-pointer"
-              onMouseEnter={() => playSound('hover')}
-              onClick={() => playSound('click')}
             >
               <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative">

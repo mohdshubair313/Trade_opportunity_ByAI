@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { GradientText } from "@/components/animations/AnimatedText";
 import { GridBackground, Spotlight } from "@/components/animations/AnimatedBackground";
-import { login, register, LoginRequest, RegisterRequest } from "@/lib/api";
+import { login, register } from "@/lib/api";
 import { useStore } from "@/store/useStore";
 
 type AuthMode = "login" | "register";

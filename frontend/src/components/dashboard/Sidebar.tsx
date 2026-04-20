@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -17,27 +17,65 @@ import {
   CreditCard,
   LogOut,
   User,
+  Bell,
+  GitCompareArrows,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useStore } from "@/store/useStore";
+import { listAlerts } from "@/lib/api";
+import { isAuthenticated as checkAuth } from "@/lib/api";
 
-const navItems = [
+type NavItem = {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  href: string;
+  badgeKey?: "alerts";
+};
+
+const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Search, label: "New Analysis", href: "/dashboard?new=true" },
+  { icon: GitCompareArrows, label: "Compare", href: "/compare" },
+  { icon: Bell, label: "Alerts", href: "/alerts", badgeKey: "alerts" },
   { icon: History, label: "History", href: "/dashboard?view=history" },
   { icon: Star, label: "Favorites", href: "/dashboard?view=favorites" },
   { icon: CreditCard, label: "Upgrade", href: "/pricing" },
-  { icon: Settings, label: "Settings", href: "/dashboard?view=settings" },
+  { icon: Settings, label: "Settings", href: "/settings" },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [search, setSearch] = useState("");
+  const [unreadAlerts, setUnreadAlerts] = useState(0);
   const { user, logout } = useAuth();
   const { favorites } = useFavorites();
   const { analysisHistory } = useStore();
+
+  useEffect(() => {
+    setSearch(window.location.search);
+    const onChange = () => setSearch(window.location.search);
+    window.addEventListener("popstate", onChange);
+    return () => window.removeEventListener("popstate", onChange);
+  }, []);
+
+  // Poll unread alert count every 60s while the sidebar is mounted.
+  useEffect(() => {
+    if (!checkAuth()) return;
+    let cancelled = false;
+    const load = () =>
+      listAlerts(false, 1)
+        .then((res) => !cancelled && setUnreadAlerts(res.unread))
+        .catch(() => { });
+    load();
+    const id = setInterval(load, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
 
   return (
     <motion.aside
@@ -84,14 +122,14 @@ export function Sidebar() {
         <ul className="space-y-1 px-2">
           {navItems.map((item) => {
             const isActive = pathname === item.href ||
-              (item.href.includes("?") && pathname + window?.location?.search === item.href);
+              (item.href.includes("?") && pathname + search === item.href);
 
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
+                    "relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
                     isActive
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -113,6 +151,16 @@ export function Sidebar() {
                   {!isCollapsed && item.label === "Upgrade" && (
                     <span className="ml-auto px-2 py-0.5 rounded-full bg-primary/20 text-primary text-xs">
                       Pro
+                    </span>
+                  )}
+                  {item.badgeKey === "alerts" && unreadAlerts > 0 && (
+                    <span
+                      className={cn(
+                        "ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center",
+                        isCollapsed && "absolute top-1 right-1 ml-0"
+                      )}
+                    >
+                      {unreadAlerts > 9 ? "9+" : unreadAlerts}
                     </span>
                   )}
                 </Link>

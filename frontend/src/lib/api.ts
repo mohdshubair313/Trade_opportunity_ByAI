@@ -41,6 +41,13 @@ const clearTokens = (): void => {
   }
 };
 
+// Error shape returned by the backend
+interface ApiErrorBody {
+  error: string;
+  message: string;
+  code?: string;
+}
+
 // Add auth token to requests
 api.interceptors.request.use((config) => {
   const token = getToken();
@@ -51,41 +58,47 @@ api.interceptors.request.use((config) => {
 });
 
 // Handle response errors and token refresh
+let isRefreshing = false;
+
 api.interceptors.response.use(
   (response) => response,
-  async (error: AxiosError) => {
+  async (error: AxiosError<ApiErrorBody>) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && originalRequest) {
-      const refreshToken = getRefreshToken();
+    if (error.response?.status === 401 && originalRequest && !isRefreshing) {
+      const refreshTokenValue = getRefreshToken();
 
-      if (refreshToken && !originalRequest.url?.includes("/auth/refresh")) {
+      if (refreshTokenValue && !originalRequest.url?.includes("/auth/refresh")) {
+        isRefreshing = true;
         try {
-          // Try to refresh the token
           const response = await axios.post<TokenResponse>(
             `${API_BASE_URL}/api/v1/auth/refresh`,
-            { refresh_token: refreshToken }
+            { refresh_token: refreshTokenValue }
           );
 
           setTokens(response.data.access_token, response.data.refresh_token);
 
-          // Retry the original request with new token
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${response.data.access_token}`;
           }
           return api(originalRequest);
-        } catch (refreshError) {
-          // Refresh failed, clear tokens and redirect to login
+        } catch {
           clearTokens();
           if (typeof window !== "undefined") {
             window.location.href = "/login";
           }
+        } finally {
+          isRefreshing = false;
         }
       } else {
         clearTokens();
       }
     }
-    return Promise.reject(error);
+
+    // Extract meaningful error message from API response
+    const apiError = error.response?.data;
+    const message = apiError?.message || apiError?.error || error.message;
+    return Promise.reject(new Error(message));
   }
 );
 
@@ -110,6 +123,10 @@ export interface TokenResponse {
   expires_in: number;
 }
 
+export type Persona = "investor" | "exporter" | "sme_owner" | "student" | "consultant";
+export type CapitalRange = "under_5L" | "5L_50L" | "50L_5Cr" | "5Cr_plus";
+export type RiskAppetite = "low" | "medium" | "high";
+
 export interface UserProfile {
   id: number;
   username: string;
@@ -117,6 +134,11 @@ export interface UserProfile {
   full_name: string | null;
   is_active: boolean;
   is_premium: boolean;
+  tier?: string;
+  persona?: Persona | null;
+  capital_range?: CapitalRange | null;
+  region?: string | null;
+  risk_appetite?: RiskAppetite | null;
   created_at: string;
   last_login: string | null;
 }
@@ -129,11 +151,19 @@ export interface UserStats {
   is_premium: boolean;
 }
 
+export interface AnalysisSource {
+  n: number;
+  title: string;
+  url: string;
+  snippet?: string | null;
+}
+
 export interface AnalysisResponse {
   id?: number;
   sector: string;
   report: string;
   sources_analyzed: number;
+  sources?: AnalysisSource[];
   saved_to?: string;
   timestamp: string;
   cached: boolean;
@@ -299,6 +329,237 @@ export async function addFavorite(sector: string): Promise<void> {
 
 export async function removeFavorite(sector: string): Promise<void> {
   await api.delete(`/api/v1/favorites/${encodeURIComponent(sector)}`);
+}
+
+// ==================== Compare API (§4.5) ====================
+
+export interface CompareSectorScore {
+  sector: string;
+  opportunity_score: number;
+  risk_score: number;
+  capital_required: "low" | "medium" | "high";
+  time_to_roi: "short" | "medium" | "long";
+  sentiment_score: number;
+  top_opportunity: string;
+  top_risk: string;
+}
+
+export interface CompareResponse {
+  winner: string;
+  headline: string;
+  scores: CompareSectorScore[];
+  generated_at: string;
+}
+
+export async function compareSectors(sectors: string[]): Promise<CompareResponse> {
+  const response = await api.post<CompareResponse>("/api/v1/analyze/compare", { sectors });
+  return response.data;
+}
+
+// ==================== Export API (§3.3 / §4.4) ====================
+
+export type ExportFormat = "pdf" | "xlsx" | "pptx" | "md";
+
+/**
+ * Download a previously-saved analysis as PDF / Excel / PowerPoint / Markdown.
+ * Returns a Blob; caller is responsible for triggering the download.
+ */
+export async function exportAnalysis(analysisId: number, format: ExportFormat): Promise<Blob> {
+  const response = await api.get(`/api/v1/history/${analysisId}/export`, {
+    params: { format },
+    responseType: "blob",
+  });
+  return response.data as Blob;
+}
+
+// ==================== Watchlists + Alerts API (§4.2) ====================
+
+export type WatchlistCadence = "hourly" | "daily" | "weekly";
+export type WatchlistChannel = "in_app" | "email";
+
+export interface WatchlistItem {
+  id: number;
+  sector: string;
+  cadence: WatchlistCadence;
+  channels: WatchlistChannel[];
+  is_active: boolean;
+  last_run_at: string | null;
+  next_run_at: string | null;
+  created_at: string;
+}
+
+export interface WatchlistsResponse {
+  items: WatchlistItem[];
+  count: number;
+  slot_limit: number;
+  slots_used: number;
+}
+
+export interface WatchlistCreateRequest {
+  sector: string;
+  cadence: WatchlistCadence;
+  channels: WatchlistChannel[];
+}
+
+export async function listWatchlists(): Promise<WatchlistsResponse> {
+  const response = await api.get<WatchlistsResponse>("/api/v1/watchlists");
+  return response.data;
+}
+
+export async function createWatchlist(data: WatchlistCreateRequest): Promise<WatchlistItem> {
+  const response = await api.post<WatchlistItem>("/api/v1/watchlists", data);
+  return response.data;
+}
+
+export async function deleteWatchlist(id: number): Promise<void> {
+  await api.delete(`/api/v1/watchlists/${id}`);
+}
+
+export interface AlertItem {
+  id: number;
+  sector: string;
+  headline: string;
+  direction: "up" | "down" | "neutral";
+  confidence: number;
+  summary: string | null;
+  analysis_id: number | null;
+  triggered_at: string;
+  acknowledged_at: string | null;
+}
+
+export interface AlertsResponse {
+  items: AlertItem[];
+  unread: number;
+}
+
+export async function listAlerts(includeSeen = false, limit = 50): Promise<AlertsResponse> {
+  const response = await api.get<AlertsResponse>("/api/v1/alerts", {
+    params: { include_seen: includeSeen, limit },
+  });
+  return response.data;
+}
+
+export async function acknowledgeAlert(id: number): Promise<AlertItem> {
+  const response = await api.post<AlertItem>(`/api/v1/alerts/${id}/acknowledge`);
+  return response.data;
+}
+
+// ==================== Market Data API (§4.1) ====================
+
+export interface MarketVitals {
+  close: number;
+  change_pct: number;
+  volume: number;
+  day_high: number;
+  day_low: number;
+}
+
+export interface TrendPoint {
+  month: string;
+  year: number;
+  close: number;
+}
+
+export interface MarketDataResponse {
+  status: "ok" | "unavailable";
+  sector: string;
+  ticker: string | null;
+  vitals?: MarketVitals;
+  benchmark?: { close: number; change_pct: number } | null;
+  fifty_two_week?: { high: number; low: number } | null;
+  trend?: TrendPoint[];
+  captured_at?: string;
+  reason?: string;
+}
+
+export interface NewsItem {
+  title: string;
+  body: string;
+  url: string;
+  source: string | null;
+  published_at: string | null;
+  sentiment_score: number;
+  sentiment_label: "bullish" | "bearish" | "neutral";
+}
+
+export interface NewsResponse {
+  sector: string;
+  count: number;
+  items: NewsItem[];
+}
+
+export async function getMarketData(sector: string): Promise<MarketDataResponse> {
+  const response = await api.get<MarketDataResponse>(
+    `/api/v1/sectors/${encodeURIComponent(sector)}/market-data`
+  );
+  return response.data;
+}
+
+export interface RelativeStrengthPoint {
+  date: string;
+  value: number;
+}
+
+export interface RelativeStrengthResponse {
+  status: "ok" | "unavailable";
+  sector: string;
+  ticker?: string | null;
+  benchmark_ticker?: string;
+  sector_series?: RelativeStrengthPoint[];
+  benchmark_series?: RelativeStrengthPoint[];
+  outperformance_pct?: number;
+  sector_total_return_pct?: number;
+  benchmark_total_return_pct?: number;
+  captured_at?: string;
+  reason?: string;
+}
+
+export async function getRelativeStrength(sector: string): Promise<RelativeStrengthResponse> {
+  const response = await api.get<RelativeStrengthResponse>(
+    `/api/v1/sectors/${encodeURIComponent(sector)}/relative-strength`
+  );
+  return response.data;
+}
+
+export interface CorrelationMatrix {
+  labels: string[];
+  matrix: number[][];
+  window_days: number;
+  skipped: string[];
+  captured_at: string;
+}
+
+export async function getCorrelationMatrix(): Promise<CorrelationMatrix> {
+  const response = await api.get<CorrelationMatrix>("/api/v1/sectors/correlations");
+  return response.data;
+}
+
+export async function getSectorNews(sector: string, limit = 10): Promise<NewsResponse> {
+  const response = await api.get<NewsResponse>(
+    `/api/v1/sectors/${encodeURIComponent(sector)}/news`,
+    { params: { limit } }
+  );
+  return response.data;
+}
+
+// ==================== Contact API ====================
+
+export interface ContactRequest {
+  name: string;
+  email: string;
+  message: string;
+  company?: string;
+  plan_interest?: string;
+}
+
+export interface ContactResponse {
+  id: number;
+  message: string;
+}
+
+export async function submitContact(data: ContactRequest): Promise<ContactResponse> {
+  const response = await api.post<ContactResponse>("/api/v1/contact", data);
+  return response.data;
 }
 
 // ==================== Info API ====================
