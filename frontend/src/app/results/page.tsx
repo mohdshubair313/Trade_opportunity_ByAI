@@ -20,17 +20,29 @@ function ResultsContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const sector = searchParams.get("sector");
+    const idParam = searchParams.get("id");
 
-    const { analyze, analysis, isLoading: isAnalyzing, error } = useAnalysis();
+    const { analyze, fetchAnalysisById, analysis, isLoading: isAnalyzing, error } = useAnalysis();
 
-    // Trigger analysis on mount
+    // Load stored report when `?id=` is present (clicking a history/recent
+    // card). Otherwise kick off a fresh analysis by sector. Guards against
+    // double-fire from React StrictMode.
     useEffect(() => {
+        const parsedId = idParam ? Number(idParam) : NaN;
+        if (!Number.isNaN(parsedId) && parsedId > 0) {
+            fetchAnalysisById(parsedId).catch(() => { });
+            return;
+        }
         if (sector) {
             analyze(sector);
         }
-    }, [sector]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [sector, idParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    if (!sector) {
+    // Prefer the sector name that came back with the stored analysis — the URL
+    // only had an id, but the header still needs a title to render.
+    const displaySector = sector || analysis?.sector || "";
+
+    if (!sector && !idParam) {
         return (
             <div className="flex flex-col items-center justify-center h-full p-8 text-center">
                 <h2 className="text-2xl font-bold mb-4">No Sector Selected</h2>
@@ -38,6 +50,11 @@ function ResultsContent() {
             </div>
         );
     }
+
+    // When loading by id, the sector name only becomes known after the fetch
+    // returns — gate the market-data panels on that so they don't fire requests
+    // against an empty sector string.
+    const isLoadingView = isAnalyzing || (!!idParam && !analysis && !error);
 
     return (
         <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
@@ -49,30 +66,36 @@ function ResultsContent() {
                     </Button>
                     <div>
                         <h1 className="text-3xl font-bold flex items-center gap-2">
-                            {sector} <span className="text-primary/60 text-lg font-normal">Analysis</span>
+                            {displaySector || "Loading…"} <span className="text-primary/60 text-lg font-normal">Analysis</span>
                         </h1>
                         <p className="text-muted-foreground text-sm">AI-Powered Market Intelligence • v2.1</p>
                     </div>
                 </div>
 
                 <div className="flex gap-3 items-center">
-                    <WatchButton sector={sector} />
+                    {displaySector && <WatchButton sector={displaySector} />}
                     <div className="px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary flex items-center gap-2">
-                        <Sparkles className="h-3 w-3" /> Gemini Ultra Enabled
+                        <Sparkles className="h-3 w-3" /> Agentic AI · Live
                     </div>
                 </div>
             </div>
 
-            {isAnalyzing ? (
+            {isLoadingView ? (
                 <div className="flex flex-col items-center justify-center min-h-[400px]">
                     <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-                    <p className="text-muted-foreground animate-pulse">Analyzing market data sources...</p>
+                    <p className="text-muted-foreground animate-pulse">
+                        {idParam ? "Loading saved report…" : "Analyzing market data sources..."}
+                    </p>
                 </div>
             ) : error ? (
                 <div className="border border-red-500/50 bg-red-500/10 rounded-xl p-8 text-center">
                     <h3 className="text-xl font-bold text-red-500 mb-2">Analysis Failed</h3>
                     <p className="text-muted-foreground mb-4">{error}</p>
-                    <Button onClick={() => analyze(sector)}>Retry Analysis</Button>
+                    <Button onClick={() => {
+                        const parsedId = idParam ? Number(idParam) : NaN;
+                        if (!Number.isNaN(parsedId) && parsedId > 0) fetchAnalysisById(parsedId).catch(() => { });
+                        else if (displaySector) analyze(displaySector);
+                    }}>Retry</Button>
                 </div>
             ) : (
                 <motion.div
@@ -83,13 +106,13 @@ function ResultsContent() {
                     {/* Top Row: Vitals & Capital Flow & AI Summary Header */}
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                         <div className="md:col-span-3">
-                            <SectorVitals sector={sector} />
+                            {displaySector && <SectorVitals sector={displaySector} />}
                         </div>
                         <div className="md:col-span-6 flex flex-col gap-6">
                             {/* Main AI Insight Summary Card could go here or the Report */}
                             <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-6 min-h-[200px]">
                                 <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                                    <Sparkles className="h-4 w-4 text-primary" /> Gemini Intelligence
+                                    <Sparkles className="h-4 w-4 text-primary" /> AI Intelligence
                                 </h3>
                                 <div className="prose prose-invert prose-sm max-w-none line-clamp-6">
                                     {/* Extract simplified text from report or show simplified view */}
@@ -98,15 +121,15 @@ function ResultsContent() {
                             </div>
                         </div>
                         <div className="md:col-span-3">
-                            <CapitalFlowChart sector={sector} />
+                            {displaySector && <CapitalFlowChart sector={displaySector} />}
                         </div>
                     </div>
 
                     {/* Middle Row: Charts */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[300px]">
-                        <SentimentBubbles sector={sector} />
+                        {displaySector && <SentimentBubbles sector={displaySector} />}
                         <CorrelationHeatmap />
-                        <TrendProjection sector={sector} />
+                        {displaySector && <TrendProjection sector={displaySector} />}
                     </div>
 
                     {/* Bottom: Detailed Report */}

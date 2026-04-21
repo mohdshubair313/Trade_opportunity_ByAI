@@ -2,67 +2,67 @@
 
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { GradientText } from "@/components/animations/AnimatedText";
-import { RippleBackground } from "@/components/animations/AnimatedBackground";
 import Link from "next/link";
+import { TextReveal } from "@/components/animations/TextReveal";
 
 export function CTA() {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section className="py-24 px-4 relative overflow-hidden" ref={ref}>
-      <RippleBackground className="opacity-30" />
-
-      <div className="container mx-auto relative z-10">
+    <section ref={ref} className="relative py-28 px-4 overflow-hidden">
+      <div className="container mx-auto">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          initial={{ opacity: 0, y: 16 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
-          className="relative rounded-3xl overflow-hidden"
+          className="relative mx-auto max-w-4xl rounded-3xl border border-border bg-card overflow-hidden"
         >
-          {/* Gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-emerald-500/20 to-teal-500/20" />
-          <div className="absolute inset-0 glass" />
+          {/* Subtle emerald wash — no ripples, no glass, no meteors. */}
+          <div
+            className="absolute inset-0 opacity-60 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(60% 120% at 50% 0%, hsl(var(--primary) / 0.12) 0%, transparent 70%)",
+            }}
+          />
+          <div
+            className="absolute inset-x-0 bottom-0 h-px"
+            style={{
+              background:
+                "linear-gradient(to right, transparent, hsl(var(--primary) / 0.4), transparent)",
+            }}
+          />
 
-          {/* Content */}
-          <div className="relative p-12 md:p-20 text-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={isInView ? { opacity: 1, scale: 1 } : {}}
-              transition={{ duration: 0.5, delay: 0.2 }}
+          <div className="relative px-8 md:px-16 py-16 md:py-20 text-center">
+            <TextReveal
+              as="h2"
+              stagger={0.05}
+              className="text-3xl md:text-5xl font-semibold tracking-tight leading-[1.1] block"
             >
-              <Sparkles className="h-12 w-12 text-primary mx-auto mb-6" />
-            </motion.div>
-
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">
-              Ready to Discover{" "}
-              <GradientText>Trade Opportunities?</GradientText>
-            </h2>
-
-            <p className="text-muted-foreground max-w-2xl mx-auto mb-8 text-lg">
-              Join thousands of businesses using AI-powered market intelligence
-              to identify opportunities and make data-driven decisions.
+              Ready to see your sector, <span className="font-display italic text-primary/95">properly analysed?</span>
+            </TextReveal>
+            <p className="mt-5 mx-auto max-w-xl text-base text-muted-foreground leading-relaxed">
+              Sign in, pick a sector, hit analyze. The first report is free — no
+              credit card, no sales call.
             </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="mt-9 flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/dashboard">
-                <Button size="xl" variant="glow" className="group">
-                  Start Free Analysis
-                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                <Button size="lg" className="group h-11 px-6 text-sm font-medium">
+                  Start analyzing
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Button>
               </Link>
               <Link href="/pricing">
-                <Button size="xl" variant="outline">
-                  See Pricing Plans
+                <Button size="lg" variant="outline" className="h-11 px-6 text-sm font-medium">
+                  See pricing
                 </Button>
               </Link>
             </div>
-
-            <p className="mt-6 text-sm text-muted-foreground">
-              No credit card required • Free tier available • Cancel anytime
+            <p className="mt-6 text-xs text-muted-foreground">
+              Free tier · Cancel any time · Data stays yours
             </p>
           </div>
         </motion.div>

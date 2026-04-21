@@ -23,8 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useFavorites } from "@/hooks/useFavorites";
-import { useStore } from "@/store/useStore";
-import { listAlerts } from "@/lib/api";
+import { listAlerts, getAnalysisHistory } from "@/lib/api";
 import { isAuthenticated as checkAuth } from "@/lib/api";
 
 type NavItem = {
@@ -39,8 +38,8 @@ const navItems: NavItem[] = [
   { icon: Search, label: "New Analysis", href: "/dashboard?new=true" },
   { icon: GitCompareArrows, label: "Compare", href: "/compare" },
   { icon: Bell, label: "Alerts", href: "/alerts", badgeKey: "alerts" },
-  { icon: History, label: "History", href: "/dashboard?view=history" },
-  { icon: Star, label: "Favorites", href: "/dashboard?view=favorites" },
+  { icon: History, label: "History", href: "/history" },
+  { icon: Star, label: "Favorites", href: "/favorites" },
   { icon: CreditCard, label: "Upgrade", href: "/pricing" },
   { icon: Settings, label: "Settings", href: "/settings" },
 ];
@@ -50,9 +49,9 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [search, setSearch] = useState("");
   const [unreadAlerts, setUnreadAlerts] = useState(0);
+  const [analysisCount, setAnalysisCount] = useState(0);
   const { user, logout } = useAuth();
   const { favorites } = useFavorites();
-  const { analysisHistory } = useStore();
 
   useEffect(() => {
     setSearch(window.location.search);
@@ -76,6 +75,24 @@ export function Sidebar() {
       clearInterval(id);
     };
   }, []);
+
+  // Pull the count of this user's saved analyses for the Quick Stats panel.
+  // Refresh on navigation so the number is current after a new analysis or
+  // a delete from /history. We request page=1 with per_page=1 and read the
+  // `total` field — no need to hydrate the full list in the sidebar.
+  useEffect(() => {
+    if (!checkAuth()) {
+      setAnalysisCount(0);
+      return;
+    }
+    let cancelled = false;
+    getAnalysisHistory(1, 1)
+      .then((res) => !cancelled && setAnalysisCount(res.total))
+      .catch(() => !cancelled && setAnalysisCount(0));
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   return (
     <motion.aside
@@ -183,7 +200,7 @@ export function Sidebar() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Analyses</span>
-                <span className="font-medium">{analysisHistory.length}</span>
+                <span className="font-medium">{analysisCount}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Favorites</span>

@@ -149,7 +149,7 @@ export default function ComparePage() {
                 <div className="bg-card border border-border/60 rounded-2xl p-12 flex flex-col items-center justify-center text-center">
                     <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
                     <p className="text-sm text-muted-foreground">
-                        Running parallel analyses for {sectors.length} sectors — news, market data and Gemini scoring…
+                        Running parallel analyses for {sectors.length} sectors — news, market data and agentic AI scoring…
                     </p>
                 </div>
             )}

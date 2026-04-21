@@ -7,7 +7,6 @@ import {
   Menu,
   X,
   ChevronDown,
-  Sparkles,
   User,
   LogOut,
 } from "lucide-react";
@@ -52,21 +51,21 @@ export function Header() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+          "fixed top-0 left-0 right-0 z-50 transition-colors duration-300",
           isScrolled
-            ? "bg-background/80 backdrop-blur-lg border-b border-border shadow-lg"
+            ? "bg-background/70 backdrop-blur-xl border-b border-border/60"
             : "bg-transparent"
         )}
       >
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-white" />
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
+                <TrendingUp className="h-4 w-4 text-primary-foreground" strokeWidth={2.5} />
               </div>
-              <span className="font-bold text-xl hidden sm:inline">
-                Trade<span className="text-primary">Insight</span>
+              <span className="font-semibold tracking-tight text-base hidden sm:inline">
+                TradeInsight
               </span>
             </Link>
 
@@ -147,9 +146,8 @@ export function Header() {
                     </Button>
                   </Link>
                   <Link href="/dashboard">
-                    <Button size="sm" className="gap-2">
-                      <Sparkles className="h-4 w-4" />
-                      Get Started
+                    <Button size="sm">
+                      Get started
                     </Button>
                   </Link>
                 </div>
@@ -233,9 +231,8 @@ export function Header() {
                       </Button>
                     </Link>
                     <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button className="w-full gap-2">
-                        <Sparkles className="h-4 w-4" />
-                        Get Started
+                      <Button className="w-full">
+                        Get started
                       </Button>
                     </Link>
                   </>

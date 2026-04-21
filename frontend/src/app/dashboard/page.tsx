@@ -16,9 +16,8 @@ import { SectorSearch } from "@/components/dashboard/SectorSearch";
 import { StatsCard } from "@/components/ui/Card";
 import { MagicCard } from "@/components/animations/AnimatedCard";
 import { GradientText, NumberTicker } from "@/components/animations/AnimatedText";
-import { POPULAR_SECTORS, getAvailableSectors, SectorInfo, getCurrentUser, isAuthenticated } from "@/lib/api";
+import { POPULAR_SECTORS, getAvailableSectors, SectorInfo, getCurrentUser, isAuthenticated, getAnalysisHistory, AnalysisHistoryItem } from "@/lib/api";
 import { useFavorites } from "@/hooks/useFavorites";
-import { useStore } from "@/store/useStore";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { formatDate } from "@/lib/utils";
 
@@ -26,14 +25,23 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { favorites, isFavorite } = useFavorites();
-  const { analysisHistory } = useStore();
   const [sectors, setSectors] = useState<SectorInfo[]>(() =>
     POPULAR_SECTORS.map((name) => ({ name, icon: "✨", description: "" }))
   );
   const [needsPersona, setNeedsPersona] = useState(false);
+  // Server-truth history for Recent Analyses. Pulled from /api/v1/history so
+  // clicking a card opens the stored report instead of triggering a fresh run.
+  const [remoteHistory, setRemoteHistory] = useState<AnalysisHistoryItem[]>([]);
+  const [totalAnalyses, setTotalAnalyses] = useState(0);
 
   const handleAnalyze = useCallback((sector: string) => {
     router.push(`/results?sector=${encodeURIComponent(sector)}`);
+  }, [router]);
+
+  // Route by stored id when we know it — that path hits /api/v1/history/{id}
+  // and renders the saved report instead of re-running analysis.
+  const openStored = useCallback((id: number, sector: string) => {
+    router.push(`/results?id=${id}&sector=${encodeURIComponent(sector)}`);
   }, [router]);
 
   // Load live sector catalog from the backend; fall back to hardcoded list on error.
@@ -58,6 +66,28 @@ function DashboardContent() {
     getCurrentUser()
       .then((p) => {
         if (!cancelled && !p.persona) setNeedsPersona(true);
+      })
+      .catch(() => { });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Pull the real history from the backend so Recent Analyses reflects the
+  // current user's saved reports — not the zustand/localStorage cache which
+  // can be stale or mixed between accounts on shared browsers.
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      setRemoteHistory([]);
+      setTotalAnalyses(0);
+      return;
+    }
+    let cancelled = false;
+    getAnalysisHistory(1, 12)
+      .then((res) => {
+        if (cancelled) return;
+        setRemoteHistory(res.items);
+        setTotalAnalyses(res.total);
       })
       .catch(() => { });
     return () => {
@@ -146,7 +176,7 @@ function DashboardContent() {
           >
             <StatsCard
               title="Total Analyses"
-              value={<NumberTicker value={analysisHistory.length} />}
+              value={<NumberTicker value={totalAnalyses} />}
               icon={<FileText className="h-5 w-5" />}
             />
             <StatsCard
@@ -168,17 +198,27 @@ function DashboardContent() {
             />
           </motion.div>
 
-          {/* Recent History */}
-          {analysisHistory.length > 0 && (
+          {/* Recent Analyses — strictly server-truth. We intentionally do NOT
+              fall back to the local zustand history here for authenticated
+              users: that array is per-browser, not per-account, and reading
+              it as a backup leaked one user's sectors into the next user's
+              dashboard when both signed in on the same browser. */}
+          {remoteHistory.length > 0 && (
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                   <Clock className="h-5 w-5 text-primary" />
                   Recent Analyses
                 </h2>
+                <button
+                  onClick={() => router.push("/history")}
+                  className="text-xs text-primary hover:underline font-medium"
+                >
+                  View all →
+                </button>
               </div>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {analysisHistory.slice(0, 6).map((item, index) => (
+                {remoteHistory.slice(0, 6).map((item, index) => (
                   <motion.div
                     key={item.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -187,7 +227,7 @@ function DashboardContent() {
                   >
                     <MagicCard
                       className="cursor-pointer"
-                      onClick={() => handleAnalyze(item.sector)}
+                      onClick={() => openStored(item.id, item.sector)}
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -201,10 +241,10 @@ function DashboardContent() {
                         {item.sector}
                       </h3>
                       <p className="text-sm text-muted-foreground mb-3">
-                        {item.sources} sources analyzed
+                        {item.sources_analyzed} sources analyzed
                       </p>
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{formatDate(item.timestamp)}</span>
+                        <span>{formatDate(item.created_at)}</span>
                         <ArrowRight className="h-3 w-3" />
                       </div>
                     </MagicCard>

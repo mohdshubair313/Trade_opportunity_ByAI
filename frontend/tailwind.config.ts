@@ -46,10 +46,12 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)"],
-        mono: ["var(--font-geist-mono)"],
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Georgia", "Cambria", "serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       animation: {
+        "marquee-scroll": "marquee-scroll var(--marquee-duration, 40s) linear infinite",
         "shine": "shine 2s linear infinite",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         "float": "float 6s ease-in-out infinite",
@@ -65,6 +67,10 @@ const config: Config = {
         "scale-in": "scale-in 0.3s ease-out",
       },
       keyframes: {
+        "marquee-scroll": {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
+        },
         shine: {
           "0%": { "background-position": "0% 0%" },
           "50%": { "background-position": "100% 100%" },

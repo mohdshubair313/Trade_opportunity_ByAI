@@ -42,7 +42,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const router = useRouter();
-  const { setToken, setUser } = useStore();
+  const { setToken, setUser, resetUserScoped } = useStore();
 
   const validateLogin = (): boolean => {
     const newErrors: FormErrors = {};
@@ -93,6 +93,9 @@ export default function LoginPage() {
 
       setIsLoading(true);
       try {
+        // Clear any residue from a previous session on this browser before
+        // we apply the new user's identity. See useStore.resetUserScoped.
+        resetUserScoped();
         const response = await login({ username, password });
         setToken(response.access_token);
         setUser({ username, isGuest: false });
@@ -108,6 +111,9 @@ export default function LoginPage() {
 
       setIsLoading(true);
       try {
+        // Fresh signup must not inherit state from whoever used this browser
+        // last. See useStore.resetUserScoped.
+        resetUserScoped();
         const response = await register({
           username,
           email,
@@ -137,6 +143,7 @@ export default function LoginPage() {
   };
 
   const handleGuestAccess = () => {
+    resetUserScoped();
     setUser({ username: "guest", isGuest: true });
     toast.success("Welcome! Using guest mode.");
     router.push("/dashboard");

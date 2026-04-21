@@ -1,358 +1,333 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
-import { ArrowRight, Sparkles, TrendingUp, Globe, Zap, Play } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import {
-  GradientText,
-  TypewriterText,
-  BlurIn,
-} from "@/components/animations/AnimatedText";
+import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 import Link from "next/link";
+import { useRef } from "react";
+import { ArrowRight, Sparkles, TrendingUp, TrendingDown } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { BorderBeam } from "@/components/animations/BorderBeam";
+import { Marquee } from "@/components/animations/Marquee";
+import { TextReveal } from "@/components/animations/TextReveal";
 
-const sectors = [
-  "Technology",
-  "Pharmaceuticals",
-  "Fintech",
-  "E-commerce",
-  "Healthcare",
-  "Renewable Energy",
+// Mock sector vitals — frozen so the hero is stable across server / client.
+const PREVIEW_SECTORS = [
+    { name: "Pharmaceuticals", change: +2.34, bars: [40, 60, 45, 70, 55, 80, 90] },
+    { name: "Technology", change: +1.08, bars: [30, 45, 52, 48, 62, 58, 72] },
+    { name: "Renewable Energy", change: -0.62, bars: [60, 55, 50, 58, 52, 48, 45] },
 ];
 
-const floatingElements = [
-  { icon: "📊", delay: 0, x: "10%", y: "20%" },
-  { icon: "🚀", delay: 0.5, x: "85%", y: "15%" },
-  { icon: "💹", delay: 1, x: "5%", y: "70%" },
-  { icon: "🌍", delay: 1.5, x: "90%", y: "65%" },
-  { icon: "⚡", delay: 2, x: "15%", y: "45%" },
-  { icon: "📈", delay: 2.5, x: "80%", y: "40%" },
+// Social-proof row — sectors we cover. Real names feel more trustworthy than
+// invented brand logos, and we don't need to lie about customers we don't have.
+const MARQUEE_SECTORS = [
+    "Pharmaceuticals",
+    "Technology",
+    "Renewable Energy",
+    "Fintech",
+    "Automotive",
+    "FMCG",
+    "Metals & Mining",
+    "Healthcare",
+    "Real Estate",
+    "Infrastructure",
+    "Banking",
+    "Media",
 ];
 
 export function Hero() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"],
-  });
+    const sectionRef = useRef<HTMLElement | null>(null);
+    // Scroll-tied motion: the preview drifts up and fades as the page
+    // scrolls past it. This is what gives the section that "living" feel
+    // without any explicit looping animation.
+    const { scrollYProgress } = useScroll({
+        target: sectionRef,
+        offset: ["start start", "end start"],
+    });
+    const previewY = useTransform(scrollYProgress, [0, 1], [0, -80]);
+    const previewOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0.1]);
+    const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
 
-  const y = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-
-  return (
-    <section
-      ref={containerRef}
-      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background"
-    >
-      {/* Animated gradient background with mesh effect */}
-      <div className="absolute inset-0 mesh-gradient">
-        {/* Main gradient orbs with dynamic colors */}
-        <motion.div
-          className="absolute top-0 left-1/4 w-[800px] h-[800px] rounded-full"
-          style={{
-            background: "radial-gradient(circle, rgba(34,197,94,0.15) 0%, transparent 70%)",
-          }}
-          animate={{
-            scale: [1, 1.3, 1],
-            x: [-50, 60, -50],
-            y: [-30, 40, -30],
-          }}
-          transition={{
-            duration: 18,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute bottom-0 right-1/4 w-[600px] h-[600px] rounded-full"
-          style={{
-            background: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)",
-          }}
-          animate={{
-            scale: [1.2, 1, 1.2],
-            x: [50, -60, 50],
-            y: [30, -40, 30],
-          }}
-          transition={{
-            duration: 15,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] rounded-full"
-          style={{
-            background: "radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%)",
-          }}
-          animate={{
-            scale: [1, 1.4, 1],
-            x: [0, 30, 0],
-            y: [0, -30, 0],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-
-        {/* Animated grid pattern */}
-        <motion.div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
-            `,
-            backgroundSize: "60px 60px",
-          }}
-          animate={{
-            y: [0, 60, 0],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-        />
-
-        {/* Floating particles with twinkling effect */}
-        {Array.from({ length: 50 }).map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 rounded-full bg-primary/40"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              y: [-30, 30, -30],
-              opacity: [0.2, 1, 0.2],
-              scale: [1, 1.5, 1],
-            }}
-            transition={{
-              duration: 4 + Math.random() * 5,
-              repeat: Infinity,
-              delay: Math.random() * 3,
-            }}
-          />
-        ))}
-
-        {/* Meteor effects */}
-        {Array.from({ length: 3 }).map((_, i) => (
-          <motion.div
-            key={`meteor-${i}`}
-            className="absolute w-1 h-1 bg-gradient-to-r from-primary to-transparent rounded-full"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: "0%",
-              transform: "rotate(215deg)",
-            }}
-            animate={{
-              x: [-500, 0],
-              y: [0, 500],
-              opacity: [0, 1, 0],
-            }}
-            transition={{
-              duration: 3 + Math.random() * 2,
-              repeat: Infinity,
-              delay: i * 2,
-              ease: "linear",
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Floating emojis/elements with enhanced animations */}
-      {floatingElements.map((el, i) => (
-        <motion.div
-          key={i}
-          className="absolute text-3xl opacity-20 select-none hidden md:block"
-          style={{ left: el.x, top: el.y }}
-          initial={{ opacity: 0, scale: 0, rotate: -10 }}
-          animate={{ opacity: 0.2, scale: 1, rotate: 0 }}
-          transition={{ delay: el.delay, duration: 0.5, type: "spring" }}
+    return (
+        <section
+            ref={sectionRef}
+            className="relative min-h-[95vh] flex items-center justify-center overflow-hidden pt-20 pb-28"
         >
-          <motion.span
-            animate={{
-              y: [-15, 15, -15],
-              rotate: [-8, 8, -8],
-              scale: [1, 1.1, 1],
-            }}
-            transition={{
-              duration: 4 + i,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            className="inline-block"
-          >
-            {el.icon}
-          </motion.span>
-        </motion.div>
-      ))}
+            {/* Single calm backdrop */}
+            <div className="absolute inset-0 pointer-events-none">
+                <div
+                    className="absolute left-1/2 top-0 -translate-x-1/2 w-[1100px] h-[700px] opacity-60"
+                    style={{
+                        background:
+                            "radial-gradient(60% 60% at 50% 0%, hsl(var(--primary) / 0.18) 0%, transparent 70%)",
+                    }}
+                />
+                <div
+                    className="absolute inset-0 opacity-[0.04]"
+                    style={{
+                        backgroundImage:
+                            "linear-gradient(hsl(var(--foreground) / 1) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground) / 1) 1px, transparent 1px)",
+                        backgroundSize: "72px 72px",
+                        maskImage: "radial-gradient(ellipse 80% 60% at 50% 40%, black 0%, transparent 70%)",
+                        WebkitMaskImage: "radial-gradient(ellipse 80% 60% at 50% 40%, black 0%, transparent 70%)",
+                    }}
+                />
+            </div>
 
-      {/* Main content */}
-      <motion.div
-        style={{ y, opacity }}
-        className="container relative z-10 px-4 py-20 md:py-32 mx-auto text-center"
-      >
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
-        >
-          <motion.span
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-primary/30 bg-primary/5 text-sm backdrop-blur-sm"
-            whileHover={{ scale: 1.05 }}
-          >
-            <motion.span
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            >
-              <Sparkles className="h-4 w-4 text-primary" />
-            </motion.span>
-            <span className="text-primary font-medium">AI-Powered Market Intelligence</span>
-          </motion.span>
-        </motion.div>
-
-        {/* Main Heading */}
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6"
-        >
-          <BlurIn delay={0.2}>Discover</BlurIn>{" "}
-          <GradientText>Trade Opportunities</GradientText>
-          <br />
-          <span className="text-muted-foreground">in Indian Markets</span>
-        </motion.h1>
-
-        {/* Typewriter */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="text-xl md:text-2xl text-muted-foreground mb-8"
-        >
-          Real-time AI analysis for{" "}
-          <span className="text-primary font-semibold">
-            <TypewriterText words={sectors} />
-          </span>
-        </motion.div>
-
-        {/* Description */}
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="max-w-2xl mx-auto text-muted-foreground mb-12 text-lg leading-relaxed"
-        >
-          Get comprehensive market analysis, export-import opportunities, and
-          strategic recommendations powered by{" "}
-          <span className="text-primary font-medium">Google Gemini AI</span> and real-time data.
-        </motion.p>
-
-        {/* CTA Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center mb-8"
-        >
-          <Link href="/dashboard">
-            <Button size="xl" variant="glow" className="group w-full sm:w-auto">
-              Start Analyzing Free
-              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-            </Button>
-          </Link>
-          <Link href="#demo">
-            <Button size="xl" variant="outline" className="w-full sm:w-auto gap-2">
-              <Play className="h-5 w-5" />
-              Watch Demo
-            </Button>
-          </Link>
-        </motion.div>
-
-        {/* Trust badges */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="flex items-center justify-center gap-6 text-sm text-muted-foreground"
-        >
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            No credit card required
-          </span>
-          <span className="hidden sm:inline">•</span>
-          <span className="hidden sm:block">Free tier available</span>
-          <span className="hidden sm:inline">•</span>
-          <span className="hidden sm:block">Instant results</span>
-        </motion.div>
-
-        {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.7 }}
-          className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8"
-        >
-          {[
-            { value: "20+", label: "Sectors Covered", icon: TrendingUp },
-            { value: "10K+", label: "Analyses Generated", icon: Sparkles },
-            { value: "50+", label: "Data Sources", icon: Globe },
-            { value: "<15s", label: "Analysis Time", icon: Zap },
-          ].map((stat, i) => (
             <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: 0.8 + i * 0.1 }}
-              whileHover={{ scale: 1.05, y: -5 }}
-              className="relative p-6 rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm group cursor-pointer"
+                style={{ y: heroY }}
+                className="container relative z-10 px-4 mx-auto"
             >
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative">
-                <div className="flex justify-center mb-3">
-                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                    <stat.icon className="h-5 w-5" />
-                  </div>
-                </div>
-                <div className="text-3xl md:text-4xl font-bold gradient-text mb-1">
-                  {stat.value}
-                </div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </div>
+                {/* Eyebrow */}
+                <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="flex justify-center mb-8"
+                >
+                    <Link
+                        href="/pricing"
+                        className="group inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                    >
+                        <span className="flex h-1.5 w-1.5 rounded-full bg-primary" />
+                        Now with agentic AI + live grounding
+                        <ArrowRight className="h-3 w-3 opacity-50 transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                </motion.div>
+
+                {/* Headline — word-by-word reveal */}
+                <TextReveal
+                    as="h1"
+                    className="mx-auto max-w-4xl text-center text-5xl md:text-7xl lg:text-[5.5rem] leading-[1.02] tracking-tight text-foreground block"
+                    stagger={0.06}
+                >
+                    <span className="font-semibold">Market intelligence,</span>{" "}
+                    <span className="font-display italic text-primary/95">written for you.</span>
+                </TextReveal>
+
+                {/* Sub-copy */}
+                <motion.p
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.35 }}
+                    className="mx-auto mt-7 max-w-2xl text-center text-base md:text-lg text-muted-foreground leading-relaxed"
+                >
+                    TradeInsight reads the news, the filings and the tape — then writes a
+                    sector report tailored to your persona, capital and risk appetite. In
+                    under fifteen seconds.
+                </motion.p>
+
+                {/* CTAs */}
+                <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.45 }}
+                    className="mt-10 flex flex-col sm:flex-row gap-3 items-center justify-center"
+                >
+                    <Link href="/dashboard">
+                        <Button size="lg" className="group h-11 px-6 text-sm font-medium">
+                            Start analyzing
+                            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                        </Button>
+                    </Link>
+                    <Link href="/pricing">
+                        <Button size="lg" variant="outline" className="h-11 px-6 text-sm font-medium">
+                            See pricing
+                        </Button>
+                    </Link>
+                </motion.div>
+
+                {/* Trust row */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 0.55 }}
+                    className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground"
+                >
+                    <span>Free tier · No card required</span>
+                    <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                    <span>20+ NSE sectors</span>
+                    <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                    <span>Cited sources on every claim</span>
+                </motion.div>
+
+                {/* Product preview — scroll-tied parallax + border beam. */}
+                <motion.div
+                    style={{ y: previewY, opacity: previewOpacity }}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.7, delay: 0.5 }}
+                    className="mt-20 md:mt-24 mx-auto max-w-5xl"
+                >
+                    <HeroPreview />
+                </motion.div>
+
+                {/* Marquee strip — infinite horizontal scroll of covered sectors. */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.6, delay: 0.9 }}
+                    className="mt-16 md:mt-20"
+                >
+                    <p className="text-center text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground mb-5">
+                        Covering the sectors that move the Nifty
+                    </p>
+                    <Marquee speed={55}>
+                        {MARQUEE_SECTORS.map((s) => (
+                            <div
+                                key={s}
+                                className="flex items-center gap-2 text-sm font-medium text-muted-foreground/70 hover:text-foreground transition-colors"
+                            >
+                                <span className="h-1 w-1 rounded-full bg-primary/60" />
+                                {s}
+                            </div>
+                        ))}
+                    </Marquee>
+                </motion.div>
             </motion.div>
-          ))}
-        </motion.div>
-      </motion.div>
+        </section>
+    );
+}
 
-      {/* Gradient overlay at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background via-background/80 to-transparent pointer-events-none" />
+// ---------------------------------------------------------------------------
+// Hero preview — cursor-tracking parallax tilt + animated border beam
+// ---------------------------------------------------------------------------
 
-      {/* Scroll indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2"
-      >
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex justify-center pt-2"
+function HeroPreview() {
+    const cardRef = useRef<HTMLDivElement | null>(null);
+    // Raw cursor deltas normalised to [-0.5, 0.5] then spring-damped so the
+    // tilt feels weighted, not twitchy.
+    const mvX = useMotionValue(0);
+    const mvY = useMotionValue(0);
+    const rotateY = useSpring(useTransform(mvX, [-0.5, 0.5], [8, -8]), {
+        stiffness: 150,
+        damping: 20,
+    });
+    const rotateX = useSpring(useTransform(mvY, [-0.5, 0.5], [-6, 6]), {
+        stiffness: 150,
+        damping: 20,
+    });
+
+    const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        mvX.set((e.clientX - rect.left) / rect.width - 0.5);
+        mvY.set((e.clientY - rect.top) / rect.height - 0.5);
+    };
+
+    const handleLeave = () => {
+        mvX.set(0);
+        mvY.set(0);
+    };
+
+    return (
+        <div
+            ref={cardRef}
+            onMouseMove={handleMove}
+            onMouseLeave={handleLeave}
+            className="relative"
+            style={{ perspective: 1200 }}
         >
-          <motion.div
-            animate={{ opacity: [0.5, 1, 0.5], y: [0, 8, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-1 h-2 rounded-full bg-primary"
-          />
-        </motion.div>
-      </motion.div>
-    </section>
-  );
+            {/* Emerald halo beneath the card */}
+            <div
+                className="absolute -inset-x-10 -bottom-10 h-40 opacity-70 blur-3xl pointer-events-none"
+                style={{
+                    background:
+                        "radial-gradient(50% 100% at 50% 100%, hsl(var(--primary) / 0.25) 0%, transparent 70%)",
+                }}
+            />
+
+            <motion.div
+                style={{ rotateY, rotateX, transformStyle: "preserve-3d" }}
+                className="relative rounded-2xl border border-border bg-card/80 shadow-2xl shadow-black/40 overflow-hidden"
+            >
+                {/* The beam sits above the card's content, below interactive areas. */}
+                <BorderBeam size={260} duration={9} colorFrom="hsl(var(--primary))" colorTo="transparent" />
+                <BorderBeam size={220} duration={11} delay={4} colorFrom="#34d399" colorTo="transparent" />
+
+                {/* Window chrome */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border/80">
+                    <div className="flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded-full bg-red-500/60" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/60" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-green-500/60" />
+                    </div>
+                    <div className="text-[11px] font-mono text-muted-foreground">
+                        tradeinsight.ai/results
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] font-medium text-primary">
+                        <Sparkles className="h-3 w-3" />
+                        Live
+                    </div>
+                </div>
+
+                {/* Body */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 p-5">
+                    {/* Left: sector cards */}
+                    <div className="md:col-span-2 space-y-3">
+                        {PREVIEW_SECTORS.map((s) => (
+                            <div
+                                key={s.name}
+                                className="flex items-center gap-4 p-4 rounded-xl border border-border/80 bg-background/40"
+                            >
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <span className="text-sm font-medium text-foreground">{s.name}</span>
+                                        <span
+                                            className={`inline-flex items-center gap-1 text-xs font-medium ${s.change >= 0 ? "text-primary" : "text-red-400"
+                                                }`}
+                                        >
+                                            {s.change >= 0 ? (
+                                                <TrendingUp className="h-3 w-3" />
+                                            ) : (
+                                                <TrendingDown className="h-3 w-3" />
+                                            )}
+                                            {s.change >= 0 ? "+" : ""}
+                                            {s.change.toFixed(2)}%
+                                        </span>
+                                    </div>
+                                    <div className="flex items-end gap-1 h-8">
+                                        {s.bars.map((h, i) => (
+                                            <div
+                                                key={i}
+                                                className={`flex-1 rounded-sm ${s.change >= 0 ? "bg-primary/60" : "bg-red-400/40"
+                                                    }`}
+                                                style={{ height: `${h}%` }}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Right: report excerpt */}
+                    <div className="space-y-3">
+                        <div className="p-4 rounded-xl border border-border/80 bg-background/40">
+                            <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2">
+                                Top Opportunity
+                            </div>
+                            <p className="text-[13px] leading-relaxed text-foreground/90">
+                                Pharma CDMOs continue to benefit from US supply-chain reshoring
+                                <a
+                                    href="#"
+                                    className="inline-block align-super text-[10px] font-medium text-primary bg-primary/10 rounded px-1 mx-0.5 no-underline"
+                                    onClick={(e) => e.preventDefault()}
+                                >
+                                    [3]
+                                </a>
+                                , with Q1 order books up 18% YoY.
+                            </p>
+                        </div>
+                        <div className="p-4 rounded-xl border border-border/80 bg-background/40">
+                            <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2">
+                                Primary Risk
+                            </div>
+                            <p className="text-[13px] leading-relaxed text-foreground/90">
+                                USD weakness offsets margin expansion for exporters — hedge
+                                window is narrowing.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
+        </div>
+    );
 }

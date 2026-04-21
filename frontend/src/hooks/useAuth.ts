@@ -30,7 +30,7 @@ export function useAuth() {
   const [error, setError] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const router = useRouter();
-  const { setToken, setUser, logout: storeLogout, isAuthenticated, user } = useStore();
+  const { setToken, setUser, logout: storeLogout, resetUserScoped, isAuthenticated, user } = useStore();
 
   // Check authentication status on mount
   useEffect(() => {
@@ -58,6 +58,10 @@ export function useAuth() {
       setError(null);
 
       try {
+        // Wipe anything the previous user left in the store BEFORE we set the
+        // new token — otherwise the dashboard can briefly render the previous
+        // user's history/favorites while the first API hydration is in flight.
+        resetUserScoped();
         const response = await apiLogin(credentials);
         setToken(response.access_token);
 
@@ -79,7 +83,7 @@ export function useAuth() {
         setIsAuthenticating(false);
       }
     },
-    [router, setToken, setUser]
+    [router, setToken, setUser, resetUserScoped]
   );
 
   const register = useCallback(
@@ -88,6 +92,9 @@ export function useAuth() {
       setError(null);
 
       try {
+        // Fresh signups MUST start with an empty slate — see the login flow
+        // above for the rationale.
+        resetUserScoped();
         const response = await apiRegister(data);
         setToken(response.access_token);
 
@@ -118,14 +125,17 @@ export function useAuth() {
         setIsAuthenticating(false);
       }
     },
-    [router, setToken, setUser]
+    [router, setToken, setUser, resetUserScoped]
   );
 
   const loginAsGuest = useCallback(() => {
+    // Guest mode also wipes the slate so the guest doesn't see another user's
+    // stored data. Guests don't auto-save to backend, so nothing to re-fetch.
+    resetUserScoped();
     setUser({ username: "guest", isGuest: true });
     toast.success("Welcome! Using guest mode.");
     router.push("/dashboard");
-  }, [router, setUser]);
+  }, [router, setUser, resetUserScoped]);
 
   const logout = useCallback(async () => {
     try {

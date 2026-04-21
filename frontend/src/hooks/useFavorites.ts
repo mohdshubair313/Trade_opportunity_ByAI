@@ -13,28 +13,35 @@ import toast from "react-hot-toast";
 export function useFavorites() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSynced, setIsSynced] = useState(false);
-    const { favoriteSectors, addFavorite: addLocalFavorite, removeFavorite: removeLocalFavorite } = useStore();
+    const {
+        favoriteSectors,
+        addFavorite: addLocalFavorite,
+        removeFavorite: removeLocalFavorite,
+        setFavorites: setLocalFavorites,
+    } = useStore();
 
-    // Sync favorites from API when authenticated
+    // Sync favorites from API when authenticated. REPLACES local state — do
+    // NOT merge, otherwise stale favourites left over from a previous user on
+    // this browser would persist into the new user's session.
     const syncFavorites = useCallback(async () => {
-        if (!isAuthenticated()) return;
+        if (!isAuthenticated()) {
+            setLocalFavorites([]);
+            return;
+        }
 
         setIsLoading(true);
         try {
             const response = await getFavorites();
-            // Update local store with API favorites
-            response.favorites.forEach((sector) => {
-                if (!favoriteSectors.includes(sector)) {
-                    addLocalFavorite(sector);
-                }
-            });
+            setLocalFavorites(response.favorites);
             setIsSynced(true);
         } catch {
-            // Silently fail - use local favorites
+            // API down → don't touch local state here; user will see whatever
+            // they optimistically added this session. This is a non-leaking
+            // choice because the local state starts empty (not persisted).
         } finally {
             setIsLoading(false);
         }
-    }, [favoriteSectors, addLocalFavorite]);
+    }, [setLocalFavorites]);
 
     // Sync on mount if authenticated
     useEffect(() => {

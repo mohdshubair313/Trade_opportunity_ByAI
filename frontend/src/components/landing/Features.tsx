@@ -1,188 +1,270 @@
 "use client";
 
 import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { useRef, ReactNode } from "react";
 import {
   Sparkles,
-  TrendingUp,
-  Shield,
-  Zap,
   Globe,
   FileText,
+  Shield,
   Bell,
-  Users,
+  Zap,
 } from "lucide-react";
-import { MagicCard, TiltCard } from "@/components/animations/AnimatedCard";
-import { GradientText } from "@/components/animations/AnimatedText";
+import { TextReveal } from "@/components/animations/TextReveal";
 
-const features = [
-  {
-    icon: Sparkles,
-    title: "AI-Powered Analysis",
-    description:
-      "Advanced Gemini AI analyzes market data, news, and trends to provide actionable insights for your sector.",
-    color: "green",
-  },
-  {
-    icon: Globe,
-    title: "Real-Time Data",
-    description:
-      "Access up-to-date market information from multiple sources, ensuring you never miss an opportunity.",
-    color: "blue",
-  },
-  {
-    icon: TrendingUp,
-    title: "Trade Opportunities",
-    description:
-      "Identify export, import, and domestic trade opportunities with comprehensive market analysis.",
-    color: "purple",
-  },
-  {
-    icon: FileText,
-    title: "Detailed Reports",
-    description:
-      "Generate professional markdown reports covering market overview, opportunities, risks, and recommendations.",
-    color: "orange",
-  },
-  {
-    icon: Shield,
-    title: "Secure & Private",
-    description:
-      "Enterprise-grade security with JWT authentication and rate limiting to protect your data.",
-    color: "red",
-  },
-  {
-    icon: Zap,
-    title: "Lightning Fast",
-    description:
-      "Get comprehensive sector analysis in under 15 seconds with our optimized processing pipeline.",
-    color: "yellow",
-  },
-  {
-    icon: Bell,
-    title: "Custom Alerts",
-    description:
-      "Set up notifications for market changes, new opportunities, and sector-specific updates.",
-    color: "cyan",
-  },
-  {
-    icon: Users,
-    title: "Team Collaboration",
-    description:
-      "Share insights and reports with your team, enabling collaborative decision-making.",
-    color: "pink",
-  },
-];
-
-const colorClasses: Record<string, string> = {
-  green: "text-green-500 bg-green-500/10",
-  blue: "text-blue-500 bg-blue-500/10",
-  purple: "text-purple-500 bg-purple-500/10",
-  orange: "text-orange-500 bg-orange-500/10",
-  red: "text-red-500 bg-red-500/10",
-  yellow: "text-yellow-500 bg-yellow-500/10",
-  cyan: "text-cyan-500 bg-cyan-500/10",
-  pink: "text-pink-500 bg-pink-500/10",
-};
+// Bento layout:
+//   Row 1: [big AI-Powered Analysis]   [Real-Time Data]
+//   Row 2: [Detailed Reports]           [big Lightning Fast]
+//   Row 3: [Alerts] [Secure]          (a clean 2-col bottom row)
+// Every tile is monochrome with emerald as the single accent. Motion is
+// entrance-only — no infinite loops, no rainbow palette, no tilting.
 
 export function Features() {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section className="py-24 px-4 relative overflow-hidden" ref={ref}>
-      {/* Background effects */}
-      <div className="absolute inset-0 grid-pattern opacity-5" />
-      <motion.div
-        className="absolute top-0 left-0 w-full h-full"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
-      >
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl" />
-      </motion.div>
+    <section ref={ref} className="relative py-28 px-4">
+      <div className="container mx-auto">
+        <SectionHeader
+          eyebrow="Platform"
+          title={
+            <>
+              The research desk, <span className="font-display italic text-primary/95">condensed</span> into seconds.
+            </>
+          }
+          subtitle="Every feature exists for one reason: to get you from question to decision without the boring middle."
+        />
 
-      <div className="container mx-auto relative z-10">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-16"
-        >
-          <motion.span 
-            className="text-primary text-sm font-semibold tracking-wider uppercase"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            Features
-          </motion.span>
-          <h2 className="mt-4 text-3xl md:text-5xl font-bold">
-            Everything you need for{" "}
-            <GradientText>Market Intelligence</GradientText>
-          </h2>
-          <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
-            Our platform combines AI analysis, real-time data, and intuitive
-            design to deliver actionable trade insights.
-          </p>
-        </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16">
+          {/* Row 1: big + small */}
+          <BentoTile
+            className="md:col-span-2"
+            icon={<Sparkles className="h-5 w-5" />}
+            title="AI-Powered Analysis"
+            description="A cascade of specialised AI models reads filings, news and the tape — then writes a structured report with cited sources, tailored to your persona and capital."
+            visual={<AnalysisVisual />}
+            inView={inView}
+            delay={0}
+          />
+          <BentoTile
+            icon={<Globe className="h-5 w-5" />}
+            title="Real-Time Data"
+            description="NSE sector indices, benchmark deltas and news sentiment — continuously refreshed."
+            visual={<PulseVisual />}
+            inView={inView}
+            delay={0.05}
+          />
 
-        {/* Features Grid with Tilt Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {features.map((feature, index) => (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 30, scale: 0.95 }}
-              animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
-              transition={{ 
-                duration: 0.6, 
-                delay: index * 0.12,
-                type: "spring",
-                stiffness: 100
-              }}
-            >
-              <TiltCard className="h-full">
-                <MagicCard 
-                  className="h-full border border-border/50"
-                  gradientSize={250}
-                  gradientColor={feature.color === 'green' ? 'rgba(34, 197, 94, 0.4)' : 
-                                  feature.color === 'blue' ? 'rgba(59, 130, 246, 0.4)' : 
-                                  feature.color === 'purple' ? 'rgba(168, 85, 247, 0.4)' : 
-                                  feature.color === 'orange' ? 'rgba(249, 115, 22, 0.4)' : 
-                                  feature.color === 'red' ? 'rgba(239, 68, 68, 0.4)' : 
-                                  feature.color === 'yellow' ? 'rgba(250, 204, 21, 0.4)' : 
-                                  feature.color === 'cyan' ? 'rgba(6, 182, 212, 0.4)' : 
-                                  'rgba(236, 72, 153, 0.4)'}
-                >
-                  <motion.div
-                    className={`w-14 h-14 rounded-xl flex items-center justify-center mb-6 ${
-                      colorClasses[feature.color]
-                    }`}
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <feature.icon className="h-7 w-7" />
-                  </motion.div>
-                  <h3 className="text-lg font-semibold mb-3">{feature.title}</h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    {feature.description}
-                  </p>
-                  
-                  {/* Hover effect indicator */}
-                  <motion.div 
-                    className="mt-4 h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"
-                    initial={{ scaleX: 0 }}
-                    whileHover={{ scaleX: 1 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </MagicCard>
-              </TiltCard>
-            </motion.div>
-          ))}
+          {/* Row 2: small + big */}
+          <BentoTile
+            icon={<FileText className="h-5 w-5" />}
+            title="Detailed Reports"
+            description="Executive summary, opportunities, risks, recommendations. Export to PDF, PPTX, XLSX or Markdown."
+            visual={<ReportVisual />}
+            inView={inView}
+            delay={0.1}
+          />
+          <BentoTile
+            className="md:col-span-2"
+            icon={<Zap className="h-5 w-5" />}
+            title="Lightning Fast"
+            description="A tuned model router falls through free-tier LLMs before it blinks. Median end-to-end analysis: under fifteen seconds."
+            visual={<LatencyVisual />}
+            inView={inView}
+            delay={0.15}
+          />
+
+          {/* Row 3: two small */}
+          <BentoTile
+            icon={<Bell className="h-5 w-5" />}
+            title="Watchlist Alerts"
+            description="Pin sectors. We re-analyse on your cadence and ping you only when something material changes."
+            inView={inView}
+            delay={0.2}
+          />
+          <BentoTile
+            icon={<Shield className="h-5 w-5" />}
+            title="Private by Default"
+            description="JWT scoped per user. Your reports, watchlists and favourites never surface to another account."
+            className="md:col-span-2"
+            inView={inView}
+            delay={0.25}
+          />
         </div>
       </div>
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Section header — reusable across landing sections
+// ---------------------------------------------------------------------------
+
+export function SectionHeader({
+  eyebrow,
+  title,
+  subtitle,
+}: {
+  eyebrow: string;
+  title: ReactNode;
+  subtitle: string;
+}) {
+  return (
+    <div className="max-w-3xl mx-auto text-center">
+      <div className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground mb-5">
+        <span className="h-px w-8 bg-border" />
+        {eyebrow}
+        <span className="h-px w-8 bg-border" />
+      </div>
+      <TextReveal
+        as="h2"
+        stagger={0.05}
+        className="text-3xl md:text-5xl tracking-tight leading-[1.1] font-semibold block"
+      >
+        {title}
+      </TextReveal>
+      <p className="mt-4 text-base md:text-lg text-muted-foreground leading-relaxed">
+        {subtitle}
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Bento tile
+// ---------------------------------------------------------------------------
+
+interface TileProps {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  visual?: ReactNode;
+  className?: string;
+  inView: boolean;
+  delay: number;
+}
+
+function BentoTile({ icon, title, description, visual, className = "", inView, delay }: TileProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.4, delay }}
+      className={`group relative overflow-hidden rounded-2xl border border-border bg-card p-6 transition-colors hover:border-primary/30 ${className}`}
+    >
+      {/* Soft emerald wash on hover — subtle, not decorative */}
+      <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(60% 80% at 0% 0%, hsl(var(--primary) / 0.06) 0%, transparent 60%)",
+          }}
+        />
+      </div>
+
+      <div className="relative flex flex-col h-full">
+        <div className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-border bg-background/60 text-foreground/80 mb-5">
+          {icon}
+        </div>
+        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+        <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-lg">
+          {description}
+        </p>
+        {visual && <div className="mt-6 flex-1">{visual}</div>}
+      </div>
+    </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Mini visuals — CSS-only, no deps, no loops
+// ---------------------------------------------------------------------------
+
+function AnalysisVisual() {
+  return (
+    <div className="rounded-xl border border-border/80 bg-background/40 p-4 space-y-2">
+      {[
+        { w: "80%", muted: false },
+        { w: "60%", muted: true },
+        { w: "92%", muted: true },
+        { w: "45%", muted: true },
+      ].map((row, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <span className="h-1 w-1 rounded-full bg-primary/60 flex-shrink-0" />
+          <div
+            className={`h-2 rounded-sm ${row.muted ? "bg-muted/60" : "bg-foreground/50"}`}
+            style={{ width: row.w }}
+          />
+        </div>
+      ))}
+      <div className="pt-2 border-t border-border/60 flex items-center gap-2 text-[10px] text-muted-foreground">
+        <Sparkles className="h-3 w-3 text-primary" />
+        <span>3 citations · 1.2s</span>
+      </div>
+    </div>
+  );
+}
+
+function PulseVisual() {
+  return (
+    <div className="rounded-xl border border-border/80 bg-background/40 p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-60" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+        </span>
+        <span className="text-[10px] font-mono text-muted-foreground">NSE · LIVE</span>
+      </div>
+      <div className="flex items-end gap-1 h-12">
+        {[30, 45, 38, 55, 42, 60, 48, 68, 55, 75].map((h, i) => (
+          <div key={i} className="flex-1 rounded-sm bg-primary/40" style={{ height: `${h}%` }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ReportVisual() {
+  return (
+    <div className="rounded-xl border border-border/80 bg-background/40 p-3 flex items-center gap-2 flex-wrap">
+      {["PDF", "PPTX", "XLSX", "MD"].map((fmt) => (
+        <span
+          key={fmt}
+          className="text-[10px] font-mono font-medium px-2 py-1 rounded border border-border/60 text-muted-foreground bg-muted/30"
+        >
+          {fmt}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function LatencyVisual() {
+  return (
+    <div className="rounded-xl border border-border/80 bg-background/40 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+          Latency
+        </span>
+        <span className="text-[11px] font-mono text-primary">p50 · 9.4s</span>
+      </div>
+      <div className="space-y-2">
+        {[
+          { label: "News collection", pct: 25 },
+          { label: "Market fetch", pct: 15 },
+          { label: "LLM synthesis", pct: 55 },
+          { label: "Render", pct: 5 },
+        ].map((row) => (
+          <div key={row.label} className="flex items-center gap-3">
+            <span className="w-24 text-[10px] text-muted-foreground truncate">{row.label}</span>
+            <div className="flex-1 h-1.5 rounded-full bg-muted/50 overflow-hidden">
+              <div className="h-full rounded-full bg-primary/60" style={{ width: `${row.pct * 2}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

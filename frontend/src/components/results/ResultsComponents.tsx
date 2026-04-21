@@ -56,7 +56,7 @@ function CardShell({
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-2xl p-6 h-full flex flex-col"
+            className="bg-card border border-border/50 rounded-2xl p-6 h-full flex flex-col"
         >
             <div className="flex items-center justify-between gap-2 mb-4">
                 <div className="flex items-center gap-2">
