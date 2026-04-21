@@ -23,9 +23,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Local env files
-.env*.local
+# Env files — NEVER commit real values. Only *.example stubs are tracked.
+# The negated rules at the bottom whitelist the three templates explicitly.
 .env
+.env.*
+!.env.example
+!.env.local.example
+!.env.production.example
 
 # Vercel
 .vercel
