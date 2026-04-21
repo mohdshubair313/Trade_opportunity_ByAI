@@ -1,7 +1,4 @@
-version: '3.8'
-
 services:
-  # Backend API Service
   backend:
     build:
       context: .
@@ -9,12 +6,16 @@ services:
     container_name: tradeinsight-backend
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-in-production}
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
-      - RATE_LIMIT_PER_MINUTE=10
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - ALGORITHM=${ALGORITHM:-HS256}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-10}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
     volumes:
       - ./reports:/app/reports
     restart: unless-stopped
@@ -23,20 +24,27 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 15s
     networks:
       - tradeinsight-network
 
-  # Frontend Service
-  frontend:
+  worker:
     build:
-      context: ./frontend
+      context: .
       dockerfile: Dockerfile
-    container_name: tradeinsight-frontend
-    ports:
-      - "3000:3000"
+    container_name: tradeinsight-worker
+    command: ["python", "-m", "app.worker"]
+    env_file:
+      - .env
     environment:
-      - NEXT_PUBLIC_API_URL=http://backend:8000
+      # Run the scan loop every 2 minutes in development; bump in production.
+      - WORKER_SCAN_INTERVAL=${WORKER_SCAN_INTERVAL:-120}
+      - WORKER_ALERT_THRESHOLD=${WORKER_ALERT_THRESHOLD:-0.6}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Optional — enables outbound email alerts via Resend when both are set.
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - ALERT_FROM_EMAIL=${ALERT_FROM_EMAIL:-}
+      - PUBLIC_APP_URL=${PUBLIC_APP_URL:-http://localhost:3000}
     depends_on:
       backend:
         condition: service_healthy
@@ -44,7 +52,27 @@ services:
     networks:
       - tradeinsight-network
 
-  # Nginx Reverse Proxy (Production)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # NEXT_PUBLIC_* vars must be baked at build time so the browser bundle
+        # can reach the backend. The browser resolves against the host, not the
+        # docker network, so point at the published host port.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    container_name: tradeinsight-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tradeinsight-network
+
   nginx:
     image: nginx:alpine
     container_name: tradeinsight-nginx
@@ -66,7 +94,3 @@ services:
 networks:
   tradeinsight-network:
     driver: bridge
-
-volumes:
-  reports:
-    driver: local

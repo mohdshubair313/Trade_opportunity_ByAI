@@ -220,32 +220,42 @@ def cached_sync(ttl: int = 300, prefix: str = ""):
 class AnalysisCache:
     """
     Specialized cache for sector analysis results.
-    Caches analysis results with sector-specific keys.
+
+    Cache keys are scoped to ``(sector, user_id)`` because reports are
+    persona-framed — capital range, region, and risk appetite change the
+    actual prose. Sharing a cache entry between users leaks another user's
+    persona-framed content into the reader's dashboard. Guest requests (no
+    user) share a single ``guest`` bucket, which is safe because guests are
+    strictly capped to a fixed persona-less path.
     """
-    
+
     CACHE_PREFIX = "sector_analysis"
     DEFAULT_TTL = 1800  # 30 minutes for analysis results
-    
+
     @classmethod
-    def get_analysis(cls, sector: str) -> Optional[Dict[str, Any]]:
-        """Get cached analysis for a sector."""
-        key = f"{cls.CACHE_PREFIX}:{sector.lower().strip()}"
-        return _cache.get(key)
-    
+    def _key(cls, sector: str, user_id: Optional[int]) -> str:
+        bucket = f"u{user_id}" if user_id is not None else "guest"
+        return f"{cls.CACHE_PREFIX}:{bucket}:{sector.lower().strip()}"
+
     @classmethod
-    def set_analysis(cls, sector: str, analysis: Dict[str, Any], ttl: int = None):
-        """Cache analysis result for a sector."""
-        key = f"{cls.CACHE_PREFIX}:{sector.lower().strip()}"
+    def get_analysis(cls, sector: str, user_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        """Get cached analysis for a sector + user."""
+        return _cache.get(cls._key(sector, user_id))
+
+    @classmethod
+    def set_analysis(cls, sector: str, analysis: Dict[str, Any],
+                     user_id: Optional[int] = None, ttl: int = None):
+        """Cache analysis result for a sector + user."""
+        key = cls._key(sector, user_id)
         _cache.set(key, analysis, ttl or cls.DEFAULT_TTL)
-        logger.info(f"Cached analysis for sector: {sector}")
-    
+        logger.info("Cached analysis for sector=%s user=%s", sector, user_id or "guest")
+
     @classmethod
-    def invalidate(cls, sector: str):
-        """Invalidate cached analysis for a sector."""
-        key = f"{cls.CACHE_PREFIX}:{sector.lower().strip()}"
-        _cache.delete(key)
-        logger.info(f"Invalidated cache for sector: {sector}")
-    
+    def invalidate(cls, sector: str, user_id: Optional[int] = None):
+        """Invalidate cached analysis for a sector + user."""
+        _cache.delete(cls._key(sector, user_id))
+        logger.info("Invalidated cache for sector=%s user=%s", sector, user_id or "guest")
+
     @classmethod
     def invalidate_all(cls):
         """Invalidate all cached analyses."""

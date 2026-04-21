@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(tee tsc_errors.txt)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(npm run *)",
+      "Bash(venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --log-level debug)",
+      "Bash(docker compose *)",
+      "Bash(xargs wc *)",
+      "Bash(curl *)",
+      "Bash(venv/Scripts/python.exe -m pip install psycopg2-binary==2.9.9)",
+      "Bash(venv/Scripts/python.exe --version)",
+      "Bash(venv/Scripts/python.exe -m pip install \"psycopg[binary]==3.2.13\")",
+      "Bash(venv/Scripts/python.exe -c ' *)",
+      "Bash(pkill -f \"uvicorn app.main\")",
+      "Bash(venv/Scripts/python.exe -m pip install yfinance==0.2.51 vaderSentiment==3.3.2)",
+      "Bash(venv/Scripts/python.exe -c \"import yfinance; print\\('yfinance', yfinance.__version__\\); import curl_cffi; print\\('curl_cffi', curl_cffi.__version__\\)\")",
+      "Bash(powershell.exe -Command 'Get-NetTCPConnection -LocalPort 8006 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }')",
+      "Bash(venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8007)",
+      "Bash(disown)",
+      "Read(//tmp/**)",
+      "Bash(powershell.exe -Command 'Get-NetTCPConnection -LocalPort 8007 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }')",
+      "Bash(venv/Scripts/python.exe -m pip install reportlab==4.2.5 \"markdown==3.7\" openpyxl==3.1.5 python-pptx==1.0.2)",
+      "Bash(powershell.exe -Command 'Get-NetTCPConnection -LocalPort 8021 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }')",
+      "Bash(venv/Scripts/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8030)",
+      "Bash(disown sleep *)",
+      "Bash(D:/Projects/Trade_opportunity_ByAI/venv/Scripts/python.exe -c \"import sys,json;d=json.load\\(sys.stdin\\);print\\('labels:',d['labels']\\);print\\('IT↔Bank:',d['matrix'][0][d['labels'].index\\('Bank'\\)]\\);print\\('IT↔Pharma:',d['matrix'][0][d['labels'].index\\('Pharma'\\)]\\)\")",
+      "Bash(D:/Projects/Trade_opportunity_ByAI/venv/Scripts/python.exe -c \"import sys,json;d=json.load\\(sys.stdin\\);print\\('status:',d['status'],'outperf:',d.get\\('outperformance_pct'\\),'series pts:',len\\(d.get\\('sector_series'\\) or []\\)\\)\")",
+      "WebFetch(domain:openrouter.ai)"
+    ]
+  }
+}

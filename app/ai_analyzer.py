@@ -33,30 +33,48 @@ class AIAnalyzer:
             logger.warning(f"Failed to initialize Gemini client: {e}. Switching to MOCK MODE.")
             self.mock_mode = True
         
-        # Model name - using Gemini 3 Flash Preview
-        self.model_name = "gemini-3-flash-preview"
+        # Model name — gemini-2.5-flash is the free-tier-friendly choice and
+        # also the only one that accepts `google_search` grounding on free plans.
+        # The gemini-3-*-preview families report limit=0 for free tier today.
+        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
-    def analyze_sector(self, sector: str, market_data: str) -> str:
+    def analyze_sector(self, sector: str, market_data: str, persona: dict | None = None) -> str:
         """
         Analyze sector data and generate trade opportunity insights.
 
         Args:
             sector: The sector name
             market_data: Collected market data as string
+            persona: Optional dict describing the reader. Keys: persona, capital_range,
+                     region, risk_appetite. When present, the prompt is reframed for
+                     that persona (investor / exporter / sme_owner / student / consultant).
 
         Returns:
             Analysis report in markdown format
         """
-        if self.mock_mode or "AI analysis failed" in market_data: # Fallback if data collection failed too
-            return self._generate_mock_report(sector)
+        if self.mock_mode or "AI analysis failed" in market_data:
+            # Signal the caller to fall back (OpenRouter offline path in main.py)
+            # rather than silently returning mock text the user never asked for.
+            raise RuntimeError("Gemini unavailable (mock_mode)")
+
+        persona_context = self._persona_context(persona)
 
         try:
-            prompt = f"""You are an expert market analyst specializing in Indian trade opportunities. 
+            prompt = f"""You are an expert market analyst specializing in Indian trade opportunities.
+
+{persona_context}
 
 Analyze the following market data for the {sector} sector in India and create a comprehensive trade opportunities report.
 
-Market Data:
+Market Data (numbered sources, cite them inline):
 {market_data}
+
+CITATION RULES — follow strictly:
+- Each numbered entry above (e.g. "1.", "2.") is a source the reader can click.
+- When you make a factual claim drawn from a source, add an inline citation using the source's number in square brackets, e.g. "PLI scheme boosts electronics exports [2]."
+- You may cite multiple sources on one claim: "[1][3]". Do NOT invent numbers that aren't in the list.
+- Do NOT add a 'References' / 'Sources' section yourself — the renderer adds it separately from the same numbered list.
+- If a claim comes from general knowledge and not the sources above, omit the citation for that claim.
 
 Please provide a structured analysis in markdown format with the following sections:
 
@@ -111,35 +129,90 @@ Provide a brief 2-3 sentence overview of the current market situation and key op
 
 Be specific, data-driven, and actionable. Use bullet points for clarity. Include numerical data where available from the sources."""
 
-            # ✅ UPDATED API CALL for Gemini 3
+            # Build the config dict conditionally — ThinkingConfig only exists
+            # on google-genai >= 0.8 and is only supported by gemini-3-*
+            # models. On the stable gemini-2.5-flash (our default) we omit it.
+            config_kwargs = {
+                "max_output_tokens": 8192,
+                "temperature": 0.7,
+            }
+            if self.model_name.startswith("gemini-3"):
+                try:
+                    config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_level="minimal")
+                except AttributeError:
+                    pass  # Older SDK — skip thinking config gracefully.
+
             try:
                 response = self.client.models.generate_content(
                     model=self.model_name,
                     contents=prompt,
-                    config=types.GenerateContentConfig(
-                        thinking_config=types.ThinkingConfig(
-                            thinking_level="minimal"
-                        ),
-                        max_output_tokens=8192,
-                        temperature=0.7,
-                    )
+                    config=types.GenerateContentConfig(**config_kwargs),
                 )
             except Exception as e:
-                logger.error(f"Gemini API Error: {e}. Falling back to mock report.")
-                return self._generate_mock_report(sector)
+                logger.error(f"Gemini API Error ({self.model_name}): {e}. Signalling fallback.")
+                raise RuntimeError(f"Gemini analyze failed: {e}") from e
 
             logger.info(f"Successfully analyzed sector: {sector}")
 
-            # Handle response
             if response.text:
                 return response.text
-            else:
-                logger.warning("Empty response from Gemini")
-                return self._generate_mock_report(sector)
+            logger.warning("Empty response from Gemini — signalling fallback")
+            raise RuntimeError("Empty Gemini response")
 
+        except RuntimeError:
+            # Let the caller decide how to recover (route to OpenRouter, etc.).
+            raise
         except Exception as e:
-            logger.error(f"Error analyzing sector {sector}: {str(e)}")
-            return self._generate_mock_report(sector)
+            logger.error(f"Unexpected error analyzing sector {sector}: {str(e)}")
+            raise RuntimeError(f"Gemini analyze failed: {e}") from e
+
+    _PERSONA_FRAMES = {
+        "investor": (
+            "Reader is a RETAIL INVESTOR. Emphasise listed company names, P/E vs peers, "
+            "entry/exit zones, position sizing, catalysts and risks. Use plain English, no jargon. "
+            "In Recommendations, give concrete watchlist tickers and stop-loss / target framing."
+        ),
+        "exporter": (
+            "Reader is an MSME EXPORTER. Emphasise HS codes, target countries with growing demand, "
+            "tariff and FTA context, port logistics, FX exposure, and government incentives (RoDTEP, PLI). "
+            "In Recommendations, name specific country-product corridors to pursue first."
+        ),
+        "sme_owner": (
+            "Reader is an SME OWNER evaluating a new line of business. Emphasise capital required, "
+            "break-even timeline, local demand signals, supplier/vendor ecosystem, and required licenses. "
+            "In Recommendations, give a 0-6-12 month launch checklist."
+        ),
+        "student": (
+            "Reader is a B-SCHOOL / UPSC / CFA STUDENT writing a sector case study. Emphasise "
+            "market sizing methodology, Porter's five forces, policy citations, and historical inflection points. "
+            "Prefer academic tone. Cite sources liberally; prioritise rigor over action items."
+        ),
+        "consultant": (
+            "Reader is an INDEPENDENT CONSULTANT preparing a client deck. Emphasise "
+            "executive-summary framing, 2x2 matrices, opportunity sizing with assumptions, "
+            "and a slide-ready structure. In Recommendations, format as three strategic pillars."
+        ),
+    }
+
+    def _persona_context(self, persona: dict | None) -> str:
+        """Return a short system-style framing block tailored to the reader persona."""
+        if not persona:
+            return "Reader is a general market observer. Write for a sophisticated but non-specialist audience."
+
+        name = (persona.get("persona") or "").lower()
+        frame = self._PERSONA_FRAMES.get(name) or "Reader is a general market observer."
+
+        details = []
+        if persona.get("capital_range"):
+            details.append(f"capital range: {persona['capital_range']}")
+        if persona.get("region"):
+            details.append(f"region: {persona['region']}")
+        if persona.get("risk_appetite"):
+            details.append(f"risk appetite: {persona['risk_appetite']}")
+
+        if details:
+            return f"READER CONTEXT:\n{frame}\nAdditional signal — {'; '.join(details)}."
+        return f"READER CONTEXT:\n{frame}"
 
     def _generate_mock_report(self, sector: str) -> str:
         """Generate a realistic mock report for demo purposes."""

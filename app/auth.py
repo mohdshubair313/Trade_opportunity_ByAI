@@ -169,7 +169,13 @@ def refresh_access_token(refresh_token: str, db: Session) -> dict:
             detail="Invalid refresh token"
         )
     
-    if token_record.expires_at < datetime.now(timezone.utc):
+    # Postgres stores `DateTime` columns as `timestamp without time zone`, so
+    # when SQLAlchemy reads them back they come out naive even though we wrote
+    # an aware datetime. Normalise the read value to UTC-aware before comparing.
+    expires_at = token_record.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
         RefreshTokenCRUD.revoke_token(db, refresh_token)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

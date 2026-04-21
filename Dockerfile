@@ -23,7 +23,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # Copy application code
 COPY app/ ./app/
-COPY reports/ ./reports/ 2>/dev/null || mkdir -p ./reports
+
+# Create reports directory (COPY doesn't support shell fallbacks)
+RUN mkdir -p ./reports
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash appuser && \
@@ -37,5 +39,7 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application.
+# --loop asyncio avoids uvloop, which is incompatible with nest_asyncio
+# (used by duckduckgo-search 4.x at import time).
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--loop", "asyncio"]

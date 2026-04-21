@@ -49,8 +49,8 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> List[str]:
         """Parse CORS origins from comma-separated string."""
         if not self.cors_origins:
-            return ["*"]
-        return [origin.strip() for origin in self.cors_origins.split(",")]
+            return []
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
     
     @property
     def is_production(self) -> bool:
