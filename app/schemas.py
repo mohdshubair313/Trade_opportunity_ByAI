@@ -164,7 +164,8 @@ class AnalysisResponse(BaseModel):
     report: str
     sources_analyzed: int
     sources: List[AnalysisSource] = Field(default_factory=list)
-    saved_to: Optional[str] = None
+    saved_to: Optional[str] = None        # storage key / filesystem path
+    saved_url: Optional[str] = None       # public download URL when the cloud backend accepted the upload
     timestamp: str
     cached: bool = False
 

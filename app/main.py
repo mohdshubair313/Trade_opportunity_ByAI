@@ -585,11 +585,24 @@ async def analyze_sector(
             len(search_results)
         )
         
-        # Step 4: Save report if requested
+        # Step 4: Save report if requested. Storage is Supabase (cloud) when
+        # SUPABASE_* creds are set, or local disk otherwise — see app/storage.py.
+        # `saved_path` stores the locator for later retrieval; `saved_url` is
+        # the shareable download URL when the cloud backend accepted the upload.
         saved_path = None
+        saved_url: Optional[str] = None
         if save_report:
-            saved_path = report_generator.save_report(validated_sector, final_report)
-        
+            try:
+                result = report_generator.save_report(
+                    validated_sector,
+                    final_report,
+                    user_id=current_user.id if current_user else None,
+                )
+                saved_path = result.path
+                saved_url = result.url
+            except Exception as exc:
+                logger.warning("Report persistence failed (%s); continuing without saved copy", exc)
+
         timestamp = datetime.now().isoformat()
         
         # Build the cited-source list. Grounded research already numbers its
@@ -650,6 +663,7 @@ async def analyze_sector(
             sources_analyzed=len(search_results),
             sources=source_list,
             saved_to=saved_path,
+            saved_url=saved_url,
             timestamp=timestamp,
             cached=False
         )

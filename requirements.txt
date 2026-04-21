@@ -49,6 +49,11 @@ APScheduler
 # Agentic LLM routing
 openrouter
 
+# Cloud storage for report files (uploads to Supabase Storage bucket).
+# Optional — the app falls back to local disk when SUPABASE_* env vars
+# aren't set, so dev machines and docker-compose work without creds.
+supabase
+
 # Export formats
 reportlab
 markdown

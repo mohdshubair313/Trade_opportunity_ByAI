@@ -1,62 +1,67 @@
+"""
+Report generator — adds YAML frontmatter and persists the markdown.
+
+Persistence is delegated to ``app.storage`` which uploads to Supabase
+Storage when credentials are configured, and falls back to the local
+``reports/`` directory otherwise (useful for dev). The public download
+URL (if any) is returned so callers can surface a "Download saved copy"
+link in the UI without regenerating the file.
+"""
+from __future__ import annotations
+
 import logging
+from dataclasses import dataclass
 from datetime import datetime
-from pathlib import Path
+from typing import Optional
+
+from app.storage import StoredReport, storage
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class SavedReport:
+    """What the analyze route needs to persist on the Analysis row."""
+    path: str                   # storage key (cloud) OR filesystem path (local)
+    url: Optional[str]          # public download URL if available
+    backend: str                # "supabase" | "local"
+
+
 class ReportGenerator:
-    """Generates and saves markdown reports."""
-    
-    def __init__(self, output_dir: str = "reports"):
-        self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(exist_ok=True)
-    
-    def save_report(self, sector: str, content: str) -> str:
-        """
-        Save report to markdown file.
-        
-        Args:
-            sector: The sector name
-            content: The report content in markdown
-            
-        Returns:
-            Path to the saved file
+    """Generates and persists markdown reports."""
+
+    def save_report(
+        self,
+        sector: str,
+        content: str,
+        *,
+        user_id: Optional[int] = None,
+    ) -> SavedReport:
+        """Persist a markdown report and return a locator.
+
+        The returned ``path`` is what we store on the ``Analysis.saved_path``
+        column. ``url`` is a shareable download link when the cloud backend
+        accepted the upload.
         """
         try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{sector.lower().replace(' ', '_')}_{timestamp}.md"
-            filepath = self.output_dir / filename
-            
-            with open(filepath, 'w', encoding='utf-8') as f:
-                f.write(content)
-            
-            logger.info(f"Report saved to: {filepath}")
-            return str(filepath)
-            
-        except Exception as e:
-            logger.error(f"Error saving report: {str(e)}")
-            raise Exception(f"Failed to save report: {str(e)}")
-    
-    def add_metadata(self, content: str, sector: str, sources_count: int) -> str:
-        """
-        Add metadata header to the report.
-        
-        Args:
-            content: Original report content
-            sector: Sector name
-            sources_count: Number of sources analyzed
-            
-        Returns:
-            Report with metadata header
-        """
-        metadata = f"""---
-title: Trade Opportunities Analysis - {sector.title()}
-date: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-sector: {sector}
-sources_analyzed: {sources_count}
-generated_by: Trade Opportunities API
----
+            result: StoredReport = storage.save_markdown(
+                sector, content, user_id=user_id
+            )
+            return SavedReport(path=result.path, url=result.url, backend=result.backend)
+        except Exception as exc:  # noqa: BLE001 - never crash the analyze flow
+            logger.error("Failed to persist report for %s: %s", sector, exc)
+            raise
 
-"""
+    def add_metadata(self, content: str, sector: str, sources_count: int) -> str:
+        """Prepend a YAML frontmatter header — useful when the file is opened
+        directly in a markdown reader (Obsidian, Notion import, etc.)."""
+        metadata = (
+            "---\n"
+            f"title: Trade Opportunities Analysis - {sector.title()}\n"
+            f"date: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            f"sector: {sector}\n"
+            f"sources_analyzed: {sources_count}\n"
+            "generated_by: TradeInsight AI\n"
+            "---\n\n"
+        )
         return metadata + content

@@ -171,6 +171,7 @@ export interface AnalysisResponse {
   sources_analyzed: number;
   sources?: AnalysisSource[];
   saved_to?: string;
+  saved_url?: string | null;   // public download URL from the storage backend, if any
   timestamp: string;
   cached: boolean;
 }
