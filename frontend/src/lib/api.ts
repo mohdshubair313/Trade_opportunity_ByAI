@@ -1,7 +1,13 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
 
-// API Base URL - configurable via environment variable
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// API base URL — configurable via NEXT_PUBLIC_API_URL. We strip any trailing
+// slash defensively so that `https://api.example.com/` and `https://api.example.com`
+// both produce correct URLs when the route path starts with `/api/v1/…`.
+// Without this, axios would happily produce double-slash URLs that some proxies
+// reject (or silently redirect, which then fails CORS preflight).
+const API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+).replace(/\/+$/, "");
 
 // Create axios instance with default config
 export const api: AxiosInstance = axios.create({

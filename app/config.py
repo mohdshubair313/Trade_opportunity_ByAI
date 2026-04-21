@@ -31,8 +31,15 @@ class Settings(BaseSettings):
     debug: bool = True
     
     # ==================== CORS ====================
-    # Comma-separated list of allowed origins
-    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    # Comma-separated list of allowed origins for production. Local dev origins
+    # (http://localhost:3000, http://127.0.0.1:3000) are always included at
+    # runtime so you can hit the deployed backend from your dev machine for
+    # debugging without changing this value.
+    cors_origins: str = ""
+    # Optional regex matched against the request Origin. Use this to allow
+    # Vercel preview URLs without listing every branch manually, e.g.:
+    #   cors_origin_regex = r"https://tradeinsight-.*\.vercel\.app"
+    cors_origin_regex: str = ""
     
     # ==================== Database ====================
     database_url: str = "sqlite:///./trade_opportunities.db"
@@ -47,10 +54,32 @@ class Settings(BaseSettings):
     
     @property
     def cors_origins_list(self) -> List[str]:
-        """Parse CORS origins from comma-separated string."""
-        if not self.cors_origins:
-            return []
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        """Parse CORS origins from the comma-separated env value.
+
+        Normalises each entry so small mistakes in Render's dashboard don't
+        break auth: strips whitespace, strips a single trailing slash, and
+        lowercases the scheme+host (origin matching is case-insensitive in
+        HTTP, but Starlette does a raw string compare). Local dev origins are
+        always appended so you can hit the deployed backend from `npm run
+        dev` without editing the env var.
+        """
+        raw_entries = [e.strip() for e in (self.cors_origins or "").split(",")]
+        normalised: List[str] = []
+        for entry in raw_entries:
+            if not entry:
+                continue
+            # Drop a single trailing slash — "https://x.com/" and "https://x.com"
+            # should match the same browser origin.
+            if entry.endswith("/"):
+                entry = entry[:-1]
+            normalised.append(entry)
+
+        # Always allow local dev — makes debugging the live backend trivial.
+        for dev_origin in ("http://localhost:3000", "http://127.0.0.1:3000"):
+            if dev_origin not in normalised:
+                normalised.append(dev_origin)
+
+        return normalised
     
     @property
     def is_production(self) -> bool:

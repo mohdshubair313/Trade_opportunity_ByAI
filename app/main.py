@@ -128,13 +128,27 @@ for Indian sectors, powered by agentic AI.
 
 # ==================== Middleware ====================
 
-# CORS
+# CORS — always use an explicit allow-list. Combining allow_origins=["*"]
+# with allow_credentials=True is invalid per the CORS spec; browsers reject
+# the response and every authenticated request fails. The allow-list is
+# built in config.Settings.cors_origins_list and ALWAYS includes localhost
+# for dev + whatever is set in the CORS_ORIGINS env var for prod. An
+# optional regex (CORS_ORIGIN_REGEX) covers Vercel preview URLs without
+# listing every branch manually.
+_allowed_origins = settings.cors_origins_list
+logger.info(
+    "CORS configured — allow_origins=%s allow_origin_regex=%r",
+    _allowed_origins,
+    settings.cors_origin_regex or None,
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list if settings.is_production else ["*"],
+    allow_origins=_allowed_origins,
+    allow_origin_regex=settings.cors_origin_regex or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Rate limiter
