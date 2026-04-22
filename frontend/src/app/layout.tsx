@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import { SmoothScroll } from "@/components/animations/SmoothScroll";
 import { ScrollProgress } from "@/components/animations/ScrollProgress";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next"
 
 // Inter at a focused weight range keeps the body text crisp without bloating
 // the font payload. Instrument Serif is the display face used for hero
@@ -100,28 +101,31 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`dark ${inter.variable} ${instrumentSerif.variable}`}>
-      <body className="min-h-screen bg-background font-sans antialiased">
-        <SmoothScroll />
-        <ScrollProgress />
-        {children}
-        <Toaster
-          position="bottom-right"
-          toastOptions={{
-            style: {
-              background: "hsl(var(--card))",
-              color: "hsl(var(--foreground))",
-              border: "1px solid hsl(var(--border))",
-            },
-            success: {
-              iconTheme: {
-                primary: "hsl(var(--primary))",
-                secondary: "white",
+    <>
+      <html lang="en" className={`dark ${inter.variable} ${instrumentSerif.variable}`}>
+        <body className="min-h-screen bg-background font-sans antialiased">
+          <SmoothScroll />
+          <ScrollProgress />
+          {children}
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              style: {
+                background: "hsl(var(--card))",
+                color: "hsl(var(--foreground))",
+                border: "1px solid hsl(var(--border))",
               },
-            },
-          }}
-        />
-      </body>
-    </html>
+              success: {
+                iconTheme: {
+                  primary: "hsl(var(--primary))",
+                  secondary: "white",
+                },
+              },
+            }}
+          />
+        </body>
+      </html>
+      <Analytics />
+    </>
   );
 }
