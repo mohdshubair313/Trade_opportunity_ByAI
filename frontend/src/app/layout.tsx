@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import { Analytics } from "@vercel/analytics/next";
 import { SmoothScroll } from "@/components/animations/SmoothScroll";
 import { ScrollProgress } from "@/components/animations/ScrollProgress";
 import "./globals.css";
@@ -121,6 +122,7 @@ export default function RootLayout({
             },
           }}
         />
+        <Analytics />
       </body>
     </html>
   );
