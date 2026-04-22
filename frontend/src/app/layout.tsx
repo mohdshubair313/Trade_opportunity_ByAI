@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { SmoothScroll } from "@/components/animations/SmoothScroll";
@@ -24,8 +24,19 @@ const instrumentSerif = Instrument_Serif({
   style: ["normal", "italic"],
 });
 
+// metadataBase is REQUIRED for production. Without it, the OG/Twitter image
+// URLs resolve as relative paths which social platforms (Twitter, LinkedIn,
+// WhatsApp) silently reject — they need absolute URLs. Override per-env
+// via NEXT_PUBLIC_SITE_URL if you ever move domains.
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://tradeinsight.shubair.in";
+
 export const metadata: Metadata = {
-  title: "TradeInsight AI — AI-Powered Market Intelligence",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "TradeInsight AI — AI-Powered Market Intelligence",
+    template: "%s · TradeInsight",
+  },
   description:
     "Discover trade opportunities in Indian markets with AI-powered analysis. Comprehensive sector reports, market insights, and strategic recommendations — in under 15 seconds.",
   keywords: [
@@ -35,14 +46,52 @@ export const metadata: Metadata = {
     "India markets",
     "export import",
     "business intelligence",
+    "NSE sectors",
+    "agentic AI",
   ],
   authors: [{ name: "TradeInsight AI" }],
+  creator: "TradeInsight AI",
+  publisher: "TradeInsight AI",
+  // Next.js auto-detects opengraph-image.png and twitter-image.png colocated
+  // with this file — we don't list them explicitly so the config stays in
+  // sync with the files on disk. The `images` default is inferred.
   openGraph: {
-    title: "TradeInsight AI — AI-Powered Market Intelligence",
-    description:
-      "Discover trade opportunities in Indian markets with AI-powered analysis.",
     type: "website",
+    locale: "en_IN",
+    url: siteUrl,
+    siteName: "TradeInsight AI",
+    title: "TradeInsight AI — Market intelligence, written for you",
+    description:
+      "Pick a sector. Get a cited, persona-tuned report in under fifteen seconds. Built for retail investors, exporters, SME founders and consultants in Indian markets.",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "TradeInsight AI — Market intelligence, written for you",
+    description:
+      "Pick a sector. Get a cited, persona-tuned report in under fifteen seconds.",
+    creator: "@Shubair313",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+};
+
+// Tints the mobile browser chrome (Chrome on Android, Safari iOS) to match
+// our near-black canvas — small touch that compounds into "premium". Lives
+// in its own `viewport` export because Next.js 14 deprecated themeColor
+// inside `metadata`.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0A0A0A" },
+    { media: "(prefers-color-scheme: light)", color: "#0A0A0A" },
+  ],
 };
 
 export default function RootLayout({
