@@ -1,0 +1,21 @@
+
+> trade-insight-ai@1.0.0 dev
+> next dev --hostname 127.0.0.1 --port 3001
+
+  ▲ Next.js 14.2.18
+  - Local:        http://127.0.0.1:3001
+  - Network:      http://127.0.0.1:3001
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 5.5s
+ ○ Compiling /pricing ...
+ ✓ Compiled /pricing in 13.1s (1567 modules)
+ ✓ Compiled in 1450ms (728 modules)
+ ✓ Compiled in 197ms (714 modules)
+ GET /pricing 200 in 158ms
+ ○ Compiling /manifest.webmanifest ...
+ ✓ Compiled /manifest.webmanifest in 1236ms (855 modules)
+ GET /manifest.webmanifest 200 in 1498ms
+ ✓ Compiled /apple-icon.png in 404ms (857 modules)
+ ✓ Compiled (859 modules)

@@ -30,6 +30,41 @@ else:
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+PLAN_CATALOG_SEED = [
+    {
+        "sku": "plan_pro_monthly",
+        "name": "Pro Monthly",
+        "description": "TradeInsight AI Pro plan billed monthly.",
+        "price_paise": 2900,
+        "currency": "INR",
+        "stock_quantity": 999999,
+    },
+    {
+        "sku": "plan_pro_annual",
+        "name": "Pro Annual",
+        "description": "TradeInsight AI Pro plan billed annually.",
+        "price_paise": 24000,
+        "currency": "INR",
+        "stock_quantity": 999999,
+    },
+    {
+        "sku": "plan_enterprise_monthly",
+        "name": "Enterprise Monthly",
+        "description": "TradeInsight AI Enterprise plan billed monthly.",
+        "price_paise": 9900,
+        "currency": "INR",
+        "stock_quantity": 999999,
+    },
+    {
+        "sku": "plan_enterprise_annual",
+        "name": "Enterprise Annual",
+        "description": "TradeInsight AI Enterprise plan billed annually.",
+        "price_paise": 79000,
+        "currency": "INR",
+        "stock_quantity": 999999,
+    },
+]
+
 
 class User(Base):
     """User model for authentication and profile."""
@@ -59,6 +94,7 @@ class User(Base):
     # Relationships
     analyses = relationship("Analysis", back_populates="user", cascade="all, delete-orphan")
     favorites = relationship("FavoriteSector", back_populates="user", cascade="all, delete-orphan")
+    orders = relationship("Order", back_populates="user")
 
 
 class Analysis(Base):
@@ -149,6 +185,92 @@ class RefreshToken(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class InventoryItem(Base):
+    """Inventory master used by payment fulfilment."""
+    __tablename__ = "inventory_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    sku = Column(String(64), unique=True, index=True, nullable=False)
+    name = Column(String(150), nullable=False)
+    description = Column(Text, nullable=True)
+    price_paise = Column(Integer, nullable=False)
+    currency = Column(String(8), nullable=False, default="INR")
+    stock_quantity = Column(Integer, nullable=False, default=0)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    order_items = relationship("OrderItem", back_populates="inventory_item")
+
+
+class Order(Base):
+    """Local order record mapped to a Razorpay order."""
+    __tablename__ = "orders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    receipt = Column(String(40), unique=True, index=True, nullable=False)
+    status = Column(String(40), nullable=False, default="created", index=True)
+    currency = Column(String(8), nullable=False, default="INR")
+    amount_paise = Column(Integer, nullable=False)
+    notes_json = Column(Text, nullable=True)
+    razorpay_order_id = Column(String(64), unique=True, nullable=True, index=True)
+    razorpay_payment_id = Column(String(64), unique=True, nullable=True, index=True)
+    client_payment_signature = Column(String(255), nullable=True)
+    payment_verified_at = Column(DateTime, nullable=True)
+    paid_at = Column(DateTime, nullable=True)
+    inventory_applied_at = Column(DateTime, nullable=True)
+    verification_source = Column(String(32), nullable=True)
+    last_payment_event = Column(String(64), nullable=True)
+    failure_reason = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="orders")
+    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+    transactions = relationship("PaymentTransaction", back_populates="order", cascade="all, delete-orphan")
+
+
+class OrderItem(Base):
+    """Snapshot of inventory and pricing captured at order creation."""
+    __tablename__ = "order_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False, index=True)
+    inventory_item_id = Column(Integer, ForeignKey("inventory_items.id"), nullable=False, index=True)
+    sku = Column(String(64), nullable=False, index=True)
+    item_name = Column(String(150), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    unit_amount_paise = Column(Integer, nullable=False)
+    total_amount_paise = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    order = relationship("Order", back_populates="items")
+    inventory_item = relationship("InventoryItem", back_populates="order_items")
+
+
+class PaymentTransaction(Base):
+    """Processed Razorpay webhook / verification events."""
+    __tablename__ = "payment_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=True, index=True)
+    razorpay_event_id = Column(String(128), unique=True, nullable=False, index=True)
+    razorpay_payment_id = Column(String(64), nullable=True, index=True)
+    razorpay_order_id = Column(String(64), nullable=True, index=True)
+    event_type = Column(String(64), nullable=False, index=True)
+    source = Column(String(32), nullable=False, default="webhook")
+    status = Column(String(40), nullable=False, default="received")
+    signature_valid = Column(Boolean, default=False)
+    processed = Column(Boolean, default=False)
+    raw_payload = Column(Text, nullable=True)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    processed_at = Column(DateTime, nullable=True)
+
+    order = relationship("Order", back_populates="transactions")
+
+
 # Create all tables
 def init_db():
     """Initialize the database and create all tables."""
@@ -171,6 +293,21 @@ def init_db():
                     conn.execute(_text(stmt))
                 except Exception as exc:
                     logger.warning("Schema patch failed (non-fatal): %s → %s", stmt, exc)
+
+    with SessionLocal() as db:
+        for item in PLAN_CATALOG_SEED:
+            existing = db.query(InventoryItem).filter(InventoryItem.sku == item["sku"]).first()
+            if existing:
+                existing.name = item["name"]
+                existing.description = item["description"]
+                existing.price_paise = item["price_paise"]
+                existing.currency = item["currency"]
+                existing.is_active = True
+                if existing.stock_quantity < item["stock_quantity"]:
+                    existing.stock_quantity = item["stock_quantity"]
+            else:
+                db.add(InventoryItem(**item, is_active=True))
+        db.commit()
     logger.info("Database initialized successfully")
 
 
@@ -527,4 +664,86 @@ class RefreshTokenCRUD:
             .filter(RefreshToken.user_id == user_id)\
             .update({RefreshToken.is_revoked: True})
         db.commit()
+
+
+class InventoryCRUD:
+    """CRUD helpers for inventory-backed checkout."""
+
+    @staticmethod
+    def get_by_sku(db: Session, sku: str) -> Optional[InventoryItem]:
+        return db.query(InventoryItem).filter(InventoryItem.sku == sku).first()
+
+    @staticmethod
+    def list_active(db: Session) -> List[InventoryItem]:
+        return (
+            db.query(InventoryItem)
+            .filter(InventoryItem.is_active == True)  # noqa: E712
+            .order_by(InventoryItem.sku.asc())
+            .all()
+        )
+
+
+class OrderCRUD:
+    """CRUD helpers for local payment orders."""
+
+    @staticmethod
+    def create(
+        db: Session,
+        *,
+        user_id: Optional[int],
+        receipt: str,
+        currency: str,
+        amount_paise: int,
+        notes_json: Optional[str],
+        items: List[dict],
+    ) -> Order:
+        order = Order(
+            user_id=user_id,
+            receipt=receipt,
+            currency=currency,
+            amount_paise=amount_paise,
+            notes_json=notes_json,
+            status="initiated",
+        )
+        db.add(order)
+        db.flush()
+        for item in items:
+            db.add(
+                OrderItem(
+                    order_id=order.id,
+                    inventory_item_id=item["inventory_item_id"],
+                    sku=item["sku"],
+                    item_name=item["item_name"],
+                    quantity=item["quantity"],
+                    unit_amount_paise=item["unit_amount_paise"],
+                    total_amount_paise=item["total_amount_paise"],
+                )
+            )
+        db.commit()
+        db.refresh(order)
+        return order
+
+    @staticmethod
+    def get_by_id(db: Session, order_id: int) -> Optional[Order]:
+        return db.query(Order).filter(Order.id == order_id).first()
+
+    @staticmethod
+    def get_by_receipt(db: Session, receipt: str) -> Optional[Order]:
+        return db.query(Order).filter(Order.receipt == receipt).first()
+
+    @staticmethod
+    def get_by_razorpay_order_id(db: Session, razorpay_order_id: str) -> Optional[Order]:
+        return db.query(Order).filter(Order.razorpay_order_id == razorpay_order_id).first()
+
+
+class PaymentTransactionCRUD:
+    """CRUD helpers for webhook idempotency and audit records."""
+
+    @staticmethod
+    def get_by_event_id(db: Session, razorpay_event_id: str) -> Optional[PaymentTransaction]:
+        return (
+            db.query(PaymentTransaction)
+            .filter(PaymentTransaction.razorpay_event_id == razorpay_event_id)
+            .first()
+        )
 

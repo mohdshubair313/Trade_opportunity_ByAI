@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     
     # ==================== API Keys ====================
     gemini_api_key: str = ""
+    openrouter_api_key: str = ""
+    razorpay_key_id: str = ""
+    razorpay_key_secret: str = ""
+    razorpay_webhook_secret: str = ""
     
     # ==================== Security ====================
     secret_key: str = ""
@@ -29,6 +33,7 @@ class Settings(BaseSettings):
     version: str = "2.0.0"
     environment: str = "development"  # development, staging, production
     debug: bool = True
+    public_app_url: str = "http://localhost:3000"
     
     # ==================== CORS ====================
     # Comma-separated list of allowed origins for production. Local dev origins
@@ -43,7 +48,63 @@ class Settings(BaseSettings):
     
     # ==================== Database ====================
     database_url: str = "sqlite:///./trade_opportunities.db"
-    
+
+    # ==================== Payments ====================
+    razorpay_api_base_url: str = "https://api.razorpay.com/v1"
+    razorpay_currency: str = "INR"
+    razorpay_timeout_seconds: float = 15.0
+    webhook_dead_letter_path: str = "./reports/failed_webhooks/razorpay_dead_letters.jsonl"
+
+    # ==================== AI Multimodal ====================
+    ai_vision_provider: str = "openrouter"
+    ai_vision_max_bytes: int = 10 * 1024 * 1024
+    openrouter_vision_model: str = "google/gemma-4-31b-it:free"
+    openrouter_vision_fallback_models: str = "google/gemma-4-26b-a4b-it:free,baidu/qianfan-ocr-fast:free,openrouter/free"
+    gemini_vision_model: str = "gemini-2.5-flash"
+    openrouter_tts_model: str = "openai/gpt-4o-mini-tts-2025-12-15"
+    gemini_tts_model: str = "gemini-2.5-flash-preview-tts"
+    tts_default_voice: str = "nova"
+    tts_default_format: str = "mp3"
+
+    # ==================== Voice Agent ====================
+    # Disk + memory TTS cache. Repeated phrases ("hello", "let me check that
+    # for you") get re-synthesised every time without this — pure waste.
+    voice_cache_enabled: bool = True
+    voice_cache_dir: str = "./reports/voice_cache"
+    voice_cache_ttl_seconds: int = 60 * 60 * 24 * 30  # 30 days on disk
+    voice_cache_max_entries: int = 2000
+    # Hard upper bound for synthesized text. Voice agents that ramble are
+    # expensive — every extra token compounds into more TTS audio. Tuned to
+    # fit a 60-90s briefing comfortably.
+    voice_response_max_chars: int = 1500
+    # Silence detector — RMS energy threshold (0..1) and minimum voice frames
+    # to count as a real utterance. Empty audio is rejected before STT runs.
+    voice_vad_rms_threshold: float = 0.012
+    voice_vad_min_voice_ms: int = 240
+    voice_vad_pad_ms: int = 160
+    # Regional arbitrage — pick fastest healthy provider per request. The
+    # router keeps a rolling average and degrades providers that 4xx/5xx.
+    voice_arbitrage_enabled: bool = True
+    # Speech-to-text — Gemini multimodal handles audio natively without an
+    # extra provider. Override to "openrouter" if you wire a Whisper-style
+    # endpoint later.
+    stt_provider: str = "gemini"
+    stt_model: str = "gemini-2.5-flash"
+    stt_max_bytes: int = 20 * 1024 * 1024
+    # Voice agent system prompt is sent on every conversational turn. Static
+    # prefix → eligible for upstream prompt caching (Anthropic, OpenAI > 1024
+    # tokens, Gemini cached_content). Keeping this in config means it's the
+    # cache key, not buried in code.
+    voice_agent_system_prompt: str = (
+        "You are TradeInsight Voice — a calm, premium AI market operator for "
+        "Indian equity sectors. Reply in spoken English suitable for text-to-"
+        "speech: short sentences, no markdown, no bullet points, no lists, "
+        "no emoji. Keep replies under 90 seconds when read aloud (roughly 220 "
+        "words). When you don't know something, say so plainly. Never invent "
+        "prices, tickers, or news. End every reply with the single most "
+        "important next move for the listener."
+    )
+
     # ==================== Caching ====================
     cache_ttl_seconds: int = 600  # 10 minutes
     cache_max_size: int = 500
@@ -90,6 +151,21 @@ class Settings(BaseSettings):
     def is_development(self) -> bool:
         """Check if running in development."""
         return self.environment.lower() == "development"
+
+    @property
+    def openrouter_vision_models(self) -> List[str]:
+        """Parse the configured OpenRouter multimodal model chain."""
+        models = [self.openrouter_vision_model]
+        models.extend(
+            model.strip()
+            for model in self.openrouter_vision_fallback_models.split(",")
+            if model.strip()
+        )
+        deduped: List[str] = []
+        for model in models:
+            if model not in deduped:
+                deduped.append(model)
+        return deduped
     
     class Config:
         env_file = ".env"

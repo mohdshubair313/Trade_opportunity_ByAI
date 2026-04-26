@@ -5,18 +5,20 @@ Version 2.0.0
 A comprehensive API for analyzing market data and providing trade opportunity insights
 for Indian sectors, powered by agentic AI.
 """
+import base64
 import logging
 import re
 from datetime import datetime
 from typing import Optional
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends, HTTPException, status, Request, Query
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Query, UploadFile, File, Form
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 
 # Load environment variables
 load_dotenv()
@@ -25,7 +27,7 @@ from app.config import get_settings, get_environment_info
 from app.database import (
     get_db_session, init_db,
     UserCRUD, AnalysisCRUD, FavoriteCRUD, ContactCRUD, WatchlistCRUD, AlertCRUD,
-    User, Analysis, Watchlist, AlertEvent,
+    InventoryCRUD, User, Analysis, Watchlist, AlertEvent, Order,
 )
 from app.auth import (
     authenticate_user,
@@ -44,6 +46,11 @@ from app.schemas import (
     AnalysisRequest, AnalysisResponse, AnalysisSource, AnalysisHistoryResponse, AnalysisHistoryItem,
     FavoriteAdd, FavoritesListResponse,
     ContactRequest, ContactResponse,
+    CreateOrderRequest, CreateOrderResponse, RazorpayPaymentVerificationRequest, OrderResponse,
+    PaymentCatalogItemResponse,
+    VisionAnalysisResponse, TTSRequest,
+    VoiceQueryRequest, VoiceTurnResponse, VoiceTranscript,
+    VoiceCacheStats, VoiceVoiceOption,
     WatchlistCreate, WatchlistItem, WatchlistsResponse, AlertItem, AlertsResponse,
     CompareRequest, CompareResponse,
     HealthResponse, APIInfoResponse, ErrorResponse, UserStats
@@ -61,6 +68,25 @@ from app.market_data import (
 )
 from app.export_service import export_analysis, CONTENT_TYPES
 from app.compare_service import compare_sectors
+from app.payment_service import (
+    PaymentService,
+    PaymentError,
+    RazorpaySignatureError,
+    RazorpayUpstreamError,
+    InventoryUnavailableError,
+)
+from app.multimodal_ai import (
+    MultimodalAIService,
+    MultimodalAIError,
+    InvalidImageError,
+    ProviderUnavailableError,
+)
+from app.voice_agent import (
+    voice_agent_service,
+    VOICE_CATALOGUE,
+    VoiceAgentError,
+    VoiceProviderError,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -161,6 +187,27 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 data_collector = DataCollector()
 ai_analyzer = AIAnalyzer()
 report_generator = ReportGenerator()
+multimodal_ai_service = MultimodalAIService()
+try:
+    payment_service = PaymentService()
+except PaymentError as exc:
+    payment_service = None
+    logger.warning("Payment service disabled: %s", exc)
+
+
+def _get_payment_service_or_503() -> PaymentService:
+    """Return the configured payment service or a 503 when creds are missing."""
+    if payment_service is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Payment service is not configured. Check Razorpay credentials in .env.",
+        )
+    return payment_service
+
+
+def _to_order_response(order: Order) -> OrderResponse:
+    """Serialize an Order ORM object into the shared response schema."""
+    return _get_payment_service_or_503().to_order_response(order)
 
 
 # ==================== Exception Handlers ====================
@@ -213,6 +260,22 @@ async def root():
                 "analyze": "/api/v1/analyze/{sector}",
                 "history": "/api/v1/history",
                 "favorites": "/api/v1/favorites"
+            },
+            "payments": {
+                "create_order": "/api/v1/payments/create-order",
+                "verify": "/api/v1/payments/verify",
+                "webhook": "/api/v1/payments/razorpay-webhook"
+            },
+            "ai": {
+                "vision": "/api/v1/ai/vision/analyze",
+                "tts": "/api/v1/ai/tts",
+                "stt": "/api/v1/ai/stt"
+            },
+            "voice": {
+                "agent": "/api/v1/voice/agent",
+                "query": "/api/v1/voice/query",
+                "voices": "/api/v1/voice/voices",
+                "cache_stats": "/api/v1/voice/cache/stats"
             },
             "user": {
                 "profile": "/api/v1/users/me",
@@ -929,6 +992,486 @@ async def get_sector_news(
         "sector": sector,
         "count": len(items),
         "items": items,
+    }
+
+
+# ==================== Sectors Info Endpoints ====================
+
+
+# ==================== Payments Endpoints ====================
+
+@app.get("/api/v1/payments/catalog", response_model=list[PaymentCatalogItemResponse], tags=["Payments"])
+async def list_payment_catalog(
+    db: Session = Depends(get_db_session),
+):
+    """Expose active checkout SKUs so the frontend can render real purchasable plans."""
+    return [
+        PaymentCatalogItemResponse(
+            sku=item.sku,
+            name=item.name,
+            description=item.description,
+            price_paise=item.price_paise,
+            currency=item.currency,
+            stock_quantity=item.stock_quantity,
+        )
+        for item in InventoryCRUD.list_active(db)
+    ]
+
+
+@app.post("/api/v1/payments/create-order", response_model=CreateOrderResponse, tags=["Payments"])
+@limiter.limit("10/minute")
+async def create_payment_order(
+    request: Request,
+    payload: CreateOrderRequest,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db_session),
+):
+    """
+    Create a local order and a matching Razorpay order.
+
+    Amounts are always computed on the server in paise (integer subunits) from
+    inventory pricing to avoid any floating-point drift or client-side tampering.
+    """
+    service = _get_payment_service_or_503()
+    try:
+        order = await service.create_order(
+            db,
+            user_id=current_user.id if current_user else None,
+            request=payload,
+        )
+        return service.order_to_create_response(order)
+    except InventoryUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    except RazorpayUpstreamError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+    except PaymentError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@app.post("/api/v1/payments/verify", response_model=OrderResponse, tags=["Payments"])
+@limiter.limit("20/minute")
+async def verify_payment(
+    request: Request,
+    payload: RazorpayPaymentVerificationRequest,
+    db: Session = Depends(get_db_session),
+):
+    """
+    Verify the checkout signature, then fetch the payment state from Razorpay.
+
+    If the payment is already captured, the backend finalizes the order here.
+    If not, the webhook will finish settlement later and remains the source of truth.
+    """
+    service = _get_payment_service_or_503()
+    try:
+        order = await service.verify_payment(db, payload=payload)
+        return _to_order_response(order)
+    except RazorpaySignatureError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc))
+    except InventoryUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    except RazorpayUpstreamError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+    except PaymentError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@app.get("/api/v1/payments/orders/{local_order_id}", response_model=OrderResponse, tags=["Payments"])
+async def get_payment_order(
+    local_order_id: int,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db_session),
+):
+    """Return the latest server-side order status for checkout polling/reconciliation."""
+    service = _get_payment_service_or_503()
+    try:
+        order = service.get_order_or_raise(db, local_order_id)
+    except PaymentError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+
+    if order.user_id is not None:
+        if current_user is None or current_user.id != order.user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed to view this order")
+
+    return _to_order_response(order)
+
+
+@app.post("/api/v1/payments/razorpay-webhook", tags=["Payments"])
+async def razorpay_webhook(
+    request: Request,
+    db: Session = Depends(get_db_session),
+):
+    """
+    Consume Razorpay webhooks using mandatory HMAC SHA256 signature validation.
+
+    The webhook path is authoritative for inventory and final order state,
+    which protects checkout flows from browser disconnects and delayed callbacks.
+    """
+    service = _get_payment_service_or_503()
+    raw_payload = await request.body()
+    signature = request.headers.get("x-razorpay-signature")
+    event_header = request.headers.get("x-razorpay-event-id")
+
+    if not signature:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing X-Razorpay-Signature header",
+        )
+
+    try:
+        result = await service.process_webhook(
+            db,
+            raw_payload=raw_payload,
+            signature=signature,
+            event_header=event_header,
+        )
+    except RazorpaySignatureError as exc:
+        logger.warning("Rejected Razorpay webhook due to signature mismatch: %s", exc)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc))
+    except SQLAlchemyError as exc:
+        db.rollback()
+        logger.error("Database failure while processing Razorpay webhook", exc_info=True)
+        service.persist_dead_letter(
+            raw_payload=raw_payload,
+            headers=dict(request.headers),
+            error_message=f"database failure: {exc}",
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Webhook persistence temporarily unavailable; Razorpay should retry.",
+        )
+    except PaymentError as exc:
+        db.rollback()
+        logger.error("Payment webhook processing failed: %s", exc, exc_info=True)
+        service.persist_dead_letter(
+            raw_payload=raw_payload,
+            headers=dict(request.headers),
+            error_message=str(exc),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Webhook processing failed",
+        )
+    except Exception as exc:  # noqa: BLE001
+        db.rollback()
+        logger.error("Unhandled Razorpay webhook failure", exc_info=True)
+        service.persist_dead_letter(
+            raw_payload=raw_payload,
+            headers=dict(request.headers),
+            error_message=f"unexpected failure: {exc}",
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unexpected webhook processing failure",
+        )
+
+    http_status = status.HTTP_202_ACCEPTED if result.get("status") == "orphaned" else status.HTTP_200_OK
+    return JSONResponse(status_code=http_status, content=result)
+
+
+# ==================== AI Multimodal Endpoints ====================
+
+@app.post("/api/v1/ai/vision/analyze", response_model=VisionAnalysisResponse, tags=["AI"])
+@limiter.limit("10/minute")
+async def analyze_image_with_ai(
+    request: Request,
+    image: UploadFile = File(...),
+    task: str = Form("trade_chart"),
+    question: Optional[str] = Form(None),
+):
+    """Analyze a trade chart, receipt, or generic image with structured output."""
+    if task not in {"trade_chart", "receipt", "generic"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="task must be one of trade_chart, receipt, generic",
+        )
+    mime_type = (image.content_type or "").lower()
+    if not mime_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Only image uploads are supported",
+        )
+
+    try:
+        image_bytes = await image.read()
+        result = await multimodal_ai_service.analyze_image(
+            image_bytes=image_bytes,
+            mime_type=mime_type,
+            task=task,
+            question=question,
+        )
+        return VisionAnalysisResponse(**result)
+    except InvalidImageError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    except ProviderUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+    except MultimodalAIError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@app.post("/api/v1/ai/tts", tags=["AI"])
+@limiter.limit("20/minute")
+async def synthesize_speech(
+    request: Request,
+    payload: TTSRequest,
+):
+    """Synthesize speech with disk-backed cache + regional arbitrage.
+
+    On a cache hit (same text + voice + speed + format + instructions) the
+    audio bytes come straight off disk — zero TTS calls, zero latency, zero
+    cost. On miss, the request goes to the fastest healthy provider.
+    """
+    try:
+        result = await voice_agent_service.synthesize(
+            text=payload.text,
+            voice=payload.voice or settings.tts_default_voice,
+            speed=payload.speed,
+            response_format=payload.response_format,
+            instructions=payload.instructions,
+        )
+    except VoiceProviderError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+    except VoiceAgentError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    headers = {
+        "X-AI-Provider": result.provider,
+        "X-AI-Model": result.model,
+        "X-Cache-Hit": "1" if result.cache_hit else "0",
+        "X-Latency-Ms": str(result.latency_ms),
+        "X-Char-Count": str(result.char_count),
+    }
+    return StreamingResponse(
+        iter([result.audio]),
+        media_type=result.media_type,
+        headers=headers,
+    )
+
+
+# ==================== Voice Agent Endpoints ====================
+
+@app.get("/api/v1/voice/voices", response_model=list[VoiceVoiceOption], tags=["Voice"])
+async def list_voice_options():
+    """List available voices with sample text for the picker UI."""
+    return [VoiceVoiceOption(**voice) for voice in VOICE_CATALOGUE]
+
+
+@app.get("/api/v1/voice/cache/stats", response_model=VoiceCacheStats, tags=["Voice"])
+async def voice_cache_stats():
+    """Live cache stats — drives the cost-savings badge in the UI."""
+    return VoiceCacheStats(**voice_agent_service.cache_stats())
+
+
+@app.post("/api/v1/ai/stt", tags=["Voice"])
+@limiter.limit("20/minute")
+async def transcribe_audio(
+    request: Request,
+    audio: UploadFile = File(...),
+    language: Optional[str] = Form(None),
+):
+    """Transcribe an uploaded audio clip after VAD silence-trimming.
+
+    The frontend uploads WAV (browser MediaRecorder webm/ogg can't be decoded
+    server-side without ffmpeg). VAD trims dead air before STT runs so we
+    don't pay for silence.
+    """
+    audio_bytes = await audio.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="Empty audio payload")
+    mime_type = (audio.content_type or "").lower()
+    try:
+        transcript, debug = await voice_agent_service.transcribe(
+            audio_bytes=audio_bytes,
+            mime_type=mime_type,
+            language_hint=language,
+        )
+    except VoiceProviderError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+    except VoiceAgentError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    if not transcript:
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "transcript": "",
+                "is_speech": False,
+                "debug": debug,
+            },
+        )
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "transcript": transcript,
+            "is_speech": True,
+            "debug": debug,
+        },
+    )
+
+
+@app.post("/api/v1/voice/query", tags=["Voice"])
+@limiter.limit("15/minute")
+async def voice_query(
+    request: Request,
+    payload: VoiceQueryRequest,
+):
+    """Text-driven voice agent turn: prompt → cached LLM reply → cached TTS.
+
+    This is the cheapest entry point — clients that already have a typed
+    prompt should use this (no STT bill). Returns audio inline so the
+    browser can play it without a second round-trip.
+    """
+    started = datetime.utcnow()
+    try:
+        reply_text, debug = await voice_agent_service.reply_text(
+            prompt=payload.prompt,
+            sector=payload.sector,
+            mode=payload.mode,
+            history=payload.history,
+        )
+    except VoiceProviderError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+    except VoiceAgentError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    try:
+        synth = await voice_agent_service.synthesize(
+            text=reply_text,
+            voice=payload.voice or settings.tts_default_voice,
+            speed=payload.speed,
+            response_format=payload.response_format,
+            slug=payload.sector or payload.mode,
+        )
+    except VoiceProviderError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+
+    elapsed_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
+    audio_b64 = base64.b64encode(synth.audio).decode("ascii")
+    return {
+        "transcript": {
+            "user_text": payload.prompt,
+            "assistant_text": reply_text,
+            "sector": payload.sector,
+            "mode": payload.mode,
+        },
+        "audio_base64": audio_b64,
+        "audio_format": synth.media_type,
+        "cache_hit": synth.cache_hit,
+        "latency_ms": elapsed_ms,
+        "synth_latency_ms": synth.latency_ms,
+        "provider": synth.provider,
+        "model": synth.model,
+        "llm_debug": debug,
+    }
+
+
+@app.post("/api/v1/voice/agent", tags=["Voice"])
+@limiter.limit("12/minute")
+async def voice_agent_turn(
+    request: Request,
+    audio: UploadFile = File(...),
+    sector: Optional[str] = Form(None),
+    mode: str = Form("qa"),
+    voice: Optional[str] = Form(None),
+    response_format: str = Form("mp3"),
+    speed: Optional[float] = Form(None),
+    history_json: Optional[str] = Form(None),
+    language: Optional[str] = Form(None),
+):
+    """Full conversational pipeline: STT → cached LLM → cached TTS.
+
+    A single multipart request goes in, a single JSON response with embedded
+    audio comes out. The frontend voice agent UI calls this on each user
+    utterance — VAD trims silence both ends, the LLM reply is capped at
+    `voice_response_max_chars`, and identical replies are served straight
+    from disk on subsequent turns.
+    """
+    started = datetime.utcnow()
+    audio_bytes = await audio.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="Empty audio payload")
+
+    mime_type = (audio.content_type or "").lower()
+    try:
+        user_text, vad_debug = await voice_agent_service.transcribe(
+            audio_bytes=audio_bytes,
+            mime_type=mime_type,
+            language_hint=language,
+        )
+    except VoiceProviderError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+    except VoiceAgentError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    if not user_text:
+        return JSONResponse(
+            status_code=200,
+            content={
+                "transcript": {
+                    "user_text": "",
+                    "assistant_text": "",
+                    "sector": sector,
+                    "mode": mode,
+                },
+                "audio_base64": None,
+                "audio_format": None,
+                "cache_hit": False,
+                "latency_ms": int((datetime.utcnow() - started).total_seconds() * 1000),
+                "is_speech": False,
+                "vad_debug": vad_debug,
+            },
+        )
+
+    parsed_history = None
+    if history_json:
+        try:
+            import json as _json
+            parsed_history = _json.loads(history_json)
+            if not isinstance(parsed_history, list):
+                parsed_history = None
+        except Exception:  # noqa: BLE001
+            parsed_history = None
+
+    try:
+        reply_text, llm_debug = await voice_agent_service.reply_text(
+            prompt=user_text,
+            sector=sector,
+            mode=mode,
+            history=parsed_history,
+        )
+    except VoiceProviderError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+
+    try:
+        synth = await voice_agent_service.synthesize(
+            text=reply_text,
+            voice=voice or settings.tts_default_voice,
+            speed=speed,
+            response_format=response_format,
+            slug=sector or mode,
+        )
+    except VoiceProviderError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+
+    elapsed_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
+    audio_b64 = base64.b64encode(synth.audio).decode("ascii")
+    return {
+        "transcript": {
+            "user_text": user_text,
+            "assistant_text": reply_text,
+            "sector": sector,
+            "mode": mode,
+        },
+        "audio_base64": audio_b64,
+        "audio_format": synth.media_type,
+        "cache_hit": synth.cache_hit,
+        "latency_ms": elapsed_ms,
+        "synth_latency_ms": synth.latency_ms,
+        "provider": synth.provider,
+        "model": synth.model,
+        "is_speech": True,
+        "vad_debug": vad_debug,
+        "llm_debug": llm_debug,
     }
 
 

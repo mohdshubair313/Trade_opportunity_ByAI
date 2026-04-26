@@ -2,7 +2,7 @@
 Pydantic schemas for request/response validation.
 """
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field, EmailStr, validator
 import re
 
@@ -344,6 +344,202 @@ class ContactResponse(BaseModel):
     """Response after accepting a contact submission."""
     id: int
     message: str = "Thanks — we'll be in touch within one business day."
+
+
+# ==================== Payments Schemas ====================
+
+ALLOWED_PAYMENT_CURRENCIES = {"INR"}
+ALLOWED_TTS_FORMATS = {"mp3", "pcm"}
+ALLOWED_VOICE_AGENT_MODES = {"briefing", "qa", "open"}
+ALLOWED_VISION_TASKS = {"trade_chart", "receipt", "generic"}
+
+
+class CreateOrderItemRequest(BaseModel):
+    """Single inventory-backed line item in an order request."""
+    sku: str = Field(..., min_length=1, max_length=64)
+    quantity: int = Field(..., ge=1, le=100)
+
+    @validator("sku")
+    def _normalise_sku(cls, v):
+        value = v.strip()
+        if not value:
+            raise ValueError("sku is required")
+        return value
+
+
+class PaymentCatalogItemResponse(BaseModel):
+    """Visible payment catalog item for the checkout UI."""
+    sku: str
+    name: str
+    description: Optional[str] = None
+    price_paise: int
+    currency: str
+    stock_quantity: int
+
+
+class CreateOrderRequest(BaseModel):
+    """Create a Razorpay order using paise-denominated inventory items."""
+    items: List[CreateOrderItemRequest] = Field(..., min_length=1, max_length=20)
+    currency: str = Field("INR", min_length=3, max_length=8)
+    receipt: Optional[str] = Field(None, max_length=40)
+    notes: Dict[str, str] = Field(default_factory=dict)
+
+    @validator("currency")
+    def _valid_currency(cls, v):
+        value = v.upper()
+        if value not in ALLOWED_PAYMENT_CURRENCIES:
+            raise ValueError(f"currency must be one of {sorted(ALLOWED_PAYMENT_CURRENCIES)}")
+        return value
+
+    @validator("notes")
+    def _valid_notes(cls, v):
+        if len(v) > 15:
+            raise ValueError("notes can contain at most 15 key/value pairs")
+        for key, value in v.items():
+            if len(str(key)) > 256 or len(str(value)) > 256:
+                raise ValueError("each note key/value must be 256 characters or fewer")
+        return v
+
+
+class OrderLineItemResponse(BaseModel):
+    """Order line item returned to the frontend."""
+    sku: str
+    item_name: str
+    quantity: int
+    unit_amount_paise: int
+    total_amount_paise: int
+
+
+class OrderResponse(BaseModel):
+    """Canonical local order status."""
+    local_order_id: int
+    receipt: str
+    razorpay_order_id: Optional[str] = None
+    razorpay_payment_id: Optional[str] = None
+    status: str
+    amount_paise: int
+    currency: str
+    inventory_applied: bool
+    payment_verified: bool
+    items: List[OrderLineItemResponse]
+    created_at: datetime
+    paid_at: Optional[datetime] = None
+    failure_reason: Optional[str] = None
+
+
+class CreateOrderResponse(OrderResponse):
+    """Response returned after creating a remote Razorpay order."""
+    key_id: str
+
+
+class RazorpayPaymentVerificationRequest(BaseModel):
+    """Client-side checkout signature verification payload."""
+    local_order_id: int = Field(..., ge=1)
+    razorpay_order_id: str = Field(..., min_length=5, max_length=64)
+    razorpay_payment_id: str = Field(..., min_length=5, max_length=64)
+    razorpay_signature: str = Field(..., min_length=10, max_length=255)
+
+
+# ==================== AI Multimodal Schemas ====================
+
+class VisionAnalysisResponse(BaseModel):
+    """Structured response from the multimodal analysis endpoint."""
+    task: str
+    provider: str
+    model: str
+    analysis: Dict[str, Any]
+    warnings: List[str] = Field(default_factory=list)
+    created_at: str
+
+
+class TTSRequest(BaseModel):
+    """Request schema for text-to-speech generation."""
+    text: str = Field(..., min_length=1, max_length=4000)
+    voice: Optional[str] = Field(None, min_length=1, max_length=64)
+    response_format: str = Field("mp3", description="mp3 | pcm")
+    speed: Optional[float] = Field(None, ge=0.25, le=4.0)
+    instructions: Optional[str] = Field(None, max_length=200)
+
+    @validator("response_format")
+    def _valid_response_format(cls, v):
+        value = v.lower()
+        if value not in ALLOWED_TTS_FORMATS:
+            raise ValueError(f"response_format must be one of {sorted(ALLOWED_TTS_FORMATS)}")
+        return value
+
+
+# ==================== Voice Agent Schemas ====================
+
+class VoiceQueryRequest(BaseModel):
+    """Text-driven voice agent turn (for typed questions / quick probes)."""
+    prompt: str = Field(..., min_length=1, max_length=2000)
+    sector: Optional[str] = Field(None, max_length=80)
+    mode: str = Field("qa", description="briefing | qa | open")
+    voice: Optional[str] = Field(None, min_length=1, max_length=64)
+    response_format: str = Field("mp3", description="mp3 | pcm")
+    speed: Optional[float] = Field(None, ge=0.5, le=1.5)
+    history: Optional[List[Dict[str, str]]] = Field(
+        default=None,
+        description="Prior conversation turns: [{role, content}]",
+    )
+
+    @validator("mode")
+    def _valid_mode(cls, v):
+        value = v.lower()
+        if value not in ALLOWED_VOICE_AGENT_MODES:
+            raise ValueError(f"mode must be one of {sorted(ALLOWED_VOICE_AGENT_MODES)}")
+        return value
+
+    @validator("response_format")
+    def _valid_response_format(cls, v):
+        value = v.lower()
+        if value not in ALLOWED_TTS_FORMATS:
+            raise ValueError(f"response_format must be one of {sorted(ALLOWED_TTS_FORMATS)}")
+        return value
+
+
+class VoiceTranscript(BaseModel):
+    """Lightweight transcript shape returned alongside synthesized audio."""
+    user_text: Optional[str] = None
+    assistant_text: str
+    sector: Optional[str] = None
+    mode: str = "qa"
+
+
+class VoiceTurnResponse(BaseModel):
+    """Non-streaming voice agent response (audio served from cache or stream)."""
+    transcript: VoiceTranscript
+    audio_url: Optional[str] = None
+    audio_format: str = "mp3"
+    cache_hit: bool = False
+    latency_ms: int = 0
+    provider: Optional[str] = None
+    model: Optional[str] = None
+
+
+class VoiceCacheStats(BaseModel):
+    """TTS cache stats — drives the live cost-savings UI badge."""
+    enabled: bool
+    entries: int
+    hits: int
+    misses: int
+    hit_ratio: float
+    bytes_saved: int
+    chars_saved: int
+    estimated_inr_saved: float
+    last_provider: Optional[str] = None
+    arbitrage_enabled: bool = False
+    provider_health: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+
+
+class VoiceVoiceOption(BaseModel):
+    """One selectable voice in the operator UI."""
+    value: str
+    label: str
+    mood: str
+    sample_text: str
+    accent: Optional[str] = None
+    locale: Optional[str] = None
 
 
 # ==================== Error Schemas ====================

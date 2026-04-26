@@ -1,0 +1,21 @@
+2026-04-24 18:37:55,141 - app.main - INFO - CORS configured — allow_origins=['http://localhost:3000', 'http://127.0.0.1:3000'] allow_origin_regex=None
+INFO:     Started server process [14208]
+INFO:     Waiting for application startup.
+2026-04-24 18:37:56,952 - app.main - INFO - Starting Trade Opportunities API v2.0.0
+2026-04-24 18:37:56,953 - app.main - INFO - Environment: development
+2026-04-24 18:38:01,105 - app.database - INFO - Database initialized successfully
+2026-04-24 18:38:01,342 - app.main - INFO - Application startup complete
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-04-24 18:38:43,839 - app.auth - INFO - New user registered: uitester_e40b37b9
+2026-04-24 18:38:44,132 - app.main - INFO - New user registered: uitester_e40b37b9
+2026-04-24 18:38:47,117 - httpx - INFO - HTTP Request: POST https://api.razorpay.com/v1/orders "HTTP/1.1 200 OK"
+2026-04-24 18:38:48,558 - app.payment_service - INFO - Skipping duplicate Razorpay webhook event evt_2d474c696bde
+2026-04-24 18:38:53,568 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/audio/speech "HTTP/1.1 200 OK"
+2026-04-24 18:38:56,945 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-04-24 18:38:56,953 - app.multimodal_ai - WARNING - OpenRouter model google/gemma-4-31b-it:free failed with 429: {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"google/gemma-4-31b-it:free is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate you
+2026-04-24 18:38:59,401 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 429 Too Many Requests"
+2026-04-24 18:38:59,410 - app.multimodal_ai - WARNING - OpenRouter model google/gemma-4-26b-a4b-it:free failed with 429: {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"google/gemma-4-26b-a4b-it:free is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate
+2026-04-24 18:39:03,220 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2026-04-24 18:42:44,889 - app.auth - INFO - New user registered: browser_b0949c5f
+2026-04-24 18:42:45,163 - app.main - INFO - New user registered: browser_b0949c5f

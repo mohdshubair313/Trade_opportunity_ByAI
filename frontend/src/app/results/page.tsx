@@ -15,6 +15,7 @@ const TrendProjection = dynamic(() => import("@/components/results/ResultsCompon
 const CorrelationHeatmap = dynamic(() => import("@/components/results/ResultsComponents").then(m => ({ default: m.CorrelationHeatmap })), { ssr: false });
 const SentimentBubbles = dynamic(() => import("@/components/results/ResultsComponents").then(m => ({ default: m.SentimentBubbles })), { ssr: false });
 const AnalysisReport = dynamic(() => import("@/components/dashboard/AnalysisReport").then(m => ({ default: m.AnalysisReport })), { ssr: false });
+const AIOperatorStudio = dynamic(() => import("@/components/results/AIOperatorStudio").then(m => ({ default: m.AIOperatorStudio })), { ssr: false });
 
 function ResultsContent() {
     const searchParams = useSearchParams();
@@ -118,6 +119,14 @@ function ResultsContent() {
                                     {/* Extract simplified text from report or show simplified view */}
                                     {analysis?.report ? analysis.report.split('\n').filter(line => !line.startsWith('#')).slice(0, 5).join(' ') + "..." : "Generating insights..."}
                                 </div>
+                                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                                    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-muted-foreground">
+                                        Voice Briefing Studio now turns this report into a premium spoken memo.
+                                    </div>
+                                    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-muted-foreground">
+                                        Vision Lab can inspect charts, receipts, and screenshots with structured output.
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div className="md:col-span-3">
@@ -131,6 +140,11 @@ function ResultsContent() {
                         <CorrelationHeatmap />
                         {displaySector && <TrendProjection sector={displaySector} />}
                     </div>
+
+                    {/* AI operator studio: premium voice + vision tooling */}
+                    {analysis?.report && displaySector && (
+                        <AIOperatorStudio sector={displaySector} report={analysis.report} />
+                    )}
 
                     {/* Bottom: Detailed Report */}
                     <div className="bg-card border border-border/50 rounded-2xl p-6">

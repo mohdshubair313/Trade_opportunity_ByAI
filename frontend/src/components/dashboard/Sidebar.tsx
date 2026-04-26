@@ -19,6 +19,7 @@ import {
   User,
   Bell,
   GitCompareArrows,
+  Mic,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,6 +38,7 @@ const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Search, label: "New Analysis", href: "/dashboard?new=true" },
   { icon: GitCompareArrows, label: "Compare", href: "/compare" },
+  { icon: Mic, label: "Voice Agent", href: "/voice" },
   { icon: Bell, label: "Alerts", href: "/alerts", badgeKey: "alerts" },
   { icon: History, label: "History", href: "/history" },
   { icon: Star, label: "Favorites", href: "/favorites" },

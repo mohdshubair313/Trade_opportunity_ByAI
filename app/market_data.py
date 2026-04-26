@@ -14,7 +14,13 @@ import time
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-import yfinance as yf
+try:
+    import yfinance as yf
+except Exception as exc:  # noqa: BLE001 - environment-specific import failures
+    yf = None  # type: ignore[assignment]
+    _YFINANCE_IMPORT_ERROR = exc
+else:
+    _YFINANCE_IMPORT_ERROR = None
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +33,8 @@ logger = logging.getLogger(__name__)
 _TZ_CACHE_DIR = os.path.join(tempfile.gettempdir(), "tradeinsight_yf_tz")
 os.makedirs(_TZ_CACHE_DIR, exist_ok=True)
 try:
-    yf.set_tz_cache_location(_TZ_CACHE_DIR)
+    if yf is not None:
+        yf.set_tz_cache_location(_TZ_CACHE_DIR)
 except Exception as _exc:  # pragma: no cover - yfinance internal
     logger.debug("yfinance tz cache redirect failed: %s", _exc)
 
@@ -97,6 +104,8 @@ def resolve_ticker(sector: str) -> Optional[str]:
 
 def _fetch_history(ticker: str, period: str = "1y", interval: str = "1mo"):
     """Pull OHLCV history; returns a pandas DataFrame (possibly empty)."""
+    if yf is None:
+        raise RuntimeError(f"yfinance unavailable: {_YFINANCE_IMPORT_ERROR}")
     tk = yf.Ticker(ticker)
     return tk.history(period=period, interval=interval, auto_adjust=False)
 

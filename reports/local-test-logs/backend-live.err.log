@@ -1,0 +1,13 @@
+2026-04-24 18:34:55,291 - app.main - INFO - CORS configured — allow_origins=['http://localhost:3000', 'http://127.0.0.1:3000'] allow_origin_regex=None
+INFO:     Started server process [29120]
+INFO:     Waiting for application startup.
+2026-04-24 18:34:57,125 - app.main - INFO - Starting Trade Opportunities API v2.0.0
+2026-04-24 18:34:57,127 - app.main - INFO - Environment: development
+2026-04-24 18:35:04,467 - app.database - INFO - Database initialized successfully
+2026-04-24 18:35:04,693 - app.main - INFO - Application startup complete
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-04-24 18:35:52,112 - app.auth - INFO - New user registered: uitester_bdee6d4e
+2026-04-24 18:35:53,496 - app.main - INFO - New user registered: uitester_bdee6d4e
+2026-04-24 18:36:01,350 - httpx - INFO - HTTP Request: POST https://api.razorpay.com/v1/orders "HTTP/1.1 200 OK"
+2026-04-24 18:36:02,967 - app.main - WARNING - Rejected Razorpay webhook due to signature mismatch: Razorpay webhook signature mismatch

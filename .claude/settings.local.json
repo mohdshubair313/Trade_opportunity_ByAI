@@ -27,7 +27,15 @@
       "Bash(disown sleep *)",
       "Bash(D:/Projects/Trade_opportunity_ByAI/venv/Scripts/python.exe -c \"import sys,json;d=json.load\\(sys.stdin\\);print\\('labels:',d['labels']\\);print\\('IT↔Bank:',d['matrix'][0][d['labels'].index\\('Bank'\\)]\\);print\\('IT↔Pharma:',d['matrix'][0][d['labels'].index\\('Pharma'\\)]\\)\")",
       "Bash(D:/Projects/Trade_opportunity_ByAI/venv/Scripts/python.exe -c \"import sys,json;d=json.load\\(sys.stdin\\);print\\('status:',d['status'],'outperf:',d.get\\('outperformance_pct'\\),'series pts:',len\\(d.get\\('sector_series'\\) or []\\)\\)\")",
-      "WebFetch(domain:openrouter.ai)"
+      "WebFetch(domain:openrouter.ai)",
+      "Bash(python -c \"from app.voice_agent import voice_agent_service, VOICE_CATALOGUE; print\\('voice_agent ok'\\); from app.main import app; print\\('main ok'\\); print\\([r.path for r in app.routes if 'voice' in r.path or 'tts' in r.path or 'stt' in r.path]\\)\")",
+      "Bash(python -c \"from app.voice_agent import voice_agent_service, VOICE_CATALOGUE; print\\('voice_agent ok'\\); print\\('VAD:', voice_agent_service.vad.rms_threshold\\); print\\('cache enabled:', voice_agent_service.cache.enabled\\)\")",
+      "Bash(python -c \"from app.main import app; print\\('main ok'\\); voice_routes=[r.path for r in app.routes if 'voice' in r.path or '/tts' in r.path or '/stt' in r.path]; [print\\(r\\) for r in voice_routes]\")",
+      "Bash(python -c ' *)",
+      "Bash(python -m py_compile app/voice_agent.py app/main.py app/config.py app/schemas.py)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(echo \"exit:$?\")",
+      "Bash(npx next *)"
     ]
   }
 }

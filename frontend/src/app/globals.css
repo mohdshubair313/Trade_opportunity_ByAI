@@ -275,6 +275,27 @@
   }
 }
 
+@keyframes voice-meter {
+  0%, 100% {
+    transform: scaleY(0.45);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.voice-meter-bar {
+  transform-origin: bottom;
+  animation: voice-meter 1.25s ease-in-out infinite;
+}
+
+audio {
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
 /* Ensure no black bars from overflow */
 html,
 body {

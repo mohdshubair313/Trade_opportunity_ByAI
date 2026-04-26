@@ -5,7 +5,7 @@ import axios, { AxiosError, AxiosInstance } from "axios";
 // both produce correct URLs when the route path starts with `/api/v1/…`.
 // Without this, axios would happily produce double-slash URLs that some proxies
 // reject (or silently redirect, which then fails CORS preflight).
-const API_BASE_URL = (
+export const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 ).replace(/\/+$/, "");
 
@@ -225,6 +225,117 @@ export interface ApiError {
   message: string;
   code?: string;
   details?: Record<string, unknown>;
+}
+
+// ==================== Payments API ====================
+
+export interface PaymentCatalogItem {
+  sku: string;
+  name: string;
+  description?: string | null;
+  price_paise: number;
+  currency: string;
+  stock_quantity: number;
+}
+
+export interface CreateOrderItemRequest {
+  sku: string;
+  quantity: number;
+}
+
+export interface OrderLineItem {
+  sku: string;
+  item_name: string;
+  quantity: number;
+  unit_amount_paise: number;
+  total_amount_paise: number;
+}
+
+export interface OrderResponse {
+  local_order_id: number;
+  receipt: string;
+  razorpay_order_id?: string | null;
+  razorpay_payment_id?: string | null;
+  status: string;
+  amount_paise: number;
+  currency: string;
+  inventory_applied: boolean;
+  payment_verified: boolean;
+  items: OrderLineItem[];
+  created_at: string;
+  paid_at?: string | null;
+  failure_reason?: string | null;
+}
+
+export interface CreateOrderResponse extends OrderResponse {
+  key_id: string;
+}
+
+export interface CreateOrderRequest {
+  items: CreateOrderItemRequest[];
+  currency?: string;
+  receipt?: string;
+  notes?: Record<string, string>;
+}
+
+export interface RazorpayPaymentVerificationRequest {
+  local_order_id: number;
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+export async function listPaymentCatalog(): Promise<PaymentCatalogItem[]> {
+  const response = await api.get<PaymentCatalogItem[]>("/api/v1/payments/catalog");
+  return response.data;
+}
+
+export async function createPaymentOrder(data: CreateOrderRequest): Promise<CreateOrderResponse> {
+  const response = await api.post<CreateOrderResponse>("/api/v1/payments/create-order", data);
+  return response.data;
+}
+
+export async function verifyPaymentOrder(
+  data: RazorpayPaymentVerificationRequest
+): Promise<OrderResponse> {
+  const response = await api.post<OrderResponse>("/api/v1/payments/verify", data);
+  return response.data;
+}
+
+export async function getPaymentOrder(localOrderId: number): Promise<OrderResponse> {
+  const response = await api.get<OrderResponse>(`/api/v1/payments/orders/${localOrderId}`);
+  return response.data;
+}
+
+// ==================== Multimodal AI API ====================
+
+export interface VisionAnalysisResponse {
+  task: "trade_chart" | "receipt" | "generic" | string;
+  provider: string;
+  model: string;
+  analysis: Record<string, unknown>;
+  warnings: string[];
+  created_at: string;
+}
+
+export async function analyzeVisionImage(
+  file: File,
+  task: "trade_chart" | "receipt" | "generic",
+  question?: string
+): Promise<VisionAnalysisResponse> {
+  const formData = new FormData();
+  formData.append("image", file);
+  formData.append("task", task);
+  if (question?.trim()) {
+    formData.append("question", question.trim());
+  }
+
+  const response = await api.post<VisionAnalysisResponse>("/api/v1/ai/vision/analyze", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
 }
 
 // ==================== Authentication API ====================

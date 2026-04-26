@@ -37,6 +37,7 @@ google-genai
 # Utilities
 python-multipart
 tenacity
+Pillow
 
 # Market data + sentiment
 yfinance
