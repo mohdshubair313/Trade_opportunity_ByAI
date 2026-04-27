@@ -16,7 +16,7 @@ export function formatDate(date: Date | string): string {
       minute: "2-digit",
       hour12: false
     });
-  } catch (e) {
+  } catch {
     return String(date);
   }
 }

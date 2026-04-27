@@ -8,7 +8,7 @@ import { Footer } from "@/components/landing/Footer";
 
 export default function HomePage() {
   return (
-    <main className="relative">
+    <main className="relative main-container">
       <Header />
       <Hero />
       <Features />

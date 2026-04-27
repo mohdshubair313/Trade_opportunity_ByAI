@@ -25,9 +25,6 @@ function ResultsContent() {
 
     const { analyze, fetchAnalysisById, analysis, isLoading: isAnalyzing, error } = useAnalysis();
 
-    // Load stored report when `?id=` is present (clicking a history/recent
-    // card). Otherwise kick off a fresh analysis by sector. Guards against
-    // double-fire from React StrictMode.
     useEffect(() => {
         const parsedId = idParam ? Number(idParam) : NaN;
         if (!Number.isNaN(parsedId) && parsedId > 0) {
@@ -39,8 +36,6 @@ function ResultsContent() {
         }
     }, [sector, idParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Prefer the sector name that came back with the stored analysis — the URL
-    // only had an id, but the header still needs a title to render.
     const displaySector = sector || analysis?.sector || "";
 
     if (!sector && !idParam) {
@@ -52,9 +47,6 @@ function ResultsContent() {
         );
     }
 
-    // When loading by id, the sector name only becomes known after the fetch
-    // returns — gate the market-data panels on that so they don't fire requests
-    // against an empty sector string.
     const isLoadingView = isAnalyzing || (!!idParam && !analysis && !error);
 
     return (
@@ -66,17 +58,21 @@ function ResultsContent() {
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <div>
-                        <h1 className="text-3xl font-bold flex items-center gap-2">
-                            {displaySector || "Loading…"} <span className="text-primary/60 text-lg font-normal">Analysis</span>
+                        <h1 className="text-3xl md:text-4xl font-display font-semibold tracking-tight flex items-center gap-2">
+                            {displaySector || "Loading…"} <span className="text-primary/60 text-xl font-normal">Analysis</span>
                         </h1>
-                        <p className="text-muted-foreground text-sm">AI-Powered Market Intelligence • v2.1</p>
+                        <p className="text-muted-foreground text-sm tracking-wide uppercase font-mono opacity-60">AI-Powered Market Intelligence • v2.1</p>
                     </div>
                 </div>
 
                 <div className="flex gap-3 items-center">
                     {displaySector && <WatchButton sector={displaySector} />}
                     <div className="px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary flex items-center gap-2">
-                        <Sparkles className="h-3 w-3" /> Agentic AI · Live
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                        </span>
+                        Agentic AI · Live
                     </div>
                 </div>
             </div>
@@ -84,12 +80,12 @@ function ResultsContent() {
             {isLoadingView ? (
                 <div className="flex flex-col items-center justify-center min-h-[400px]">
                     <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-                    <p className="text-muted-foreground animate-pulse">
-                        {idParam ? "Loading saved report…" : "Analyzing market data sources..."}
+                    <p className="text-muted-foreground animate-pulse font-display text-xl italic">
+                        {idParam ? "Restoring intelligence from archive…" : "Synthesizing market report from live sources..."}
                     </p>
                 </div>
             ) : error ? (
-                <div className="border border-red-500/50 bg-red-500/10 rounded-xl p-8 text-center">
+                <div className="border border-red-500/50 bg-red-500/10 rounded-[2rem] p-8 text-center">
                     <h3 className="text-xl font-bold text-red-500 mb-2">Analysis Failed</h3>
                     <p className="text-muted-foreground mb-4">{error}</p>
                     <Button onClick={() => {
@@ -104,26 +100,24 @@ function ResultsContent() {
                     animate={{ opacity: 1, y: 0 }}
                     className="space-y-6"
                 >
-                    {/* Top Row: Vitals & Capital Flow & AI Summary Header */}
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                         <div className="md:col-span-3">
                             {displaySector && <SectorVitals sector={displaySector} />}
                         </div>
                         <div className="md:col-span-6 flex flex-col gap-6">
-                            {/* Main AI Insight Summary Card could go here or the Report */}
-                            <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-6 min-h-[200px]">
-                                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                            <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-[2rem] p-8 min-h-[200px] shadow-inner relative overflow-hidden group">
+                                <div className="absolute top-4 right-6 text-[10px] font-mono font-bold text-primary/40">§ EXECUTIVE</div>
+                                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                     <Sparkles className="h-4 w-4 text-primary" /> AI Intelligence
                                 </h3>
-                                <div className="prose prose-invert prose-sm max-w-none line-clamp-6">
-                                    {/* Extract simplified text from report or show simplified view */}
+                                <div className="prose prose-invert prose-sm max-w-none line-clamp-6 text-foreground/80 leading-relaxed italic font-display text-lg">
                                     {analysis?.report ? analysis.report.split('\n').filter(line => !line.startsWith('#')).slice(0, 5).join(' ') + "..." : "Generating insights..."}
                                 </div>
-                                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                                    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-muted-foreground">
+                                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                                    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-[11px] text-muted-foreground leading-snug">
                                         Voice Briefing Studio now turns this report into a premium spoken memo.
                                     </div>
-                                    <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-muted-foreground">
+                                    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-[11px] text-muted-foreground leading-snug">
                                         Vision Lab can inspect charts, receipts, and screenshots with structured output.
                                     </div>
                                 </div>
@@ -134,21 +128,19 @@ function ResultsContent() {
                         </div>
                     </div>
 
-                    {/* Middle Row: Charts */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[300px]">
                         {displaySector && <SentimentBubbles sector={displaySector} />}
                         <CorrelationHeatmap />
                         {displaySector && <TrendProjection sector={displaySector} />}
                     </div>
 
-                    {/* AI operator studio: premium voice + vision tooling */}
                     {analysis?.report && displaySector && (
                         <AIOperatorStudio sector={displaySector} report={analysis.report} />
                     )}
 
-                    {/* Bottom: Detailed Report */}
-                    <div className="bg-card border border-border/50 rounded-2xl p-6">
-                        <h2 className="text-2xl font-bold mb-6">Comprehensive Report</h2>
+                    <div className="bg-card border border-border/50 rounded-[2rem] p-8 shadow-2xl shadow-black/20 relative overflow-hidden">
+                        <div className="absolute top-6 right-8 text-[10px] font-mono font-bold text-muted-foreground/30">§ COMPLETE REPORT</div>
+                        <h2 className="text-2xl md:text-3xl font-display font-semibold mb-8">Comprehensive Report</h2>
                         {analysis && <AnalysisReport analysis={analysis} />}
                     </div>
                 </motion.div>
@@ -162,7 +154,7 @@ export default function ResultsPage() {
         <Suspense fallback={
             <div className="flex flex-col items-center justify-center min-h-screen">
                 <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-                <p className="text-muted-foreground">Loading...</p>
+                <p className="text-muted-foreground font-display italic">Initializing Workspace...</p>
             </div>
         }>
             <ResultsContent />

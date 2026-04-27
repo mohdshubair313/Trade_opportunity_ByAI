@@ -48,7 +48,7 @@ export default function PricingPage() {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("annual");
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-background">
+    <div className="min-h-screen bg-background main-container">
       <Header />
 
       <section className="relative overflow-hidden pt-32 pb-12">
@@ -225,8 +225,7 @@ export default function PricingPage() {
           </motion.div>
         </div>
       </section>
-
       <Footer />
-    </main>
+    </div>
   );
 }

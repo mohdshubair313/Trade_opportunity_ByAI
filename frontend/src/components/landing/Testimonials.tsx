@@ -68,7 +68,7 @@ export function Testimonials() {
               <Quote className="h-6 w-6 text-primary/30 mb-6" />
               <div className="pl-6 border-l-2 border-primary/10 group-hover:border-primary/40 transition-colors">
                 <p className="text-base md:text-lg leading-relaxed text-foreground/90 mb-8 font-medium italic">
-                  "{t.content}"
+                  &quot;{t.content}&quot;
                 </p>
               </div>
               <footer className="flex items-center gap-4 border-t border-border/60 pt-6 mt-2">
