@@ -99,11 +99,10 @@ const PLAN_RANK: Record<PlanKey, number> = {
 };
 
 function formatINR(paise: number): string {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(paise / 100);
+  // Hardcode the currency symbol and simple formatting to avoid Intl hydration mismatches
+  // which are common between Node.js server and Browser environments.
+  const amount = (paise / 100).toLocaleString("en-IN");
+  return `₹${amount}`;
 }
 
 function loadRazorpayCheckout(): Promise<void> {
@@ -332,7 +331,7 @@ export function PricingCheckoutGrid({
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-[28px] border border-emerald-500/20 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),transparent_38%),linear-gradient(160deg,rgba(8,12,16,0.96),rgba(9,18,24,0.94))] p-6 md:p-8"
+        className="relative overflow-hidden rounded-[2rem] border border-emerald-500/20 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),transparent_38%),linear-gradient(160deg,rgba(8,12,16,0.96),rgba(9,18,24,0.94))] p-6 md:p-8"
       >
         <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.05),transparent)] opacity-40" />
         <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -394,7 +393,7 @@ export function PricingCheckoutGrid({
             >
               <div
                 className={cn(
-                  "group relative h-full overflow-hidden rounded-[28px] border border-white/10 bg-[#070b10] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.32)]",
+                  "group relative h-full overflow-hidden rounded-[2rem] border border-white/10 bg-[#070b10] p-8 shadow-[0_24px_80px_rgba(0,0,0,0.32)] transition-all hover:border-primary/40",
                   plan.key === "pro" && "border-emerald-400/35 shadow-[0_24px_80px_rgba(16,185,129,0.18)]"
                 )}
               >

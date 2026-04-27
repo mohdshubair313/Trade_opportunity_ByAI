@@ -108,8 +108,8 @@ export function Sidebar() {
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-border">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center flex-shrink-0">
-            <TrendingUp className="h-6 w-6 text-white" />
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/20">
+            <TrendingUp className="h-5 w-5 text-white" />
           </div>
           <AnimatePresence>
             {!isCollapsed && (
@@ -148,9 +148,9 @@ export function Sidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    "relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
+                    "relative flex items-center gap-3 px-4 py-2.5 rounded-full transition-all duration-300",
                     isActive
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >
@@ -193,8 +193,11 @@ export function Sidebar() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="mt-6 mx-4 p-4 rounded-xl bg-muted/50 border border-border"
+            className="group relative mt-6 mx-3 p-5 rounded-[1.5rem] bg-muted/30 border border-border/60 hover:border-primary/40 transition-all"
           >
+            <div className="absolute top-4 right-5 text-[9px] font-mono font-bold text-muted-foreground/30 group-hover:text-primary/40 transition-colors">
+              § STATS
+            </div>
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">Quick Stats</span>

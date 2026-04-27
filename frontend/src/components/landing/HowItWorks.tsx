@@ -73,22 +73,24 @@ export function HowItWorks() {
                 className="relative"
               >
                 {/* Step marker */}
-                <div className="relative flex items-start gap-4 mb-5">
-                  <div className="relative flex-shrink-0 flex h-[72px] w-[72px] items-center justify-center rounded-2xl border border-border bg-card">
-                    <s.icon className="h-5 w-5 text-primary" />
-                    <span className="absolute -top-2 -right-2 inline-flex h-6 min-w-6 px-1.5 items-center justify-center rounded-full bg-primary text-[11px] font-mono font-semibold text-primary-foreground">
-                      {s.number}
+                <div className="relative flex items-start gap-4 mb-8">
+                  <div className="relative flex-shrink-0 flex h-[72px] w-[72px] items-center justify-center rounded-[1.5rem] border border-border bg-card shadow-sm group-hover:border-primary/40 transition-colors">
+                    <s.icon className="h-6 w-6 text-primary" />
+                    <span className="absolute -top-3 -right-3 inline-flex h-7 min-w-[28px] px-2 items-center justify-center rounded-full bg-primary text-[10px] font-mono font-bold text-primary-foreground shadow-lg shadow-primary/20">
+                      § 0{i + 1}
                     </span>
                   </div>
                 </div>
 
                 {/* Text */}
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  {s.title}
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {s.description}
-                </p>
+                <div className="pl-6 border-l-2 border-primary/10 group-hover:border-primary/40 transition-colors mt-2 space-y-3">
+                  <h3 className="text-xl font-display font-semibold text-foreground tracking-tight">
+                    {s.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {s.description}
+                  </p>
+                </div>
               </motion.div>
             ))}
           </div>

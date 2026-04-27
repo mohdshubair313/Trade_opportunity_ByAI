@@ -106,7 +106,9 @@ export default function RootLayout({
         <body className="min-h-screen bg-background font-sans antialiased">
           <SmoothScroll />
           <ScrollProgress />
-          {children}
+          <div className="main-container">
+            {children}
+          </div>
           <Toaster
             position="bottom-right"
             toastOptions={{
@@ -123,9 +125,9 @@ export default function RootLayout({
               },
             }}
           />
+          <Analytics />
         </body>
       </html>
-      <Analytics />
     </>
   );
 }

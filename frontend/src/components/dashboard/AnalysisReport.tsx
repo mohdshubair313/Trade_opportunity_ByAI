@@ -244,7 +244,7 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
         <h2
           id={slug}
           className={cn(
-            "group scroll-mt-24 flex items-center gap-3 text-2xl font-semibold tracking-tight mt-14 mb-5",
+            "group scroll-mt-24 flex items-center gap-4 text-2xl md:text-3xl font-display font-semibold tracking-tight mt-16 mb-6",
             kind === "opportunity" && "text-emerald-400",
             kind === "risk" && "text-amber-400",
             kind === "recommendation" && "text-sky-400",
@@ -253,7 +253,7 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
         >
           <span
             className={cn(
-              "inline-block w-1 h-7 rounded-full",
+              "inline-block w-1.5 h-8 rounded-full",
               kind === "opportunity" && "bg-emerald-500",
               kind === "risk" && "bg-amber-500",
               kind === "recommendation" && "bg-sky-500",
@@ -362,7 +362,7 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
       ref={cardRef}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden rounded-[28px] border border-border bg-card"
+      className="relative overflow-hidden rounded-[2rem] border border-border bg-card shadow-2xl shadow-black/20"
     >
       {/* Reading progress bar — tracks scroll from the header of this card to
           the end of the sources block. */}
@@ -439,15 +439,15 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
         <div ref={bodyRef} className="px-6 md:px-10 py-8 md:py-12">
           {/* Executive summary hero — the first thing the reader's eye lands on */}
           {heroTakeaway && (
-            <div className="mb-10 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.06] to-transparent p-6">
-              <div className="flex items-center gap-2 mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-                <Sparkles className="h-3.5 w-3.5" />
+            <div className="mb-12 rounded-[2rem] border border-primary/20 bg-gradient-to-br from-primary/[0.08] to-transparent p-8 md:p-10 shadow-inner">
+              <div className="flex items-center gap-2 mb-6 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-primary w-fit shadow-sm">
+                <Sparkles className="h-3 w-3" />
                 Key takeaway
               </div>
-              <p className="text-[17px] md:text-[18px] leading-[1.6] text-foreground/90 font-display italic">
+              <p className="text-xl md:text-2xl leading-[1.5] text-foreground/90 font-display italic tracking-tight">
                 “{heroTakeaway.replace(/^["'\u201c\u201d]/, "").replace(/["'\u201c\u201d]$/, "")}”
               </p>
-              <div className="mt-5 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+              <div className="mt-6 flex flex-wrap gap-4 text-[11px] font-medium text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                   {analysis.sources_analyzed} sources analysed
@@ -461,16 +461,15 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
                     href={analysis.saved_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                    className="inline-flex items-center gap-1.5 text-primary hover:underline transition-colors"
                   >
-                    <CloudDownload className="h-3 w-3" />
-                    Saved copy
+                    <CloudDownload className="h-3.5 w-3.5" />
+                    Archive saved
                   </a>
                 )}
               </div>
             </div>
           )}
-
           {/* The report itself — prose wrapped with our custom components */}
           <article className="max-w-[72ch]">
             <ReactMarkdown components={components}>

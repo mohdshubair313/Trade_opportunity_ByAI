@@ -120,16 +120,16 @@ export function Hero() {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.45 }}
-                    className="mt-10 flex flex-col sm:flex-row gap-3 items-center justify-center"
+                    className="mt-12 flex flex-col sm:flex-row gap-4 items-center justify-center"
                 >
                     <Link href="/dashboard">
-                        <Button size="lg" className="group h-11 px-6 text-sm font-medium">
+                        <Button variant="glow" size="lg" className="group h-12 px-8 text-sm font-semibold tracking-wide">
                             Start analyzing
-                            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                         </Button>
                     </Link>
                     <Link href="/pricing">
-                        <Button size="lg" variant="outline" className="h-11 px-6 text-sm font-medium">
+                        <Button size="lg" variant="outline" className="h-12 px-8 text-sm font-semibold tracking-wide backdrop-blur-sm bg-background/30 hover:bg-background/50 transition-all border-border/80">
                             See pricing
                         </Button>
                     </Link>

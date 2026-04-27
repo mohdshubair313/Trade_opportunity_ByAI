@@ -57,13 +57,13 @@ export function SectorSearch({ onSearch, isLoading }: SectorSearchProps) {
       <form onSubmit={handleSubmit}>
         <motion.div
           className={cn(
-            "relative flex items-center rounded-2xl border bg-card transition-all duration-300",
+            "relative flex items-center rounded-[1.5rem] border bg-card transition-all duration-500",
             isFocused
-              ? "border-primary shadow-lg shadow-primary/20 ring-4 ring-primary/10"
-              : "border-border hover:border-muted-foreground/30"
+              ? "border-primary/50 shadow-2xl shadow-primary/10 ring-8 ring-primary/5"
+              : "border-border/80 hover:border-primary/30 shadow-sm"
           )}
-          animate={{ scale: isFocused ? 1.02 : 1 }}
-          transition={{ duration: 0.2 }}
+          animate={{ y: isFocused ? -2 : 0 }}
+          transition={{ duration: 0.3 }}
         >
           <Search className="absolute left-5 h-5 w-5 text-muted-foreground" />
           <input

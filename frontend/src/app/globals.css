@@ -33,6 +33,25 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display), serif;
+  }
+
+  .main-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    width: 100%;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  
+  @media (min-width: 1024px) {
+    .main-container {
+      padding-left: 4rem;
+      padding-right: 4rem;
+    }
+  }
 }
 
 /* Custom scrollbar */
@@ -170,14 +189,17 @@
 
 .prose-custom h1 {
   @apply text-3xl font-bold mb-4 gradient-text;
+  font-family: var(--font-display), serif;
 }
 
 .prose-custom h2 {
   @apply text-2xl font-semibold mb-3 mt-6 text-primary;
+  font-family: var(--font-display), serif;
 }
 
 .prose-custom h3 {
   @apply text-xl font-semibold mb-2 mt-4 text-foreground;
+  font-family: var(--font-display), serif;
 }
 
 .prose-custom p {

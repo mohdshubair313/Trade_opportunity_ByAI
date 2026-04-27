@@ -18,9 +18,9 @@ export function CTA() {
           initial={{ opacity: 0, y: 16 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
-          className="relative mx-auto max-w-4xl rounded-3xl border border-border bg-card overflow-hidden"
+          className="relative mx-auto max-w-5xl rounded-[3rem] border border-border bg-card overflow-hidden shadow-2xl shadow-primary/5"
         >
-          {/* Subtle emerald wash — no ripples, no glass, no meteors. */}
+          {/* Subtle emerald wash */}
           <div
             className="absolute inset-0 opacity-60 pointer-events-none"
             style={{
@@ -36,32 +36,32 @@ export function CTA() {
             }}
           />
 
-          <div className="relative px-8 md:px-16 py-16 md:py-20 text-center">
+          <div className="relative px-8 md:px-16 py-16 md:py-24 text-center">
             <TextReveal
               as="h2"
               stagger={0.05}
-              className="text-3xl md:text-5xl font-semibold tracking-tight leading-[1.1] block"
+              className="text-4xl md:text-6xl font-display font-semibold tracking-tight leading-[1.05] block mb-2"
             >
-              Ready to see your sector, <span className="font-display italic text-primary/95">properly analysed?</span>
+              Ready to see your sector, <span className="italic text-primary/95 underline decoration-primary/20 underline-offset-8">properly analysed?</span>
             </TextReveal>
-            <p className="mt-5 mx-auto max-w-xl text-base text-muted-foreground leading-relaxed">
+            <p className="mt-8 mx-auto max-w-xl text-lg text-muted-foreground leading-relaxed">
               Sign in, pick a sector, hit analyze. The first report is free — no
               credit card, no sales call.
             </p>
-            <div className="mt-9 flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="mt-12 flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/dashboard">
-                <Button size="lg" className="group h-11 px-6 text-sm font-medium">
+                <Button variant="glow" size="xl" className="group h-14 px-10 text-base font-bold tracking-wide">
                   Start analyzing
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1.5" />
                 </Button>
               </Link>
               <Link href="/pricing">
-                <Button size="lg" variant="outline" className="h-11 px-6 text-sm font-medium">
+                <Button size="xl" variant="outline" className="h-14 px-10 text-base font-bold tracking-wide backdrop-blur-sm bg-background/30 hover:bg-background/50 transition-all">
                   See pricing
                 </Button>
               </Link>
             </div>
-            <p className="mt-6 text-xs text-muted-foreground">
+            <p className="mt-8 text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground opacity-60">
               Free tier · Cancel any time · Data stays yours
             </p>
           </div>

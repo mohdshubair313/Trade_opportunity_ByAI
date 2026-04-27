@@ -36,9 +36,10 @@ export function Features() {
           subtitle="Every feature exists for one reason: to get you from question to decision without the boring middle."
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20">
           {/* Row 1: big + small */}
           <BentoTile
+            index={1}
             className="md:col-span-2"
             icon={<Sparkles className="h-5 w-5" />}
             title="AI-Powered Analysis"
@@ -48,6 +49,7 @@ export function Features() {
             delay={0}
           />
           <BentoTile
+            index={2}
             icon={<Globe className="h-5 w-5" />}
             title="Real-Time Data"
             description="NSE sector indices, benchmark deltas and news sentiment — continuously refreshed."
@@ -55,9 +57,9 @@ export function Features() {
             inView={inView}
             delay={0.05}
           />
-
           {/* Row 2: small + big */}
           <BentoTile
+            index={3}
             icon={<FileText className="h-5 w-5" />}
             title="Detailed Reports"
             description="Executive summary, opportunities, risks, recommendations. Export to PDF, PPTX, XLSX or Markdown."
@@ -66,6 +68,7 @@ export function Features() {
             delay={0.1}
           />
           <BentoTile
+            index={4}
             className="md:col-span-2"
             icon={<Zap className="h-5 w-5" />}
             title="Lightning Fast"
@@ -74,9 +77,9 @@ export function Features() {
             inView={inView}
             delay={0.15}
           />
-
           {/* Row 3: two small */}
           <BentoTile
+            index={5}
             icon={<Bell className="h-5 w-5" />}
             title="Watchlist Alerts"
             description="Pin sectors. We re-analyse on your cadence and ping you only when something material changes."
@@ -84,6 +87,7 @@ export function Features() {
             delay={0.2}
           />
           <BentoTile
+            index={6}
             icon={<Shield className="h-5 w-5" />}
             title="Private by Default"
             description="JWT scoped per user. Your reports, watchlists and favourites never surface to another account."
@@ -112,10 +116,9 @@ export function SectionHeader({
 }) {
   return (
     <div className="max-w-3xl mx-auto text-center">
-      <div className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground mb-5">
-        <span className="h-px w-8 bg-border" />
+      <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-8 shadow-sm">
+        <Sparkles className="h-3 w-3" />
         {eyebrow}
-        <span className="h-px w-8 bg-border" />
       </div>
       <TextReveal
         as="h2"
@@ -136,6 +139,7 @@ export function SectionHeader({
 // ---------------------------------------------------------------------------
 
 interface TileProps {
+  index: number;
   icon: ReactNode;
   title: string;
   description: string;
@@ -145,14 +149,17 @@ interface TileProps {
   delay: number;
 }
 
-function BentoTile({ icon, title, description, visual, className = "", inView, delay }: TileProps) {
+function BentoTile({ index, icon, title, description, visual, className = "", inView, delay }: TileProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.4, delay }}
-      className={`group relative overflow-hidden rounded-2xl border border-border bg-card p-6 transition-colors hover:border-primary/30 ${className}`}
+      className={`group relative overflow-hidden rounded-[2rem] border border-border bg-card p-8 transition-all hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5 ${className}`}
     >
+      <div className="absolute top-6 right-8 text-[10px] font-mono font-bold text-muted-foreground/30 group-hover:text-primary/40 transition-colors">
+        § 0{index}
+      </div>
       {/* Soft emerald wash on hover — subtle, not decorative */}
       <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
         <div
@@ -165,14 +172,16 @@ function BentoTile({ icon, title, description, visual, className = "", inView, d
       </div>
 
       <div className="relative flex flex-col h-full">
-        <div className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-border bg-background/60 text-foreground/80 mb-5">
+        <div className="inline-flex items-center justify-center h-10 w-10 rounded-full border border-border bg-background/60 text-primary mb-6 group-hover:scale-110 transition-transform">
           {icon}
         </div>
-        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-        <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-lg">
-          {description}
-        </p>
-        {visual && <div className="mt-6 flex-1">{visual}</div>}
+        <div className="pl-6 border-l-2 border-primary/10 group-hover:border-primary/40 transition-colors space-y-3">
+          <h3 className="text-xl font-display font-semibold text-foreground tracking-tight">{title}</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
+            {description}
+          </p>
+        </div>
+        {visual && <div className="mt-8 flex-1">{visual}</div>}
       </div>
     </motion.div>
   );

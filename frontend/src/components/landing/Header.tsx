@@ -51,17 +51,17 @@ export function Header() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 transition-colors duration-300",
+          "fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-in-out",
           isScrolled
-            ? "bg-background/70 backdrop-blur-xl border-b border-border/60"
-            : "bg-transparent"
+            ? "top-4 mx-auto max-w-[95%] lg:max-w-5xl rounded-full bg-background/60 backdrop-blur-xl border border-border/50 shadow-2xl shadow-black/20 px-2 sm:px-4"
+            : "bg-transparent py-2"
         )}
       >
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                 <TrendingUp className="h-4 w-4 text-primary-foreground" strokeWidth={2.5} />
               </div>
               <span className="font-semibold tracking-tight text-base hidden sm:inline">

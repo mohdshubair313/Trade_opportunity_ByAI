@@ -72,8 +72,9 @@ export default function PricingPage() {
               </Badge>
             </div>
 
-            <h1 className="text-4xl font-bold tracking-tight md:text-6xl">
-              Buy like a product company. <GradientText>Operate like a fintech stack.</GradientText>
+            <h1 className="text-4xl font-display font-semibold tracking-tight md:text-7xl leading-[1.05]">
+              Buy like a product company. <br />
+              <GradientText>Operate like a fintech stack.</GradientText>
             </h1>
             <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-muted-foreground">
               Choose a plan, open Razorpay Checkout, and let the backend reconcile the entire flow before your account upgrades. No fake buttons. No manual refresh roulette.
@@ -141,13 +142,18 @@ export default function PricingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.08 }}
-              className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.04))] p-6"
+              className="group relative rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.04))] p-8 hover:border-primary/40 transition-all hover:shadow-2xl hover:shadow-primary/5"
             >
-              <div className="mb-4 inline-flex rounded-2xl border border-white/10 bg-white/5 p-3">
-                <item.icon className="h-5 w-5 text-primary" />
+              <div className="absolute top-6 right-8 text-[10px] font-mono font-bold text-muted-foreground/30 group-hover:text-primary/40 transition-colors">
+                § 0{index + 1}
               </div>
-              <h2 className="text-xl font-semibold">{item.title}</h2>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.body}</p>
+              <div className="mb-6 inline-flex rounded-2xl border border-white/10 bg-white/5 p-3 group-hover:scale-110 transition-transform">
+                <item.icon className="h-6 w-6 text-primary" />
+              </div>
+              <div className="pl-6 border-l-2 border-primary/10 group-hover:border-primary/40 transition-colors space-y-3">
+                <h2 className="text-2xl font-display font-semibold tracking-tight">{item.title}</h2>
+                <p className="text-sm leading-relaxed text-muted-foreground">{item.body}</p>
+              </div>
             </motion.div>
           ))}
         </div>
@@ -174,10 +180,15 @@ export default function PricingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.05 }}
-                className="rounded-[22px] border border-white/10 bg-card p-6"
+                className="group relative rounded-[1.5rem] border border-white/10 bg-card p-8 hover:border-primary/40 transition-all"
               >
-                <h3 className="font-semibold">{faq.question}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{faq.answer}</p>
+                <div className="absolute top-6 right-8 text-[10px] font-mono font-bold text-muted-foreground/30 group-hover:text-primary/40 transition-colors">
+                  Q {index + 1}
+                </div>
+                <div className="pl-6 border-l-2 border-primary/10 group-hover:border-primary/40 transition-colors space-y-2">
+                  <h3 className="text-lg font-display font-semibold tracking-tight">{faq.question}</h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{faq.answer}</p>
+                </div>
               </motion.div>
             ))}
           </div>
