@@ -27,15 +27,11 @@ import { LiveWaveform } from "@/components/voice/LiveWaveform";
 import { VoiceOrb, type VoiceOrbState } from "@/components/voice/VoiceOrb";
 import {
   listVoices,
-  startRecording,
   synthesize,
-  turnAudioUrl,
-  voiceAgentTurn,
   voiceQuery,
-  type RecorderHandle,
+  VoiceStreamClient,
   type VoiceMode,
   type VoiceOption,
-  type VoiceTurnResult,
 } from "@/lib/voice-client";
 import { cn } from "@/lib/utils";
 
@@ -53,27 +49,13 @@ interface VoiceAgentClientProps {
   showSavingsCard?: boolean;
 }
 
-/**
- * The full voice agent surface — orb + waveform + transcript + sample-test.
- *
- * Wires the recorder, REST helpers, and visualisations into one cohesive
- * client component. It keeps four pieces of state in sync:
- *
- * - `state` (idle | listening | thinking | speaking | muted) — drives both
- *   the orb animation and the waveform's `active` flag.
- * - `levelRef` — a ref polled by the canvas widgets for 60fps amplitude.
- * - `turns` — the running transcript, used for context on the next turn
- *   and rendered in the conversation panel.
- * - `audioRef` — the single <audio> element. We reuse it across turns so
- *   "Stop speaking" and "Replay" both work without object-URL churn.
- */
 export function VoiceAgentClient({
   defaultSector,
   defaultMode = "qa",
   className,
   showSavingsCard = true,
 }: VoiceAgentClientProps) {
-  const [state, setState] = useState<VoiceOrbState>("idle");
+  const [uiState, setUiState] = useState<VoiceOrbState>("idle");
   const [voice, setVoice] = useState("nova");
   const [voiceOptions, setVoiceOptions] = useState<VoiceOption[]>(FALLBACK_VOICES);
   const [mode, setMode] = useState<VoiceMode>(defaultMode);
@@ -85,15 +67,15 @@ export function VoiceAgentClient({
   const [muted, setMuted] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [activePlaybackId, setActivePlaybackId] = useState<string | null>(null);
+  const [connected, setConnected] = useState(false);
 
-  const recorderRef = useRef<RecorderHandle | null>(null);
-  const levelRef = useRef(0);
+  const streamRef = useRef<VoiceStreamClient | null>(null);
+  const micLevelRef = useRef(0);
   const playbackLevelRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
 
-  // Pull the curated voice list from the backend; fall back gracefully.
   useEffect(() => {
     let cancelled = false;
     void listVoices()
@@ -104,9 +86,7 @@ export function VoiceAgentClient({
           setVoice((prev) => (options.find((o) => o.value === prev) ? prev : options[0].value));
         }
       })
-      .catch(() => {
-        // backend offline → keep fallback voices
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -116,161 +96,59 @@ export function VoiceAgentClient({
     const audio = audioRef.current;
     const ctx = audioCtxRef.current;
     return () => {
-      recorderRef.current?.cancel();
+      streamRef.current?.disconnect();
       audio?.pause();
       ctx?.close().catch(() => {});
     };
-  }, []);
-
-  const conversationContext = useMemo(
-    () =>
-      turns.slice(-6).map((turn) => ({
-        role: turn.role === "system" ? ("user" as const) : (turn.role as "user" | "assistant"),
-        content: turn.content,
-      })),
-    [turns]
-  );
-
-  const playTurn = useCallback(
-    async (turn: ConversationTurn) => {
-      if (!turn.audioUrl) return;
-      const audio = audioRef.current;
-      if (!audio) return;
-      audio.src = turn.audioUrl;
-      setActivePlaybackId(turn.id);
-      setState("speaking");
-      try {
-        await attachPlaybackAnalyser(audio, audioCtxRef, analyserRef, playbackLevelRef);
-        await audio.play();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Couldn't play audio");
-        setState("idle");
-        setActivePlaybackId(null);
-      }
-    },
-    []
-  );
-
-  const stopPlayback = useCallback(() => {
-    audioRef.current?.pause();
-    setState("idle");
-    setActivePlaybackId(null);
   }, []);
 
   const appendTurn = useCallback((turn: ConversationTurn) => {
     setTurns((prev) => [...prev, turn]);
   }, []);
 
-  const handleAgentResult = useCallback(
-    async (result: VoiceTurnResult) => {
-      const { transcript } = result;
-      if (transcript.user_text) {
-        appendTurn({
-          id: `${Date.now()}-user`,
-          role: "user",
-          content: transcript.user_text,
-          createdAt: Date.now(),
-        });
-      }
-      const audioUrl = turnAudioUrl(result);
-      const assistantTurn: ConversationTurn = {
-        id: `${Date.now()}-assistant`,
-        role: "assistant",
-        content: transcript.assistant_text,
-        audioUrl,
-        cacheHit: result.cache_hit,
-        provider: result.provider,
-        latencyMs: result.latency_ms,
+  const handleStreamTranscript = useCallback(
+    (role: "user" | "assistant", content: string) => {
+      const turn: ConversationTurn = {
+        id: `${Date.now()}-${role}`,
+        role,
+        content,
         createdAt: Date.now(),
       };
-      appendTurn(assistantTurn);
-
-      if (autoSpeak && !muted && audioUrl) {
-        await playTurn(assistantTurn);
-      }
+      appendTurn(turn);
     },
-    [appendTurn, autoSpeak, muted, playTurn]
+    [appendTurn]
   );
 
-  const startListening = async () => {
-    if (busy) return;
-    try {
-      setBusy(true);
-      stopPlayback();
-      setState("listening");
-      const handle = await startRecording({
-        autoStopSilenceMs: 1400,
-        maxDurationMs: 25_000,
-      });
-      recorderRef.current = handle;
-      // Wire the recorder's RMS into the waveform via ref.
-      const tick = () => {
-        if (!recorderRef.current) return;
-        levelRef.current = recorderRef.current.getLevel();
-        if (recorderRef.current.isRecording()) requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't access the mic");
-      setState("idle");
-      setBusy(false);
+  const handleOrbClick = async () => {
+    if (connected) {
+      streamRef.current?.disconnect();
+      return;
     }
-  };
-
-  const finishListening = async () => {
-    if (!recorderRef.current) return;
+    if (busy) return;
+    setBusy(true);
     try {
-      const blob = await recorderRef.current.stop();
-      recorderRef.current = null;
-      if (blob.size < 1024) {
-        toast("Didn't catch that — try again.", { icon: "🎙️" });
-        setState("idle");
-        setBusy(false);
-        return;
-      }
-      setState("thinking");
-      const result = await voiceAgentTurn({
-        audio: blob,
-        sector: sector.trim() || undefined,
-        mode,
-        voice,
-        language,
-        history: conversationContext,
+      const client = new VoiceStreamClient({
+        onStateChange: (s) => setUiState(s),
+        onTranscript: handleStreamTranscript,
+        onMicLevel: (l) => { micLevelRef.current = l; },
+        onPlaybackLevel: (l) => { playbackLevelRef.current = l; },
+        onError: (err) => toast.error(err.message),
+        onConnectionChange: (c) => setConnected(c),
       });
-      if (!result.is_speech || !result.transcript.user_text) {
-        toast("Mostly silence — try speaking a bit louder.", { icon: "🤫" });
-        setState("idle");
-        return;
-      }
-      await handleAgentResult(result);
-      if (!autoSpeak || muted || !result.audio_base64) {
-        setState("idle");
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Voice agent failed";
-      if (message.toLowerCase().includes("cancel")) {
-        setState("idle");
-      } else {
-        toast.error(message);
-        setState("idle");
-      }
+      streamRef.current = client;
+      await client.connect();
+    } catch {
+      setUiState("idle");
     } finally {
       setBusy(false);
     }
   };
 
-  const handleOrbClick = async () => {
-    if (state === "speaking") {
-      stopPlayback();
-      return;
-    }
-    if (state === "listening") {
-      await finishListening();
-      return;
-    }
-    if (state === "thinking") return;
-    await startListening();
-  };
+  const stopPlayback = useCallback(() => {
+    audioRef.current?.pause();
+    setUiState(connected ? "listening" : "idle");
+    setActivePlaybackId(null);
+  }, [connected]);
 
   const handleSendText = async () => {
     const trimmed = textInput.trim();
@@ -284,21 +162,32 @@ export function VoiceAgentClient({
     });
     try {
       setBusy(true);
-      setState("thinking");
+      setUiState("thinking");
       const result = await voiceQuery({
         prompt: trimmed,
         sector: sector.trim() || undefined,
         mode,
         voice,
-        history: conversationContext,
+        history: turns.slice(-6).map((t) => ({
+          role: t.role === "system" ? "user" as const : t.role as "user" | "assistant",
+          content: t.content,
+        })),
       });
-      await handleAgentResult(result);
-      if (!autoSpeak || muted || !result.audio_base64) {
-        setState("idle");
+      const { transcript } = result;
+      if (transcript.assistant_text) {
+        appendTurn({
+          id: `${Date.now()}-assistant`,
+          role: "assistant",
+          content: transcript.assistant_text,
+          createdAt: Date.now(),
+        });
+      }
+      if (!autoSpeak || muted) {
+        setUiState(connected ? "listening" : "idle");
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Voice query failed");
-      setState("idle");
+      toast.error(err instanceof Error ? err.message : "Query failed");
+      setUiState(connected ? "listening" : "idle");
     } finally {
       setBusy(false);
     }
@@ -309,7 +198,7 @@ export function VoiceAgentClient({
     if (!target?.sample_text) return;
     try {
       setBusy(true);
-      setState("thinking");
+      setUiState("thinking");
       const synth = await synthesize({
         text: target.sample_text,
         voice,
@@ -326,10 +215,22 @@ export function VoiceAgentClient({
         createdAt: Date.now(),
       };
       appendTurn(turn);
-      await playTurn(turn);
+      const audio = audioRef.current;
+      if (audio) {
+        audio.src = synth.audioUrl;
+        setActivePlaybackId(turn.id);
+        setUiState("speaking");
+        try {
+          await attachPlaybackAnalyser(audio, audioCtxRef, analyserRef, playbackLevelRef);
+          await audio.play();
+        } catch {
+          setUiState("idle");
+          setActivePlaybackId(null);
+        }
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sample failed");
-      setState("idle");
+      setUiState("idle");
     } finally {
       setBusy(false);
     }
@@ -349,7 +250,7 @@ export function VoiceAgentClient({
     a.remove();
   };
 
-  const orbState: VoiceOrbState = muted ? "muted" : state;
+  const orbState: VoiceOrbState = muted ? "muted" : uiState;
   const lastAssistant = useMemo(
     () => [...turns].reverse().find((t) => t.role === "assistant"),
     [turns]
@@ -370,15 +271,16 @@ export function VoiceAgentClient({
                 </Badge>
                 <Badge variant="outline">
                   <Activity className="mr-1 h-3 w-3" />
-                  Real-time conversational AI
+                  {connected ? "Real-time streaming" : "Real-time conversational AI"}
                 </Badge>
               </div>
               <h3 className="text-2xl font-semibold [font-family:var(--font-display)]">
                 Talk to your market intelligence
               </h3>
               <p className="mt-2 max-w-xl text-sm text-slate-300">
-                Ask. Listen. Repeat. Built with cached TTS, voice-activity trimming, and
-                regional fallback so every conversation runs lean.
+                {connected
+                  ? "Streaming — speak naturally. The agent listens and responds in real time."
+                  : "Click the orb to start a real-time voice conversation. Type a question below to use text."}
               </p>
             </div>
             <CostSavingsBadge variant="compact" />
@@ -389,34 +291,32 @@ export function VoiceAgentClient({
               <button
                 type="button"
                 onClick={() => void handleOrbClick()}
-                disabled={busy && state !== "listening" && state !== "speaking"}
+                disabled={busy && uiState !== "speaking"}
                 className="group rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
                 aria-label={
-                  state === "listening"
-                    ? "Stop listening"
-                    : state === "speaking"
-                    ? "Stop speaking"
-                    : "Start listening"
+                  connected
+                    ? "Disconnect"
+                    : "Start conversation"
                 }
               >
                 <VoiceOrb
                   state={orbState}
-                  level={state === "speaking" ? playbackLevelRef.current : levelRef.current}
+                  level={uiState === "speaking" ? playbackLevelRef.current : micLevelRef.current}
                   size={260}
                   className="transition-transform group-hover:scale-[1.02] group-active:scale-[0.98]"
                 />
               </button>
               <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
                 <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                  {state === "idle"
-                    ? "Tap orb to speak"
-                    : state === "listening"
-                    ? "Listening — tap to send"
-                    : state === "thinking"
-                    ? "Thinking…"
-                    : state === "speaking"
+                  {!connected
+                    ? "Tap orb to connect"
+                    : uiState === "listening"
+                    ? "Listening — speak naturally"
+                    : uiState === "speaking"
                     ? "Speaking — tap to stop"
-                    : "Muted"}
+                    : uiState === "thinking"
+                    ? "Thinking…"
+                    : "Connected"}
                 </span>
               </div>
             </div>
@@ -428,17 +328,17 @@ export function VoiceAgentClient({
                     Live waveform
                   </p>
                   <span className="text-xs text-slate-400">
-                    {state === "speaking" ? "Playback" : "Mic input"}
+                    {uiState === "speaking" ? "Playback" : "Mic input"}
                   </span>
                 </div>
                 <LiveWaveform
-                  active={state === "listening" || state === "speaking"}
+                  active={uiState === "listening" || uiState === "speaking"}
                   getLevel={() =>
-                    state === "speaking" ? playbackLevelRef.current : levelRef.current
+                    uiState === "speaking" ? playbackLevelRef.current : micLevelRef.current
                   }
                   height={88}
                   bars={72}
-                  color={state === "speaking" ? "cyan" : "emerald"}
+                  color={uiState === "speaking" ? "cyan" : "emerald"}
                 />
               </div>
 
@@ -492,7 +392,10 @@ export function VoiceAgentClient({
                 <Button
                   variant={muted ? "outline" : "ghost"}
                   size="sm"
-                  onClick={() => setMuted((m) => !m)}
+                  onClick={() => {
+                    setMuted((m) => !m);
+                    streamRef.current?.toggleMute();
+                  }}
                 >
                   {muted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   {muted ? "Muted" : "Live"}
@@ -523,7 +426,7 @@ export function VoiceAgentClient({
                   <Download className="h-4 w-4" />
                   Download
                 </Button>
-                {state === "speaking" && (
+                {uiState === "speaking" && connected && (
                   <Button variant="outline" size="sm" onClick={stopPlayback}>
                     <StopCircle className="h-4 w-4" />
                     Stop
@@ -566,10 +469,17 @@ export function VoiceAgentClient({
         <ConversationPanel
           turns={turns}
           onPlayAudio={(turn) => {
-            if (activePlaybackId === turn.id && state === "speaking") {
+            if (activePlaybackId === turn.id && uiState === "speaking") {
               stopPlayback();
-            } else {
-              void playTurn(turn);
+            } else if (turn.audioUrl) {
+              const audio = audioRef.current;
+              if (audio) {
+                audio.src = turn.audioUrl;
+                setActivePlaybackId(turn.id);
+                setUiState("speaking");
+                void attachPlaybackAnalyser(audio, audioCtxRef, analyserRef, playbackLevelRef);
+                void audio.play();
+              }
             }
           }}
         />
@@ -591,13 +501,13 @@ export function VoiceAgentClient({
 
       <audio
         ref={audioRef}
-        onPlay={() => setState("speaking")}
+        onPlay={() => setUiState("speaking")}
         onEnded={() => {
-          setState("idle");
+          setUiState(connected ? "listening" : "idle");
           setActivePlaybackId(null);
         }}
         onPause={() => {
-          if (state === "speaking") setState("idle");
+          if (uiState === "speaking" && !connected) setUiState("idle");
         }}
         className="hidden"
       />

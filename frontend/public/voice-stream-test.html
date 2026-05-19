@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradeInsight Voice Agent – Stream Test</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0a0e14; color: #e2e8f0;
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh;
+  }
+  .card {
+    background: linear-gradient(180deg, rgba(7,10,14,0.98), rgba(8,13,18,0.95));
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 28px; padding: 40px;
+    max-width: 480px; width: 100%;
+    box-shadow: 0 30px 120px rgba(0,0,0,0.28);
+    text-align: center;
+  }
+  h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+  p { color: #94a3b8; font-size: 0.9rem; margin-bottom: 2rem; }
+  .orb {
+    width: 200px; height: 200px; border-radius: 50%;
+    margin: 0 auto 1.5rem;
+    background: radial-gradient(circle at 35% 35%, #1a5a2a, #0d2818);
+    transition: box-shadow 0.3s, transform 0.3s;
+    display: flex; align-items: center; justify-content: center;
+    color: #22c55e; font-size: 0.85rem; font-weight: 500;
+  }
+  .orb.listening {
+    box-shadow: 0 0 60px rgba(34,197,94,0.4), inset 0 0 40px rgba(34,197,94,0.15);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  .orb.speaking {
+    box-shadow: 0 0 80px rgba(56,189,248,0.5), inset 0 0 50px rgba(56,189,248,0.2);
+    animation: pulse 0.8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+  }
+  .btn-group { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+  button {
+    padding: 0.75rem 1.5rem; border-radius: 9999px; border: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;
+  }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: #22c55e; color: #0a0e14; box-shadow: 0 4px 20px rgba(34,197,94,0.35); }
+  .btn-primary:hover:not(:disabled) { background: #16a34a; }
+  .btn-danger { background: #dc2626; color: white; box-shadow: 0 4px 20px rgba(220,38,38,0.35); }
+  .btn-danger:hover:not(:disabled) { background: #b91c1c; }
+  .btn-outline { background: transparent; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.15); }
+  .btn-outline:hover:not(:disabled) { background: rgba(255,255,255,0.05); }
+  .status {
+    display: flex; gap: 1.5rem; justify-content: center; margin: 1.5rem 0 0;
+    font-size: 0.8rem; color: #64748b;
+  }
+  .status .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.4rem; }
+  .status .dot.green { background: #22c55e; }
+  .status .dot.gray { background: #475569; }
+  .status .dot.cyan { background: #22d3ee; }
+  .status .active { color: #22c55e; }
+  .log {
+    margin-top: 1.5rem; padding: 0.75rem; border-radius: 12px;
+    background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06);
+    font-size: 0.75rem; font-family: monospace; max-height: 120px;
+    overflow-y: auto; text-align: left; color: #94a3b8;
+  }
+  .log div { margin: 2px 0; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>TradeInsight Voice Agent</h1>
+  <p>Real-time streaming via WebSocket</p>
+  <div id="orb" class="orb">Ready</div>
+  <div class="btn-group">
+    <button id="btnStart" class="btn-primary" onclick="start()">▶ Start</button>
+    <button id="btnStop" class="btn-danger" onclick="stop()" disabled>■ Stop</button>
+    <button id="btnMute" class="btn-outline" onclick="toggleMute()" disabled>Mute</button>
+  </div>
+  <div class="status">
+    <span id="statusConn"><span class="dot gray"></span>Disconnected</span>
+    <span id="statusMic" style="display:none"><span class="dot green"></span>Mic live</span>
+    <span id="statusAI" style="display:none"><span class="dot cyan"></span>AI Speaking</span>
+  </div>
+  <div id="log" class="log"><div>← Ready. Press Start to begin.</div></div>
+</div>
+
+<script>
+const WS_URL = 'ws://localhost:8765/ws/client';
+const TARGET_RATE = 16000;
+
+let ws = null;
+let stream = null;
+let audioCtx = null;
+let playbackGain = null;
+let audioQueue = [];
+let isPlaying = false;
+let nextTime = 0;
+let activeSources = [];
+let connectionActive = false;
+let muted = false;
+let aiSpeaking = false;
+let micInterval = null;
+
+const orb = document.getElementById('orb');
+const logDiv = document.getElementById('log');
+const btnStart = document.getElementById('btnStart');
+const btnStop = document.getElementById('btnStop');
+const btnMute = document.getElementById('btnMute');
+const statusConn = document.getElementById('statusConn');
+const statusMic = document.getElementById('statusMic');
+const statusAI = document.getElementById('statusAI');
+
+function log(msg) {
+  const div = document.createElement('div');
+  div.textContent = msg;
+  logDiv.appendChild(div);
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+function setUI(state) {
+  orb.className = 'orb';
+  orb.textContent = state;
+  if (state === 'Listening') orb.classList.add('listening');
+  if (state === 'Speaking') orb.classList.add('speaking');
+}
+
+function setConnected(connected) {
+  connectionActive = connected;
+  btnStart.disabled = connected;
+  btnStop.disabled = !connected;
+  btnMute.disabled = !connected;
+  statusConn.innerHTML = connected
+    ? '<span class="dot green"></span>Connected'
+    : '<span class="dot gray"></span>Disconnected';
+}
+
+function scheduleNext() {
+  if (!audioCtx || audioQueue.length === 0 || isPlaying) return;
+  isPlaying = true;
+  if (nextTime < audioCtx.currentTime) nextTime = audioCtx.currentTime + 0.01;
+  while (audioQueue.length > 0) {
+    const buf = audioQueue.shift();
+    const source = audioCtx.createBufferSource();
+    source.buffer = buf;
+    source.connect(audioCtx.destination);
+    source.start(nextTime);
+    nextTime += buf.duration;
+    source.onended = () => {
+      activeSources = activeSources.filter(s => s !== source);
+      isPlaying = false;
+      if (audioQueue.length > 0) scheduleNext();
+      else if (connectionActive) { setUI('Listening'); aiSpeaking = false; }
+    };
+    activeSources.push(source);
+  }
+}
+
+function clearQueue() {
+  audioQueue = [];
+  isPlaying = false;
+  nextTime = 0;
+  activeSources.forEach(s => { try { s.stop(); } catch(e) {} });
+  activeSources = [];
+}
+
+async function start() {
+  if (connectionActive) return;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+    });
+    log('✓ Mic acquired');
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    await audioCtx.resume();
+    log('✓ AudioContext running');
+
+    playbackGain = audioCtx.createGain();
+    playbackGain.gain.value = muted ? 0 : 1;
+    playbackGain.connect(audioCtx.destination);
+
+    ws = new WebSocket(WS_URL);
+    ws.binaryType = 'arraybuffer';
+
+    ws.onopen = () => {
+      log('✓ WebSocket connected');
+      setConnected(true);
+      statusMic.style.display = '';
+      statusAI.style.display = 'none';
+
+      const sourceNode = audioCtx.createMediaStreamSource(stream);
+      const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+      sourceNode.connect(processor);
+      processor.connect(audioCtx.destination);
+
+      const nativeRate = audioCtx.sampleRate;
+      log('→ native sample rate: ' + nativeRate + 'Hz, resampling to ' + TARGET_RATE + 'Hz');
+      let audioCount = 0;
+      processor.onaudioprocess = (ev) => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        if (aiSpeaking) return;
+        const input = ev.inputBuffer.getChannelData(0);
+        const resampled = resampleLinear(input, nativeRate, TARGET_RATE);
+        const int16 = new Int16Array(resampled.length);
+        for (let i = 0; i < resampled.length; i++) {
+          const s = Math.max(-1, Math.min(1, resampled[i]));
+          int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+        }
+        try {
+          ws.send(int16.buffer);
+          audioCount++;
+          if (audioCount % 100 === 0) log('→ sent ' + (audioCount * 4096 / nativeRate).toFixed(1) + 's audio @ ' + TARGET_RATE + 'Hz');
+        } catch (e) {
+          log('✗ Send error: ' + e.message);
+        }
+      };
+
+      log('✓ Mic streaming started');
+      setUI('Listening');
+    };
+
+    ws.onmessage = (event) => {
+      if (event.data instanceof ArrayBuffer) {
+        if (!audioCtx) return;
+        const int16 = new Int16Array(event.data);
+        const float32 = new Float32Array(int16.length);
+        for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 32768;
+        const buf = audioCtx.createBuffer(1, float32.length, TARGET_RATE);
+        buf.getChannelData(0).set(float32);
+        audioQueue.push(buf);
+        if (!isPlaying) scheduleNext();
+        aiSpeaking = true;
+        statusAI.style.display = '';
+        setUI('Speaking');
+      } else {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'clear') {
+            log('← Interruption: audio cleared');
+            clearQueue();
+            aiSpeaking = false;
+            statusAI.style.display = 'none';
+            if (connectionActive) setUI('Listening');
+          } else if (data.type === 'AgentStartedSpeaking') {
+            aiSpeaking = true;
+            statusAI.style.display = '';
+            setUI('Speaking');
+          } else if (data.type === 'AgentAudioDone') {
+            aiSpeaking = false;
+            statusAI.style.display = 'none';
+            if (connectionActive) setUI('Listening');
+          }
+        } catch {}
+      }
+    };
+
+    ws.onclose = () => { log('✗ WebSocket closed'); cleanup(); };
+    ws.onerror = () => { log('✗ WebSocket error'); cleanup(); };
+
+  } catch (err) {
+    log('✗ Error: ' + err.message);
+    cleanup();
+  }
+}
+
+function cleanup() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  if (ws) { ws.close(); ws = null; }
+  if (micInterval) { clearInterval(micInterval); micInterval = null; }
+  clearQueue();
+  setConnected(false);
+  statusMic.style.display = 'none';
+  statusAI.style.display = 'none';
+  setUI('Ready');
+}
+
+function stop() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'close' }));
+  }
+  cleanup();
+  log('← Stopped');
+}
+
+function resampleLinear(input, fromRate, toRate) {
+  if (fromRate === toRate) return input;
+  const ratio = fromRate / toRate;
+  const length = Math.floor(input.length / ratio);
+  const out = new Float32Array(length);
+  for (let i = 0; i < length; i++) {
+    const idx = i * ratio;
+    const left = Math.floor(idx);
+    const right = Math.min(left + 1, input.length - 1);
+    const frac = idx - left;
+    out[i] = input[left] * (1 - frac) + input[right] * frac;
+  }
+  return out;
+}
+
+function toggleMute() {
+  muted = !muted;
+  if (playbackGain) playbackGain.gain.value = muted ? 0 : 1;
+  btnMute.textContent = muted ? 'Unmute' : 'Mute';
+  log(muted ? '← Muted' : '← Unmuted');
+}
+</script>
+</body>
+</html>

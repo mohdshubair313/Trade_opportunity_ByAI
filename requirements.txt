@@ -60,3 +60,6 @@ reportlab
 markdown
 openpyxl
 python-pptx
+
+# Voice Agent (Twilio + Deepgram)
+websockets

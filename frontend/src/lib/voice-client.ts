@@ -248,6 +248,348 @@ export async function voiceAgentTurn(
   return res.json();
 }
 
+// ---------------------------------------------------------------------------
+// WebSocket streaming voice agent client
+// ---------------------------------------------------------------------------
+
+const VOICE_WS_URL =
+  process.env.NEXT_PUBLIC_VOICE_WS_URL || "ws://localhost:8765/ws/client";
+const STREAM_TARGET_RATE = 16000;
+
+export type VoiceStreamState =
+  | "idle"
+  | "listening"
+  | "thinking"
+  | "speaking"
+  | "muted";
+
+export interface VoiceStreamCallbacks {
+  onStateChange: (state: VoiceStreamState) => void;
+  onTranscript: (role: "user" | "assistant", content: string) => void;
+  onMicLevel: (level: number) => void;
+  onPlaybackLevel: (level: number) => void;
+  onError: (error: Error) => void;
+  onConnectionChange: (connected: boolean) => void;
+}
+
+/**
+ * Real-time WebSocket streaming voice agent client.
+ *
+ * Manages mic capture → resample → WebSocket → Deepgram proxy,
+ * then receives AI audio chunks → queue → schedule playback.
+ * Tracks AI speaking state to prevent echo feedback loops.
+ */
+export class VoiceStreamClient {
+  private ws: WebSocket | null = null;
+  private stream: MediaStream | null = null;
+  private audioCtx: AudioContext | null = null;
+  private micSource: MediaStreamAudioSourceNode | null = null;
+  private processor: ScriptProcessorNode | null = null;
+  private micAnalyser: AnalyserNode | null = null;
+  private playbackAnalyser: AnalyserNode | null = null;
+  private gainNode: GainNode | null = null;
+  private audioQueue: AudioBuffer[] = [];
+  private isPlaying = false;
+  private nextTime = 0;
+  private activeSources: AudioBufferSourceNode[] = [];
+  private aiSpeaking = false;
+  private muted = false;
+  private micAnimFrame = 0;
+  private playbackAnimFrame = 0;
+  private state: VoiceStreamState = "idle";
+  private connected = false;
+
+  private callbacks: VoiceStreamCallbacks;
+
+  constructor(callbacks: VoiceStreamCallbacks) {
+    this.callbacks = callbacks;
+  }
+
+  isConnected(): boolean {
+    return this.connected;
+  }
+
+  isMuted(): boolean {
+    return this.muted;
+  }
+
+  toggleMute(): boolean {
+    this.muted = !this.muted;
+    if (this.gainNode) this.gainNode.gain.value = this.muted ? 0 : 1;
+    this.setState(this.muted ? "muted" : "listening");
+    return this.muted;
+  }
+
+  private setState(s: VoiceStreamState) {
+    this.state = s;
+    this.callbacks.onStateChange(s);
+  }
+
+  private getAudioCtx(): AudioContext {
+    if (!this.audioCtx) {
+      const Ctx =
+        window.AudioContext ||
+        (window as unknown as {
+          webkitAudioContext: typeof AudioContext;
+        }).webkitAudioContext;
+      this.audioCtx = new Ctx();
+    }
+    return this.audioCtx;
+  }
+
+  private scheduleNextAudio() {
+    const ctx = this.audioCtx;
+    if (!ctx || this.audioQueue.length === 0 || this.isPlaying) return;
+    this.isPlaying = true;
+    if (this.nextTime < ctx.currentTime)
+      this.nextTime = ctx.currentTime + 0.01;
+    while (this.audioQueue.length > 0) {
+      const buf = this.audioQueue.shift()!;
+      const source = ctx.createBufferSource();
+      source.buffer = buf;
+      if (this.playbackAnalyser) {
+        source.connect(this.playbackAnalyser);
+        this.playbackAnalyser.connect(ctx.destination);
+      } else {
+        source.connect(ctx.destination);
+      }
+      source.start(this.nextTime);
+      this.nextTime += buf.duration;
+      const s = source;
+      s.onended = () => {
+        this.activeSources = this.activeSources.filter((x) => x !== s);
+        this.isPlaying = false;
+        if (this.audioQueue.length > 0) {
+          this.scheduleNextAudio();
+        } else {
+          this.aiSpeaking = false;
+          if (this.connected) this.setState("listening");
+        }
+      };
+      this.activeSources.push(source);
+    }
+  }
+
+  private clearQueue() {
+    this.audioQueue = [];
+    this.isPlaying = false;
+    this.nextTime = 0;
+    this.activeSources.forEach((s) => {
+      try {
+        s.stop();
+      } catch {}
+    });
+    this.activeSources = [];
+  }
+
+  private startMicAnalyser() {
+    const ctx = this.audioCtx;
+    if (!ctx || !this.micSource) return;
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    this.micSource.connect(analyser);
+    this.micAnalyser = analyser;
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    const tick = () => {
+      if (!this.micAnalyser) return;
+      this.micAnalyser.getByteFrequencyData(data);
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) sum += data[i];
+      this.callbacks.onMicLevel(sum / data.length / 255);
+      this.micAnimFrame = requestAnimationFrame(tick);
+    };
+    tick();
+  }
+
+  private startPlaybackAnalyser() {
+    const ctx = this.audioCtx;
+    if (!ctx) return;
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    this.playbackAnalyser = analyser;
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    const tick = () => {
+      if (!this.playbackAnalyser) return;
+      this.playbackAnalyser.getByteFrequencyData(data);
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) sum += data[i];
+      this.callbacks.onPlaybackLevel(sum / data.length / 255);
+      this.playbackAnimFrame = requestAnimationFrame(tick);
+    };
+    tick();
+  }
+
+  async connect(): Promise<void> {
+    if (this.connected) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      });
+      this.stream = stream;
+
+      const ctx = this.getAudioCtx();
+      await ctx.resume();
+      const source = ctx.createMediaStreamSource(stream);
+      this.micSource = source;
+
+      const gain = ctx.createGain();
+      gain.gain.value = this.muted ? 0 : 1;
+      this.gainNode = gain;
+
+      this.startMicAnalyser();
+      this.startPlaybackAnalyser();
+
+      const ws = new WebSocket(VOICE_WS_URL);
+      ws.binaryType = "arraybuffer";
+      this.ws = ws;
+
+      return new Promise<void>((resolve, reject) => {
+        ws.onopen = () => {
+          this.connected = true;
+          this.callbacks.onConnectionChange(true);
+          this.setState("listening");
+
+          const nativeRate = ctx.sampleRate;
+          const processor = ctx.createScriptProcessor(4096, 1, 1);
+          this.processor = processor;
+          source.connect(processor);
+          processor.connect(ctx.destination);
+
+          processor.onaudioprocess = (ev) => {
+            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+            if (this.aiSpeaking) return;
+            const input = ev.inputBuffer.getChannelData(0);
+            const resampled = resampleLinear(
+              input,
+              nativeRate,
+              STREAM_TARGET_RATE
+            );
+            const int16 = new Int16Array(resampled.length);
+            for (let i = 0; i < resampled.length; i++) {
+              const s = Math.max(-1, Math.min(1, resampled[i]));
+              int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+            }
+            try {
+              this.ws.send(int16.buffer);
+            } catch {}
+          };
+
+          ws.onmessage = (event) => {
+            if (event.data instanceof ArrayBuffer) {
+              if (!this.audioCtx) return;
+              const int16 = new Int16Array(event.data);
+              const float32 = new Float32Array(int16.length);
+              for (let i = 0; i < int16.length; i++)
+                float32[i] = int16[i] / 32768;
+              const buf = this.audioCtx.createBuffer(
+                1,
+                float32.length,
+                STREAM_TARGET_RATE
+              );
+              buf.getChannelData(0).set(float32);
+              this.audioQueue.push(buf);
+              if (!this.isPlaying) this.scheduleNextAudio();
+              this.aiSpeaking = true;
+              this.setState("speaking");
+            } else {
+              try {
+                const data = JSON.parse(event.data);
+                if (data.type === "clear") {
+                  this.clearQueue();
+                  this.aiSpeaking = false;
+                  if (this.connected) this.setState("listening");
+                } else if (data.type === "AgentStartedSpeaking") {
+                  this.aiSpeaking = true;
+                  this.setState("speaking");
+                } else if (data.type === "AgentAudioDone") {
+                  // allow mic after playback finishes
+                } else if (data.type === "ConversationText") {
+                  this.callbacks.onTranscript(
+                    data.role || "assistant",
+                    data.content || ""
+                  );
+                }
+              } catch {}
+            }
+          };
+
+          ws.onclose = () => {
+            this.connected = false;
+            this.callbacks.onConnectionChange(false);
+            this.setState("idle");
+          };
+
+          ws.onerror = () => {
+            reject(new Error("WebSocket connection failed"));
+          };
+
+          resolve();
+        };
+
+        ws.onerror = () => {
+          reject(new Error("WebSocket connection failed"));
+        };
+      });
+    } catch (err) {
+      this.callbacks.onError(
+        err instanceof Error ? err : new Error(String(err))
+      );
+      throw err;
+    }
+  }
+
+  disconnect(): void {
+    this.connected = false;
+    cancelAnimationFrame(this.micAnimFrame);
+    cancelAnimationFrame(this.playbackAnimFrame);
+    if (this.processor) {
+      try {
+        this.processor.disconnect();
+      } catch {}
+      this.processor = null;
+    }
+    if (this.micSource) {
+      try {
+        this.micSource.disconnect();
+      } catch {}
+      this.micSource = null;
+    }
+    if (this.micAnalyser) {
+      try {
+        this.micAnalyser.disconnect();
+      } catch {}
+      this.micAnalyser = null;
+    }
+    if (this.ws) {
+      try {
+        this.ws.send(JSON.stringify({ type: "close" }));
+      } catch {}
+      this.ws.close();
+      this.ws = null;
+    }
+    if (this.stream) {
+      this.stream.getTracks().forEach((t) => t.stop());
+      this.stream = null;
+    }
+    this.clearQueue();
+    if (this.audioCtx) {
+      this.audioCtx.close().catch(() => {});
+      this.audioCtx = null;
+    }
+    this.playbackAnalyser = null;
+    this.gainNode = null;
+    this.aiSpeaking = false;
+    this.callbacks.onMicLevel(0);
+    this.callbacks.onPlaybackLevel(0);
+    this.callbacks.onConnectionChange(false);
+    this.setState("idle");
+  }
+}
+
 export function turnAudioUrl(turn: VoiceTurnResult): string | null {
   if (!turn.audio_base64 || !turn.audio_format) return null;
   const binary = atob(turn.audio_base64);
