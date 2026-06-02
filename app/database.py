@@ -1,6 +1,6 @@
 """
 Database module for Trade Opportunities API.
-Uses SQLite for simple deployment, can be upgraded to PostgreSQL.
+Supports SQLite (local dev) and PostgreSQL via Neon.
 """
 import logging
 import os
@@ -9,7 +9,7 @@ from typing import Optional, List
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, Text, ForeignKey, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, Session
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import StaticPool, NullPool
 from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
@@ -23,9 +23,20 @@ if DATABASE_URL.startswith("sqlite"):
         poolclass=StaticPool,
     )
 else:
-    # Postgres (e.g. Supabase pooler). pool_pre_ping avoids stale-connection errors
-    # when the pooler drops idle connections.
-    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+    # PostgreSQL (Neon / Supabase etc.)
+    # Force psycopg v3 (installed via psycopg[binary]) instead of v2.
+    # Neon's serverless Postgres has connection limits; keep the pool small.
+    # The pooled connection string (-pooler) uses PgBouncer transaction mode.
+    # pool_recycle=300 prevents holding connections past Neon's 5min idle drop.
+    pg_url = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
+    engine = create_engine(
+        pg_url,
+        pool_size=5,
+        max_overflow=2,
+        pool_recycle=300,
+        pool_pre_ping=True,
+        pool_timeout=30,
+    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

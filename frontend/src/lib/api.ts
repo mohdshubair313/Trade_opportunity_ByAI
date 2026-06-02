@@ -1,24 +1,12 @@
-import axios, { AxiosError, AxiosInstance } from "axios";
-
 // API base URL — configurable via NEXT_PUBLIC_API_URL. We strip any trailing
 // slash defensively so that `https://api.example.com/` and `https://api.example.com`
 // both produce correct URLs when the route path starts with `/api/v1/…`.
-// Without this, axios would happily produce double-slash URLs that some proxies
-// reject (or silently redirect, which then fails CORS preflight).
 export const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 ).replace(/\/+$/, "");
 
-// Create axios instance with default config
-export const api: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  timeout: 60000, // 60 second timeout for long-running operations
-});
+// ==================== Token Management ====================
 
-// Token management
 const getToken = (): string | null => {
   if (typeof window !== "undefined") {
     return localStorage.getItem("auth_token");
@@ -47,66 +35,176 @@ const clearTokens = (): void => {
   }
 };
 
-// Error shape returned by the backend
-interface ApiErrorBody {
-  error: string;
-  message: string;
-  code?: string;
+// ==================== Error Handling ====================
+
+class ApiFetchError extends Error {
+  status: number;
+  body: Record<string, unknown> | null;
+
+  constructor(message: string, status: number, body: Record<string, unknown> | null = null) {
+    super(message);
+    this.name = "ApiFetchError";
+    this.status = status;
+    this.body = body;
+  }
 }
 
-// Add auth token to requests
-api.interceptors.request.use((config) => {
+async function parseErrorBody(res: Response): Promise<string> {
+  try {
+    const body = await res.json();
+    return body.message || body.error || `HTTP ${res.status}`;
+  } catch {
+    return `HTTP ${res.status}`;
+  }
+}
+
+// ==================== HTTP Client ====================
+
+let isRefreshing = false;
+const DEFAULT_TIMEOUT = 120000;
+
+interface FetchOptions {
+  params?: Record<string, string | number | boolean>;
+  headers?: Record<string, string>;
+  responseType?: "json" | "blob";
+  timeout?: number;
+}
+
+function buildUrl(path: string, params?: Record<string, string | number | boolean>): string {
+  const base = path.startsWith("http") ? path : `${API_BASE_URL}${path}`;
+  if (!params) return base;
+  const qs = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== null)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join("&");
+  return qs ? `${base}?${qs}` : base;
+}
+
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  options?: FetchOptions
+): Promise<T> {
+  const url = buildUrl(path, options?.params);
+  const headers: Record<string, string> = {
+    ...(options?.headers || {}),
+  };
+
   const token = getToken();
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
-  return config;
-});
 
-// Handle response errors and token refresh
-let isRefreshing = false;
+  const fetchInit: RequestInit = { method };
+  const isFormData = body instanceof FormData;
 
-api.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError<ApiErrorBody>) => {
-    const originalRequest = error.config;
+  if (body !== undefined && method !== "GET") {
+    if (isFormData) {
+      fetchInit.body = body as FormData;
+    } else if (typeof body === "object") {
+      headers["Content-Type"] = "application/json";
+      fetchInit.body = JSON.stringify(body);
+    } else {
+      fetchInit.body = body as BodyInit;
+    }
+  }
 
-    if (error.response?.status === 401 && originalRequest && !isRefreshing) {
+  // Only set Content-Type if not FormData (browser sets boundary automatically)
+  if (!isFormData) {
+    fetchInit.headers = headers;
+  } else {
+    fetchInit.headers = headers;
+  }
+
+  // Timeout
+  const timeout = options?.timeout ?? DEFAULT_TIMEOUT;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  fetchInit.signal = controller.signal;
+
+  try {
+    let response = await fetch(url, fetchInit);
+    clearTimeout(timeoutId);
+
+    // 401 → try token refresh, then retry once
+    if (response.status === 401 && !path.includes("/auth/refresh") && !isRefreshing) {
       const refreshTokenValue = getRefreshToken();
-
-      if (refreshTokenValue && !originalRequest.url?.includes("/auth/refresh")) {
+      if (refreshTokenValue) {
         isRefreshing = true;
         try {
-          const response = await axios.post<TokenResponse>(
-            `${API_BASE_URL}/api/v1/auth/refresh`,
-            { refresh_token: refreshTokenValue }
-          );
-
-          setTokens(response.data.access_token, response.data.refresh_token);
-
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${response.data.access_token}`;
+          const refreshRes = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refresh_token: refreshTokenValue }),
+          });
+          if (refreshRes.ok) {
+            const refreshData: TokenResponse = await refreshRes.json();
+            setTokens(refreshData.access_token, refreshData.refresh_token);
+            // Retry original request with new token
+            headers["Authorization"] = `Bearer ${refreshData.access_token}`;
+            fetchInit.headers = headers;
+            response = await fetch(url, fetchInit);
+          } else {
+            clearTokens();
+            if (typeof window !== "undefined") {
+              window.location.href = "/login";
+            }
+            throw new Error("Session expired");
           }
-          return api(originalRequest);
-        } catch {
+        } catch (err) {
+          if (err instanceof Error && err.message === "Session expired") throw err;
           clearTokens();
           if (typeof window !== "undefined") {
             window.location.href = "/login";
           }
+          throw new Error("Session expired");
         } finally {
           isRefreshing = false;
         }
-      } else {
-        clearTokens();
       }
     }
 
-    // Extract meaningful error message from API response
-    const apiError = error.response?.data;
-    const message = apiError?.message || apiError?.error || error.message;
-    return Promise.reject(new Error(message));
+    if (!response.ok) {
+      const message = await parseErrorBody(response);
+      throw new ApiFetchError(message, response.status);
+    }
+
+    if (options?.responseType === "blob") {
+      return (await response.blob()) as unknown as T;
+    }
+
+    // Handle 204 No Content
+    if (response.status === 204) return undefined as unknown as T;
+
+    return (await response.json()) as T;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err instanceof ApiFetchError) throw err;
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("Request timed out");
+    }
+    throw new Error(err instanceof Error ? err.message : "Network error");
   }
-);
+}
+
+// ==================== HTTP Verb Helpers ====================
+
+function get<T>(path: string, options?: FetchOptions): Promise<T> {
+  return request<T>("GET", path, undefined, options);
+}
+
+function post<T>(path: string, body?: unknown, options?: FetchOptions): Promise<T> {
+  return request<T>("POST", path, body, options);
+}
+
+function put<T>(path: string, body?: unknown, options?: FetchOptions): Promise<T> {
+  return request<T>("PUT", path, body, options);
+}
+
+function del<T = void>(path: string, options?: FetchOptions): Promise<T> {
+  return request<T>("DELETE", path, undefined, options);
+}
 
 // ==================== API Types ====================
 
@@ -171,7 +269,7 @@ export interface AnalysisResponse {
   sources_analyzed: number;
   sources?: AnalysisSource[];
   saved_to?: string;
-  saved_url?: string | null;   // public download URL from the storage backend, if any
+  saved_url?: string | null;
   timestamp: string;
   cached: boolean;
 }
@@ -286,25 +384,21 @@ export interface RazorpayPaymentVerificationRequest {
 }
 
 export async function listPaymentCatalog(): Promise<PaymentCatalogItem[]> {
-  const response = await api.get<PaymentCatalogItem[]>("/api/v1/payments/catalog");
-  return response.data;
+  return get<PaymentCatalogItem[]>("/api/v1/payments/catalog");
 }
 
 export async function createPaymentOrder(data: CreateOrderRequest): Promise<CreateOrderResponse> {
-  const response = await api.post<CreateOrderResponse>("/api/v1/payments/create-order", data);
-  return response.data;
+  return post<CreateOrderResponse>("/api/v1/payments/create-order", data);
 }
 
 export async function verifyPaymentOrder(
   data: RazorpayPaymentVerificationRequest
 ): Promise<OrderResponse> {
-  const response = await api.post<OrderResponse>("/api/v1/payments/verify", data);
-  return response.data;
+  return post<OrderResponse>("/api/v1/payments/verify", data);
 }
 
 export async function getPaymentOrder(localOrderId: number): Promise<OrderResponse> {
-  const response = await api.get<OrderResponse>(`/api/v1/payments/orders/${localOrderId}`);
-  return response.data;
+  return get<OrderResponse>(`/api/v1/payments/orders/${localOrderId}`);
 }
 
 // ==================== Multimodal AI API ====================
@@ -330,31 +424,28 @@ export async function analyzeVisionImage(
     formData.append("question", question.trim());
   }
 
-  const response = await api.post<VisionAnalysisResponse>("/api/v1/ai/vision/analyze", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+  return post<VisionAnalysisResponse>("/api/v1/ai/vision/analyze", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
   });
-  return response.data;
 }
 
 // ==================== Authentication API ====================
 
 export async function register(data: RegisterRequest): Promise<TokenResponse> {
-  const response = await api.post<TokenResponse>("/api/v1/auth/register", data);
-  setTokens(response.data.access_token, response.data.refresh_token);
-  return response.data;
+  const result = await post<TokenResponse>("/api/v1/auth/register", data);
+  setTokens(result.access_token, result.refresh_token);
+  return result;
 }
 
 export async function login(data: LoginRequest): Promise<TokenResponse> {
-  const response = await api.post<TokenResponse>("/api/v1/auth/login", data);
-  setTokens(response.data.access_token, response.data.refresh_token);
-  return response.data;
+  const result = await post<TokenResponse>("/api/v1/auth/login", data);
+  setTokens(result.access_token, result.refresh_token);
+  return result;
 }
 
 export async function logout(): Promise<void> {
   try {
-    await api.post("/api/v1/auth/logout");
+    await post("/api/v1/auth/logout");
   } finally {
     clearTokens();
   }
@@ -365,38 +456,35 @@ export async function refreshToken(): Promise<TokenResponse> {
   if (!refreshTokenValue) {
     throw new Error("No refresh token available");
   }
-  const response = await api.post<TokenResponse>("/api/v1/auth/refresh", {
+  const result = await post<TokenResponse>("/api/v1/auth/refresh", {
     refresh_token: refreshTokenValue,
   });
-  setTokens(response.data.access_token, response.data.refresh_token);
-  return response.data;
+  setTokens(result.access_token, result.refresh_token);
+  return result;
 }
 
 // ==================== User API ====================
 
 export async function getCurrentUser(): Promise<UserProfile> {
-  const response = await api.get<UserProfile>("/api/v1/users/me");
-  return response.data;
+  return get<UserProfile>("/api/v1/users/me");
 }
 
 export async function updateProfile(data: Partial<UserProfile>): Promise<UserProfile> {
-  const response = await api.put<UserProfile>("/api/v1/users/me", data);
-  return response.data;
+  return put<UserProfile>("/api/v1/users/me", data);
 }
 
 export async function changePassword(
   currentPassword: string,
   newPassword: string
 ): Promise<void> {
-  await api.post("/api/v1/users/me/change-password", {
+  await post("/api/v1/users/me/change-password", {
     current_password: currentPassword,
     new_password: newPassword,
   });
 }
 
 export async function getUserStats(): Promise<UserStats> {
-  const response = await api.get<UserStats>("/api/v1/users/me/stats");
-  return response.data;
+  return get<UserStats>("/api/v1/users/me/stats");
 }
 
 // ==================== Analysis API ====================
@@ -406,47 +494,40 @@ export async function analyzeSector(
   saveReport: boolean = false,
   useCache: boolean = true
 ): Promise<AnalysisResponse> {
-  const response = await api.get<AnalysisResponse>(
-    `/api/v1/analyze/${encodeURIComponent(sector)}`,
-    {
-      params: { save_report: saveReport, use_cache: useCache },
-    }
-  );
-  return response.data;
+  return get<AnalysisResponse>(`/api/v1/analyze/${encodeURIComponent(sector)}`, {
+    params: { save_report: saveReport, use_cache: useCache },
+  });
 }
 
 export async function getAnalysisHistory(
   page: number = 1,
   perPage: number = 20
 ): Promise<AnalysisHistoryResponse> {
-  const response = await api.get<AnalysisHistoryResponse>("/api/v1/history", {
+  return get<AnalysisHistoryResponse>("/api/v1/history", {
     params: { page, per_page: perPage },
   });
-  return response.data;
 }
 
 export async function getAnalysisById(analysisId: number): Promise<AnalysisResponse> {
-  const response = await api.get<AnalysisResponse>(`/api/v1/history/${analysisId}`);
-  return response.data;
+  return get<AnalysisResponse>(`/api/v1/history/${analysisId}`);
 }
 
 export async function deleteAnalysis(analysisId: number): Promise<void> {
-  await api.delete(`/api/v1/history/${analysisId}`);
+  await del(`/api/v1/history/${analysisId}`);
 }
 
 // ==================== Favorites API ====================
 
 export async function getFavorites(): Promise<FavoritesResponse> {
-  const response = await api.get<FavoritesResponse>("/api/v1/favorites");
-  return response.data;
+  return get<FavoritesResponse>("/api/v1/favorites");
 }
 
 export async function addFavorite(sector: string): Promise<void> {
-  await api.post("/api/v1/favorites", { sector });
+  await post("/api/v1/favorites", { sector });
 }
 
 export async function removeFavorite(sector: string): Promise<void> {
-  await api.delete(`/api/v1/favorites/${encodeURIComponent(sector)}`);
+  await del(`/api/v1/favorites/${encodeURIComponent(sector)}`);
 }
 
 // ==================== Compare API (§4.5) ====================
@@ -470,24 +551,18 @@ export interface CompareResponse {
 }
 
 export async function compareSectors(sectors: string[]): Promise<CompareResponse> {
-  const response = await api.post<CompareResponse>("/api/v1/analyze/compare", { sectors });
-  return response.data;
+  return post<CompareResponse>("/api/v1/analyze/compare", { sectors });
 }
 
 // ==================== Export API (§3.3 / §4.4) ====================
 
 export type ExportFormat = "pdf" | "xlsx" | "pptx" | "md";
 
-/**
- * Download a previously-saved analysis as PDF / Excel / PowerPoint / Markdown.
- * Returns a Blob; caller is responsible for triggering the download.
- */
 export async function exportAnalysis(analysisId: number, format: ExportFormat): Promise<Blob> {
-  const response = await api.get(`/api/v1/history/${analysisId}/export`, {
+  return get<Blob>(`/api/v1/history/${analysisId}/export`, {
     params: { format },
     responseType: "blob",
   });
-  return response.data as Blob;
 }
 
 // ==================== Watchlists + Alerts API (§4.2) ====================
@@ -520,17 +595,15 @@ export interface WatchlistCreateRequest {
 }
 
 export async function listWatchlists(): Promise<WatchlistsResponse> {
-  const response = await api.get<WatchlistsResponse>("/api/v1/watchlists");
-  return response.data;
+  return get<WatchlistsResponse>("/api/v1/watchlists");
 }
 
 export async function createWatchlist(data: WatchlistCreateRequest): Promise<WatchlistItem> {
-  const response = await api.post<WatchlistItem>("/api/v1/watchlists", data);
-  return response.data;
+  return post<WatchlistItem>("/api/v1/watchlists", data);
 }
 
 export async function deleteWatchlist(id: number): Promise<void> {
-  await api.delete(`/api/v1/watchlists/${id}`);
+  await del(`/api/v1/watchlists/${id}`);
 }
 
 export interface AlertItem {
@@ -551,15 +624,13 @@ export interface AlertsResponse {
 }
 
 export async function listAlerts(includeSeen = false, limit = 50): Promise<AlertsResponse> {
-  const response = await api.get<AlertsResponse>("/api/v1/alerts", {
+  return get<AlertsResponse>("/api/v1/alerts", {
     params: { include_seen: includeSeen, limit },
   });
-  return response.data;
 }
 
 export async function acknowledgeAlert(id: number): Promise<AlertItem> {
-  const response = await api.post<AlertItem>(`/api/v1/alerts/${id}/acknowledge`);
-  return response.data;
+  return post<AlertItem>(`/api/v1/alerts/${id}/acknowledge`);
 }
 
 // ==================== Market Data API (§4.1) ====================
@@ -607,10 +678,7 @@ export interface NewsResponse {
 }
 
 export async function getMarketData(sector: string): Promise<MarketDataResponse> {
-  const response = await api.get<MarketDataResponse>(
-    `/api/v1/sectors/${encodeURIComponent(sector)}/market-data`
-  );
-  return response.data;
+  return get<MarketDataResponse>(`/api/v1/sectors/${encodeURIComponent(sector)}/market-data`);
 }
 
 export interface RelativeStrengthPoint {
@@ -633,10 +701,9 @@ export interface RelativeStrengthResponse {
 }
 
 export async function getRelativeStrength(sector: string): Promise<RelativeStrengthResponse> {
-  const response = await api.get<RelativeStrengthResponse>(
+  return get<RelativeStrengthResponse>(
     `/api/v1/sectors/${encodeURIComponent(sector)}/relative-strength`
   );
-  return response.data;
 }
 
 export interface CorrelationMatrix {
@@ -648,16 +715,13 @@ export interface CorrelationMatrix {
 }
 
 export async function getCorrelationMatrix(): Promise<CorrelationMatrix> {
-  const response = await api.get<CorrelationMatrix>("/api/v1/sectors/correlations");
-  return response.data;
+  return get<CorrelationMatrix>("/api/v1/sectors/correlations");
 }
 
 export async function getSectorNews(sector: string, limit = 10): Promise<NewsResponse> {
-  const response = await api.get<NewsResponse>(
-    `/api/v1/sectors/${encodeURIComponent(sector)}/news`,
-    { params: { limit } }
-  );
-  return response.data;
+  return get<NewsResponse>(`/api/v1/sectors/${encodeURIComponent(sector)}/news`, {
+    params: { limit },
+  });
 }
 
 // ==================== Contact API ====================
@@ -676,15 +740,13 @@ export interface ContactResponse {
 }
 
 export async function submitContact(data: ContactRequest): Promise<ContactResponse> {
-  const response = await api.post<ContactResponse>("/api/v1/contact", data);
-  return response.data;
+  return post<ContactResponse>("/api/v1/contact", data);
 }
 
 // ==================== Info API ====================
 
 export async function healthCheck(): Promise<HealthResponse> {
-  const response = await api.get<HealthResponse>("/health");
-  return response.data;
+  return get<HealthResponse>("/health");
 }
 
 export async function getApiInfo(): Promise<{
@@ -693,18 +755,15 @@ export async function getApiInfo(): Promise<{
   environment: string;
   endpoints: Record<string, unknown>;
 }> {
-  const response = await api.get("/");
-  return response.data;
+  return get("/");
 }
 
 export async function getAvailableSectors(): Promise<SectorsResponse> {
-  const response = await api.get<SectorsResponse>("/api/v1/sectors");
-  return response.data;
+  return get<SectorsResponse>("/api/v1/sectors");
 }
 
 // ==================== Constants ====================
 
-// Popular sectors list (fallback if API call fails)
 export const POPULAR_SECTORS = [
   "Technology",
   "Pharmaceuticals",

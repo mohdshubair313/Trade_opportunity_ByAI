@@ -85,16 +85,14 @@ export default function LoginPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e: { preventDefault?: () => void }) => {
+    e.preventDefault?.();
 
     if (mode === "login") {
       if (!validateLogin()) return;
 
       setIsLoading(true);
       try {
-        // Clear any residue from a previous session on this browser before
-        // we apply the new user's identity. See useStore.resetUserScoped.
         resetUserScoped();
         const response = await login({ username, password });
         setToken(response.access_token);
@@ -111,8 +109,6 @@ export default function LoginPage() {
 
       setIsLoading(true);
       try {
-        // Fresh signup must not inherit state from whoever used this browser
-        // last. See useStore.resetUserScoped.
         resetUserScoped();
         const response = await register({
           username,
@@ -212,8 +208,12 @@ export default function LoginPage() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Form — using div (not <form>) to bypass form-fill extensions that
+              hook into form submit events and cancel in-flight XHR requests. */}
+          <div
+            role="form"
+            onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(e); }}
+            className="space-y-5">
             <AnimatePresence mode="wait">
               {mode === "register" && (
                 <motion.div
@@ -233,6 +233,7 @@ export default function LoginPage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     error={errors.full_name}
+                    autoComplete="name"
                   />
                 </motion.div>
               )}
@@ -249,6 +250,7 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 error={errors.username}
+                autoComplete="username"
               />
             </div>
 
@@ -271,6 +273,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     error={errors.email}
+                    autoComplete="email"
                   />
                 </motion.div>
               )}
@@ -288,6 +291,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   error={errors.password}
+                  autoComplete={mode === "register" ? "new-password" : "current-password"}
                 />
                 <button
                   type="button"
@@ -347,15 +351,17 @@ export default function LoginPage() {
             )}
 
             <Button
-              type="submit"
+              type="button"
               className="w-full"
               size="lg"
               isLoading={isLoading}
+              onClick={handleSubmit as unknown as React.MouseEventHandler<HTMLButtonElement>}
             >
               {mode === "login" ? "Sign In" : "Create Account"}
               <ArrowRight className="h-4 w-4" />
             </Button>
-          </form>
+
+          </div>
 
           {/* Switch mode */}
           <p className="mt-6 text-center text-sm text-muted-foreground">
