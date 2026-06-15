@@ -6,7 +6,7 @@ Can be extended to use Redis in production.
 import logging
 import hashlib
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, Dict
 from functools import wraps
 from collections import OrderedDict
@@ -42,7 +42,7 @@ class InMemoryCache:
 
     def _is_expired(self, item: Dict[str, Any]) -> bool:
         """Check if a cache item is expired."""
-        return datetime.utcnow() > item["expires_at"]
+        return datetime.now(timezone.utc) > item["expires_at"]
 
     def _evict_expired(self):
         """Remove expired items from cache."""
@@ -96,11 +96,11 @@ class InMemoryCache:
             self._evict_expired()
             self._evict_lru()
 
-            expires_at = datetime.utcnow() + timedelta(seconds=ttl or self._default_ttl)
+            expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl or self._default_ttl)
             self._cache[key] = {
                 "value": value,
                 "expires_at": expires_at,
-                "created_at": datetime.utcnow()
+                "created_at": datetime.now(timezone.utc)
             }
             self._cache.move_to_end(key)
 

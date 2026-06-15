@@ -4,7 +4,7 @@ Supports SQLite (local dev) and PostgreSQL via Neon.
 """
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, Text, ForeignKey, func
 from sqlalchemy.ext.declarative import declarative_base
@@ -377,7 +377,7 @@ class UserCRUD:
     @staticmethod
     def update_last_login(db: Session, user: User):
         """Update user's last login timestamp."""
-        user.last_login = datetime.utcnow()
+        user.last_login = datetime.now(timezone.utc)
         db.commit()
     
     @staticmethod
@@ -386,7 +386,7 @@ class UserCRUD:
         for key, value in kwargs.items():
             if hasattr(user, key):
                 setattr(user, key, value)
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
         db.commit()
         db.refresh(user)
         return user
@@ -602,7 +602,7 @@ class AlertCRUD:
 
     @staticmethod
     def acknowledge(db: Session, alert: "AlertEvent") -> "AlertEvent":
-        alert.acknowledged_at = datetime.utcnow()
+        alert.acknowledged_at = datetime.now(timezone.utc)
         db.commit()
         db.refresh(alert)
         return alert
@@ -610,7 +610,7 @@ class AlertCRUD:
 
 def _next_run_from(cadence: str, base: Optional[datetime] = None) -> datetime:
     from datetime import timedelta
-    base = base or datetime.utcnow()
+    base = base or datetime.now(timezone.utc)
     cadence = (cadence or "daily").lower()
     if cadence == "hourly":
         return base + timedelta(hours=1)

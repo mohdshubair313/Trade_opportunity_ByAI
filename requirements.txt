@@ -29,7 +29,7 @@ slowapi
 python-dotenv
 
 # Data Collection
-duckduckgo-search
+ddgs
 
 # Google Gemini AI
 google-genai

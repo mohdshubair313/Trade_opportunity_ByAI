@@ -107,16 +107,20 @@ def _fetch_history(ticker: str, period: str = "1y", interval: str = "1mo"):
     if yf is None:
         raise RuntimeError(f"yfinance unavailable: {_YFINANCE_IMPORT_ERROR}")
     tk = yf.Ticker(ticker)
-    return tk.history(period=period, interval=interval, auto_adjust=False)
+    try:
+        return tk.history(period=period, interval=interval, auto_adjust=False)
+    except Exception as exc:
+        # yfinance frequently 429s on shared Docker egress IPs or returns
+        # empty frames for some indices (e.g. ^CNXAUTO). Swallow here so the
+        # caller can decide whether to degrade gracefully instead of bombing
+        # the whole analysis pipeline.
+        logger.warning("yfinance fetch failed for %s (period=%s interval=%s): %s", ticker, period, interval, exc)
+        return None
 
 
 def _day_change(ticker: str) -> Optional[Dict[str, float]]:
     """Return latest close + percentage change vs previous close."""
-    try:
-        hist = _fetch_history(ticker, period="5d", interval="1d")
-    except Exception as exc:
-        logger.warning("yfinance daily fetch failed for %s: %s", ticker, exc)
-        return None
+    hist = _fetch_history(ticker, period="5d", interval="1d")
     if hist is None or hist.empty or len(hist) < 2:
         return None
 

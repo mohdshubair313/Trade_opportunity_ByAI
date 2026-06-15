@@ -19,7 +19,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -91,7 +91,7 @@ class ReportStorage:
         required anyway for any future RLS / access-control policies.
         """
         safe_sector = _sanitize_slug(sector)
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         user_prefix = f"user_{user_id}" if user_id else "anon"
         storage_path = f"{user_prefix}/{safe_sector}_{timestamp}.md"
 

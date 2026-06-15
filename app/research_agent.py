@@ -19,7 +19,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from google import genai
@@ -97,7 +97,7 @@ def _persona_block(persona: Optional[Dict]) -> str:
 
 
 def build_prompt(sector: str, persona: Optional[Dict]) -> str:
-    today = datetime.utcnow().strftime("%B %Y")
+    today = datetime.now(timezone.utc).strftime("%B %Y")
     return f"""You are a senior sector analyst covering Indian markets for a subscription research service. Today is {today}.
 
 TASK
@@ -290,7 +290,7 @@ _OFFLINE_SYSTEM = (
 
 
 def _build_offline_prompt(sector: str, persona: Optional[Dict]) -> str:
-    today = datetime.utcnow().strftime("%B %Y")
+    today = datetime.now(timezone.utc).strftime("%B %Y")
     return f"""Write a structured markdown report on the **{sector}** sector in India. Today's
 month is {today}. You cannot search the web — use your training knowledge, and call
 that limitation out in the opening sentence.

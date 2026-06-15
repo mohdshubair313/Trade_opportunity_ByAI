@@ -13,7 +13,7 @@ import json
 import logging
 import re
 import wave
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, AsyncIterator, Dict, Optional, Tuple
 
 import httpx
@@ -38,7 +38,7 @@ class ProviderUnavailableError(MultimodalAIError):
 
 
 def _utc_iso() -> str:
-    return datetime.utcnow().isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _strip_code_fences(text: str) -> str:

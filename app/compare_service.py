@@ -12,7 +12,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List
 
 from app.data_collector import DataCollector
@@ -142,7 +142,7 @@ def _looks_valid(payload: Dict) -> bool:
     return isinstance(scores, list) and len(scores) >= 1
 
 
-async def compare_sectors(sectors: List[str], *, ai_analyzer=None) -> Dict:
+async def compare_sectors(sectors: List[str], *, ai_analyzer=None, force_heuristic: bool = False) -> Dict:
     """
     Rank a set of sectors by opportunity / risk and return a leaderboard.
 
@@ -169,17 +169,19 @@ async def compare_sectors(sectors: List[str], *, ai_analyzer=None) -> Dict:
     )
 
     model_used = "heuristic"
-    try:
-        # The router is synchronous HTTP but compare_sectors is called from an
-        # async handler — push it to a thread so we don't block the loop.
-        loop = asyncio.get_running_loop()
-        result = await loop.run_in_executor(
-            None,
-            lambda: router.run("compare", system=_SYSTEM, user=user_prompt, validate=_looks_valid),
-        )
-    except Exception as exc:
-        logger.warning("compare router call failed (%s); using heuristic", exc)
-        result = None
+    result = None
+    if not force_heuristic:
+        try:
+            # The router is synchronous HTTP but compare_sectors is called from an
+            # async handler — push it to a thread so we don't block the loop.
+            loop = asyncio.get_running_loop()
+            result = await loop.run_in_executor(
+                None,
+                lambda: router.run("compare", system=_SYSTEM, user=user_prompt, validate=_looks_valid),
+            )
+        except Exception as exc:
+            logger.warning("compare router call failed (%s); using heuristic", exc)
+            result = None
 
     if result and result.parsed and isinstance(result.parsed.get("scores"), list):
         llm_scores = result.parsed["scores"]
@@ -206,5 +208,5 @@ async def compare_sectors(sectors: List[str], *, ai_analyzer=None) -> Dict:
         "headline": headline,
         "scores": scores,
         "model": model_used,
-        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "generated_at": datetime.now(timezone.utc).isoformat() + "Z",
     }

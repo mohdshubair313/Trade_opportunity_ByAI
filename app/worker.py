@@ -22,7 +22,7 @@ import logging
 import os
 import signal
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 
@@ -77,7 +77,7 @@ def _run_analysis(sector: str, dc: DataCollector, analyzer: AIAnalyzer, gen: Rep
 
 def tick() -> None:
     """One iteration of the scan loop."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     db = SessionLocal()
     try:
         due = WatchlistCRUD.due(db, now)
@@ -117,7 +117,7 @@ def tick() -> None:
                     "report": new_report,
                     "sources_analyzed": sources_count,
                     "sources": [],
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }, user_id=wl.user_id)
 
                 verdict = diff_reports(wl.sector, previous_report, new_report, ai_analyzer=analyzer)
@@ -201,7 +201,7 @@ def main() -> None:
         tick,
         trigger=IntervalTrigger(seconds=SCAN_INTERVAL_SECONDS),
         id="watchlist-scan",
-        next_run_time=datetime.utcnow(),
+        next_run_time=datetime.now(timezone.utc),
         max_instances=1,
         coalesce=True,
     )

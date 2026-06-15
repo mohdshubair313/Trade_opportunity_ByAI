@@ -14,7 +14,7 @@ warnings.filterwarnings(
     category=RuntimeWarning,
 )
 
-from duckduckgo_search import DDGS  # noqa: E402 - import after warnings filter
+from ddgs import DDGS  # noqa: E402 - import after warnings filter
 import time
 
 from app.sentiment import score_text, label_for
@@ -161,6 +161,12 @@ class DataCollector:
                 for query in queries:
                     try:
                         results = list(ddgs.news(query, region="in-en", max_results=max_results) or [])
+                    except TimeoutError as exc:
+                        # Timeouts on DDG news are common from shared Docker IPs.
+                        # Log once and continue so the caller can fall through to
+                        # the OpenRouter offline path instead of failing the pipeline.
+                        logger.warning("ddgs.news timed out for '%s': %s", query, exc)
+                        continue
                     except Exception as exc:
                         logger.warning("ddgs.news failed for '%s': %s", query, exc)
                         results = []

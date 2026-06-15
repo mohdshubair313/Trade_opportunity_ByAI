@@ -8,7 +8,7 @@ for Indian sectors, powered by agentic AI.
 import base64
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from contextlib import asynccontextmanager
 
@@ -40,6 +40,7 @@ from app.auth import (
     get_current_active_user,
     seed_demo_user
 )
+from pydantic import ValidationError as PydanticValidationError
 from app.schemas import (
     UserCreate, UserLogin, UserResponse, UserUpdate, PasswordChange,
     Token, TokenRefresh,
@@ -548,7 +549,7 @@ async def analyze_sector(
         else:
             # Authenticated User Limits
             # Check/Reset Monthly Counter
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             if not current_user.last_reset_date or \
                (now.year > current_user.last_reset_date.year) or \
                (now.month > current_user.last_reset_date.month):
@@ -894,7 +895,18 @@ async def compare_sectors_endpoint(
         )
 
     result = await compare_sectors(cleaned, ai_analyzer=ai_analyzer)
-    return CompareResponse(**result)
+
+    # Robust validation: LLM cascade may return partial JSON (missing fields
+    # like scores[*].time_to_roi). If strict Pydantic validation fails,
+    # gracefully fall back to the deterministic heuristic already computed in
+    # compare_service.py so the user never sees a 500.
+    try:
+        return CompareResponse(**result)
+    except PydanticValidationError as exc:
+        logger.warning("CompareResponse validation failed (%s); rebuilding from heuristic", exc)
+        # Re-run compare with a flag that forces the heuristic path
+        result = await compare_sectors(cleaned, ai_analyzer=ai_analyzer, force_heuristic=True)
+        return CompareResponse(**result)
 
 
 # ==================== Export Endpoints (§3.3 / §4.4) ====================
@@ -1322,7 +1334,7 @@ async def voice_query(
     prompt should use this (no STT bill). Returns audio inline so the
     browser can play it without a second round-trip.
     """
-    started = datetime.utcnow()
+    started = datetime.now(timezone.utc)
     try:
         reply_text, debug = await voice_agent_service.reply_text(
             prompt=payload.prompt,
@@ -1346,7 +1358,7 @@ async def voice_query(
     except VoiceProviderError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
 
-    elapsed_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
+    elapsed_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
     audio_b64 = base64.b64encode(synth.audio).decode("ascii")
     return {
         "transcript": {
@@ -1387,7 +1399,7 @@ async def voice_agent_turn(
     `voice_response_max_chars`, and identical replies are served straight
     from disk on subsequent turns.
     """
-    started = datetime.utcnow()
+    started = datetime.now(timezone.utc)
     audio_bytes = await audio.read()
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="Empty audio payload")
@@ -1417,7 +1429,7 @@ async def voice_agent_turn(
                 "audio_base64": None,
                 "audio_format": None,
                 "cache_hit": False,
-                "latency_ms": int((datetime.utcnow() - started).total_seconds() * 1000),
+                "latency_ms": int((datetime.now(timezone.utc) - started).total_seconds() * 1000),
                 "is_speech": False,
                 "vad_debug": vad_debug,
             },
@@ -1454,7 +1466,7 @@ async def voice_agent_turn(
     except VoiceProviderError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
 
-    elapsed_ms = int((datetime.utcnow() - started).total_seconds() * 1000)
+    elapsed_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
     audio_b64 = base64.b64encode(synth.audio).decode("ascii")
     return {
         "transcript": {

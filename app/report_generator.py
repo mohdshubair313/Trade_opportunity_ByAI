@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from app.storage import StoredReport, storage
@@ -58,7 +58,7 @@ class ReportGenerator:
         metadata = (
             "---\n"
             f"title: Trade Opportunities Analysis - {sector.title()}\n"
-            f"date: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            f"date: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}\n"
             f"sector: {sector}\n"
             f"sources_analyzed: {sources_count}\n"
             "generated_by: TradeInsight AI\n"
