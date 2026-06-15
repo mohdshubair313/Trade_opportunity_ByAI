@@ -53,7 +53,7 @@ from app.schemas import (
     VoiceQueryRequest, VoiceTurnResponse, VoiceTranscript,
     VoiceCacheStats, VoiceVoiceOption,
     WatchlistCreate, WatchlistItem, WatchlistsResponse, AlertItem, AlertsResponse,
-    CompareRequest, CompareResponse,
+    CompareRequest, CompareResponse, CompareSectorScore,
     HealthResponse, APIInfoResponse, ErrorResponse, UserStats
 )
 from app.rate_limiter import limiter, rate_limit_exceeded_handler
@@ -896,17 +896,38 @@ async def compare_sectors_endpoint(
 
     result = await compare_sectors(cleaned, ai_analyzer=ai_analyzer)
 
-    # Robust validation: LLM cascade may return partial JSON (missing fields
-    # like scores[*].time_to_roi). If strict Pydantic validation fails,
-    # gracefully fall back to the deterministic heuristic already computed in
-    # compare_service.py so the user never sees a 500.
+    # Three-layer safety net:
+    #   1. Try the LLM-produced result (primary path).
+    #   2. If Pydantic rejects it, re-run with force_heuristic=True (deterministic).
+    #   3. If even the heuristic fails to validate, build a last-resort response
+    #      manually so the endpoint never returns a 500 under any circumstance.
     try:
         return CompareResponse(**result)
     except PydanticValidationError as exc:
         logger.warning("CompareResponse validation failed (%s); rebuilding from heuristic", exc)
-        # Re-run compare with a flag that forces the heuristic path
-        result = await compare_sectors(cleaned, ai_analyzer=ai_analyzer, force_heuristic=True)
-        return CompareResponse(**result)
+        try:
+            result = await compare_sectors(cleaned, ai_analyzer=ai_analyzer, force_heuristic=True)
+            return CompareResponse(**result)
+        except (PydanticValidationError, KeyError, TypeError) as exc2:
+            logger.error("Heuristic fallback also failed (%s); returning last-resort response", exc2)
+            return CompareResponse(
+                winner=cleaned[0],
+                headline=f"Comparison of {len(cleaned)} sectors (limited data available).",
+                scores=[
+                    CompareSectorScore(
+                        sector=s,
+                        opportunity_score=50.0,
+                        risk_score=50.0,
+                        capital_required="medium",
+                        time_to_roi="medium",
+                        sentiment_score=0.0,
+                        top_opportunity="Data temporarily unavailable.",
+                        top_risk="Data temporarily unavailable.",
+                    )
+                    for s in cleaned
+                ],
+                generated_at=datetime.now(timezone.utc).isoformat() + "Z",
+            )
 
 
 # ==================== Export Endpoints (§3.3 / §4.4) ====================
