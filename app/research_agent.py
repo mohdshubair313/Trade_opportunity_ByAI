@@ -18,12 +18,14 @@ from __future__ import annotations
 import logging
 import os
 import re
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from google import genai
 from google.genai import types
+from google.genai import errors as genai_errors
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +40,7 @@ class GroundedSource:
     title: str
     url: str
     snippet: Optional[str] = None
+    supporting_segments: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -47,6 +50,45 @@ class GroundedReport:
     sources: List[GroundedSource] = field(default_factory=list)
     search_queries: List[str] = field(default_factory=list)  # Queries Gemini ran
     model: str = ""
+    supports: List[Dict[str, Any]] = field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Retry helper for Gemini API calls
+# ---------------------------------------------------------------------------
+
+TRANSIENT_CODES = {429, 502, 503}
+
+
+def _call_with_retry(
+    client: genai.Client,
+    model: str,
+    contents: List[types.Content],
+    config: types.GenerateContentConfig,
+    max_attempts: int = 3,
+) -> types.GenerateContentResponse:
+    """Call Gemini with exponential backoff on transient errors."""
+    last_exc: Optional[Exception] = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return client.models.generate_content(
+                model=model, contents=contents, config=config,
+            )
+        except genai_errors.APIError as exc:
+            last_exc = exc
+            if exc.code in TRANSIENT_CODES and attempt < max_attempts:
+                sleep_sec = 2 ** attempt
+                logger.warning(
+                    "Gemini transient error (code=%d, attempt %d/%d); "
+                    "retrying in %ds ...",
+                    exc.code, attempt, max_attempts, sleep_sec,
+                )
+                time.sleep(sleep_sec)
+            else:
+                raise
+        except Exception:
+            raise
+    raise last_exc  # type: ignore[misc]  # only reached if all attempts failed
 
 
 # ---------------------------------------------------------------------------
@@ -174,14 +216,25 @@ STYLE RULES
 # Research call
 # ---------------------------------------------------------------------------
 
-def _extract_grounding(candidate) -> tuple[List[GroundedSource], List[str]]:
-    """Pull sources + search queries out of a Gemini grounded response."""
+def _extract_grounding(
+    candidate,
+) -> tuple[List[GroundedSource], List[str], List[Dict[str, Any]]]:
+    """Pull sources, search queries, and per-claim grounding supports out of
+    a Gemini grounded response.
+
+    Returns
+    -------
+    (sources, queries, supports)
+        ``supports`` is a list of dicts, each with ``claim_text`` and
+        ``chunk_indices`` (list of zero-based indices into ``grounding_chunks``).
+    """
     sources: List[GroundedSource] = []
     queries: List[str] = []
+    supports: List[Dict[str, Any]] = []
 
     metadata = getattr(candidate, "grounding_metadata", None)
     if metadata is None:
-        return sources, queries
+        return sources, queries, supports
 
     chunks = getattr(metadata, "grounding_chunks", None) or []
     for idx, chunk in enumerate(chunks, start=1):
@@ -199,7 +252,60 @@ def _extract_grounding(candidate) -> tuple[List[GroundedSource], List[str]]:
         if isinstance(q, str) and q:
             queries.append(q)
 
-    return sources, queries
+    # Extract per-claim grounding_supports for inline citation injection
+    support_entries = getattr(metadata, "grounding_supports", None) or []
+    for sp in support_entries:
+        claim_text = getattr(sp, "claim_text", None) or ""
+        supporting_chunks = getattr(sp, "supporting_chunks", None) or []
+        chunk_indices: List[int] = []
+        for chunk_ref in supporting_chunks:
+            idx = getattr(chunk_ref, "chunk_index", None)
+            if idx is not None:
+                chunk_indices.append(idx)
+        if claim_text and chunk_indices:
+            supports.append({"claim_text": claim_text, "chunk_indices": chunk_indices})
+
+    return sources, queries, supports
+
+
+def _inject_citation_markers(
+    text: str,
+    supports: List[Dict[str, Any]],
+    sources: List[GroundedSource],
+) -> str:
+    """Inline `[N]` markers into the report based on grounding_supports.
+
+    Each support associates a claim_text with chunk indices. We resolve those
+    chunk indices to the 1-based source numbers (``GroundedSource.n``) and
+    insert `` [N1, N2]`` right after the claim text so the frontend's citation
+    chip renderer can hook into them.
+    """
+    if not supports or not sources:
+        return text
+
+    chunk_map: Dict[int, int] = {}
+    for src in sources:
+        chunk_map[src.n - 1] = src.n
+
+    for support in reversed(supports):
+        claim_text = support.get("claim_text", "")
+        chunk_indices: List[int] = support.get("chunk_indices", [])
+        if not claim_text or not chunk_indices:
+            continue
+        citation_ns = [
+            chunk_map[ci] for ci in chunk_indices if ci in chunk_map
+        ]
+        if not citation_ns:
+            continue
+        citation_str = " ".join(f"[{n}]" for n in sorted(set(citation_ns)))
+
+        idx = text.lower().rfind(claim_text.lower())
+        if idx == -1:
+            continue
+        end_idx = idx + len(claim_text)
+        text = text[:end_idx] + " " + citation_str + text[end_idx:]
+
+    return text
 
 
 # gemini-2.5-flash is the free-tier friendly model that accepts the
@@ -226,10 +332,17 @@ def research_sector(sector: str, *, persona: Optional[Dict] = None, client=None)
             raise ResearchUnavailable(f"Could not initialise Gemini client: {exc}") from exc
 
     prompt = build_prompt(sector, persona)
-    tools = [types.Tool(google_search=types.GoogleSearch())]
+    # Use GoogleSearchRetrieval with dynamic retrieval so Gemini always searches
+    tools = [types.Tool(google_search=types.GoogleSearchRetrieval(
+        dynamic_retrieval_config=types.DynamicRetrievalConfig(
+            mode=types.DynamicRetrievalConfigMode.MODE_DYNAMIC,
+            dynamic_threshold=0.1,
+        ),
+    ))]
 
     try:
-        response = client.models.generate_content(
+        response = _call_with_retry(
+            client,
             model=_MODEL_GROUNDING,
             contents=prompt,
             config=types.GenerateContentConfig(
@@ -254,13 +367,14 @@ def research_sector(sector: str, *, persona: Optional[Dict] = None, client=None)
 
     sources: List[GroundedSource] = []
     queries: List[str] = []
+    supports: List[Dict[str, Any]] = []
     candidates = getattr(response, "candidates", None) or []
     if candidates:
-        sources, queries = _extract_grounding(candidates[0])
+        sources, queries, supports = _extract_grounding(candidates[0])
 
     logger.info(
-        "Grounded research for %s produced %d chars, %d sources, %d queries",
-        sector, len(text), len(sources), len(queries),
+        "Grounded research for %s produced %d chars, %d sources, %d queries, %d supports",
+        sector, len(text), len(sources), len(queries), len(supports),
     )
 
     # Strip any stray citation markers like [1, 2] that Gemini sometimes leaves
@@ -268,12 +382,16 @@ def research_sector(sector: str, *, persona: Optional[Dict] = None, client=None)
     # sources list, not from inline numbers.
     text = re.sub(r"\s?\[(\d+(?:,\s*\d+)*)\]", "", text)
 
+    # Inject grounded [N] citation markers from grounding_supports metadata
+    text = _inject_citation_markers(text, supports, sources)
+
     return GroundedReport(
         sector=sector,
         report=text,
         sources=sources,
         search_queries=queries,
         model=_MODEL_GROUNDING,
+        supports=supports,
     )
 
 

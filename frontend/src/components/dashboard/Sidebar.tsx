@@ -101,7 +101,7 @@ export function Sidebar() {
       initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       className={cn(
-        "h-screen bg-card border-r border-border flex flex-col transition-all duration-300",
+        "sticky top-0 h-screen bg-card border-r border-border flex flex-col transition-all duration-300",
         isCollapsed ? "w-[72px]" : "w-64"
       )}
     >

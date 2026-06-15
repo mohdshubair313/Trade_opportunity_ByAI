@@ -59,7 +59,7 @@ There are **no unit tests** in this repo. Manual verification via Swagger (`/doc
 - `compare_service.py` -- multi-sector ranking; calls `llm_router` in JSON mode
 - `market_data.py` -- yfinance-backed NSE data; has in-process caches
 - `data_collector.py` -- DuckDuckGo search + sentiment scoring
-- `research_agent.py` -- grounded Gemini research via `google_search` tool
+- `research_agent.py` -- grounded Gemini research via `google_search` tool; includes `_call_with_retry()` (exponential backoff on 503/429) and `_inject_citation_markers()` (per-claim `[N]` injection from `grounding_supports`)
 - `worker.py` -- APScheduler watchlist re-analysis worker; run as separate container in docker-compose
 - `schemas.py` -- all Pydantic request/response models
 
@@ -117,6 +117,18 @@ Command order when making changes: `lint` (frontend) → manual API test (Swagge
 - **Fix (applied 2026-06-15):** Replaced all `datetime.utcnow()` calls across the entire codebase with `datetime.now(timezone.utc)`. Column defaults using `datetime.utcnow` as a callable reference (no parens) are left intact as they do not emit deprecation warnings.
 - The `duckduckgo_search` package has been renamed to `ddgs`. Import updated in `data_collector.py` and `requirements.txt`.
 
+### Gemini 503 / 429 transient errors
+- Production Gemini API calls return sporadic 503 (ServiceUnavailable) and 429 (ResourceExhausted) errors.
+- **Fix (applied 2026-06-15):** `research_sector()` now uses `_call_with_retry()` — an exponential-backoff wrapper (2s, 4s, 8s sleep) for codes {429, 502, 503}, max 3 attempts. After exhaustion the standard `ResearchUnavailable` exception is raised so the fallback pipeline still runs.
+
+### Missing `grounding_supports` extraction
+- The previous `_extract_grounding()` only parsed `grounding_chunks` (URLs) and `web_search_queries`; `grounding_supports` (the per-claim → chunk mapping) was ignored, so inline `[N]` citation markers were not injected into the report text.
+- **Fix (applied 2026-06-15):** `_extract_grounding()` now returns a third tuple element `supports: List[Dict]`. `_inject_citation_markers()` uses it to insert `[N]` markers into the report text right after each claim, enabling the frontend's citation chip renderer.
+
+### Outdated `GoogleSearch` tool config
+- `research_sector()` used `types.Tool(google_search=types.GoogleSearch())` which is deprecated in the google-genai SDK.
+- **Fix (applied 2026-06-15):** Replaced with `types.Tool(google_search=types.GoogleSearchRetrieval(dynamic_retrieval_config=...))` using `MODE_DYNAMIC` and a low threshold (0.1) so Gemini always executes a web search for the sector analysis use case.
+
 ---
 
 ## 7. What not to change blindly
@@ -135,7 +147,7 @@ Command order when making changes: `lint` (frontend) → manual API test (Swagge
 |------|------------------------|
 | Add/change an endpoint | `app/main.py` |
 | Change response/request shape | `app/schemas.py` |
-| Modify sector analysis logic | `app/research_agent.py`, `app/ai_analyzer.py` |
+| Modify sector analysis logic | `app/research_agent.py` (retry, citation injection, tool config), `app/ai_analyzer.py` |
 | Change LLM model fallback order | `app/llm_router.py` (`TASKS` dict) |
 | Fix compare/multi-sector ranking | `app/compare_service.py`, `app/main.py` around line 897 |
 | Add new DB models | `app/database.py` (SQLAlchemy declarative) |

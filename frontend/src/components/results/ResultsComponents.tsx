@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
     AreaChart,
     Area,
@@ -23,7 +23,6 @@ import {
     BarChart3,
     Network,
     MessageSquare,
-    Loader2,
     ExternalLink,
 } from "lucide-react";
 import {
@@ -36,12 +35,13 @@ import {
     RelativeStrengthResponse,
     CorrelationMatrix,
 } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Shared chrome for every chart card on /results
 // ---------------------------------------------------------------------------
 
-function CardShell({
+export function CardShell({
     title,
     icon: Icon,
     badge,
@@ -52,13 +52,64 @@ function CardShell({
     badge?: React.ReactNode;
     children: React.ReactNode;
 }) {
+    const cardRef = useRef<HTMLDivElement>(null);
+    const rectRef = useRef<DOMRect | null>(null);
+    const [coords, setCoords] = useState({ x: 0, y: 0 });
+    const [isHovered, setIsHovered] = useState(false);
+
+    const handleMouseEnter = () => {
+        if (cardRef.current) {
+            rectRef.current = cardRef.current.getBoundingClientRect();
+        }
+        setIsHovered(true);
+    };
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!rectRef.current) return;
+        setCoords({
+            x: e.clientX - rectRef.current.left,
+            y: e.clientY - rectRef.current.top,
+        });
+    };
+
+    const handleMouseLeave = () => {
+        rectRef.current = null;
+        setIsHovered(false);
+    };
+
     return (
         <motion.div
+            ref={cardRef}
+            onMouseMove={handleMouseMove}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-card border border-border/50 rounded-2xl p-6 h-full flex flex-col"
+            className="bg-zinc-950/45 backdrop-blur-md border border-white/[0.06] rounded-2xl p-6 h-full flex flex-col shadow-[0_8px_30px_rgb(0,0,0,0.5)] hover:border-primary/20 hover:shadow-primary/[0.02] transition-all duration-300 relative overflow-hidden group"
         >
-            <div className="flex items-center justify-between gap-2 mb-4">
+            {/* Interactive Spotlight Radial Background */}
+            <div
+                className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                style={{
+                    background: `radial-gradient(250px circle at ${coords.x}px ${coords.y}px, rgba(34, 197, 94, 0.07), transparent 80%)`,
+                    opacity: isHovered ? 1 : 0,
+                }}
+            />
+            {/* Interactive Spotlight Radial Border overlay */}
+            <div
+                className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-300"
+                style={{
+                    background: `radial-gradient(150px circle at ${coords.x}px ${coords.y}px, rgba(34, 197, 94, 0.25), transparent 60%)`,
+                    opacity: isHovered ? 1 : 0,
+                    maskImage: "linear-gradient(black, black) content-box, linear-gradient(black, black)",
+                    WebkitMaskImage: "linear-gradient(black, black) content-box, linear-gradient(black, black)",
+                    maskComposite: "exclude",
+                    WebkitMaskComposite: "destination-out",
+                    border: "1px solid transparent",
+                }}
+            />
+
+            <div className="flex items-center justify-between gap-2 mb-4 relative z-10">
                 <div className="flex items-center gap-2">
                     <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
                         <Icon className="h-4 w-4 text-primary" />
@@ -67,10 +118,80 @@ function CardShell({
                 </div>
                 {badge}
             </div>
-            {children}
+            <div className="relative z-10 flex-1 flex flex-col">
+                {children}
+            </div>
         </motion.div>
     );
 }
+
+export function ShimmerCard({
+    title,
+    icon: Icon,
+    heightClass = "min-h-[160px]"
+}: {
+    title: string;
+    icon: React.ComponentType<{ className?: string }>;
+    heightClass?: string;
+}) {
+    return (
+        <div className="bg-zinc-950/45 backdrop-blur-md border border-white/[0.06] rounded-2xl p-6 h-full flex flex-col shadow-[0_8px_30px_rgb(0,0,0,0.5)] relative overflow-hidden group">
+            {/* Shimmer element */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent bg-[length:200%_100%] animate-shimmer" />
+            
+            <div className="flex items-center gap-2 mb-4 relative z-10">
+                <div className="w-9 h-9 rounded-lg bg-white/[0.04] flex items-center justify-center">
+                    <Icon className="h-4 w-4 text-white/20 animate-pulse" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground/40">{title}</h3>
+            </div>
+            
+            <div className={cn("flex-grow flex flex-col justify-center space-y-3 relative z-10", heightClass)}>
+                <div className="h-3 bg-white/[0.05] rounded w-11/12 animate-pulse" />
+                <div className="h-3 bg-white/[0.04] rounded w-5/6 animate-pulse" />
+                <div className="h-3 bg-white/[0.04] rounded w-3/4 animate-pulse" />
+                <div className="h-3 bg-white/[0.03] rounded w-2/3 animate-pulse" />
+            </div>
+        </div>
+    );
+}
+
+interface TooltipPayloadItem {
+    name: string;
+    value: number | string;
+    stroke?: string;
+    fill?: string;
+}
+
+interface PremiumChartTooltipProps {
+    active?: boolean;
+    payload?: TooltipPayloadItem[];
+    label?: string | number;
+}
+
+const PremiumChartTooltip = ({ active, payload, label }: PremiumChartTooltipProps) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-zinc-950/85 backdrop-blur-md border border-white/[0.08] rounded-xl p-3 shadow-xl text-[11px] font-sans">
+                <p className="text-zinc-500 font-mono mb-1.5 uppercase tracking-wider">{label}</p>
+                <div className="space-y-1.5 min-w-[120px]">
+                    {payload.map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.stroke || item.fill }} />
+                                <span className="text-zinc-300 font-medium">{item.name}</span>
+                            </div>
+                            <span className="font-mono font-bold text-white">
+                                {typeof item.value === 'number' ? item.value.toLocaleString(undefined, { minimumFractionDigits: 2 }) : item.value}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
 
 // ---------------------------------------------------------------------------
 // Hooks — centralise the fetch logic so each chart component stays small
@@ -148,13 +269,7 @@ export function SectorVitals({ sector }: { sector: string }) {
     ) : null;
 
     if (loading) {
-        return (
-            <CardShell title="Sector Vitals" icon={Activity} badge={badge}>
-                <div className="flex-1 flex items-center justify-center min-h-[160px]">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-            </CardShell>
-        );
+        return <ShimmerCard title="Sector Vitals" icon={Activity} heightClass="min-h-[160px]" />;
     }
 
     if (!data || data.status !== "ok" || !data.vitals) {
@@ -206,13 +321,7 @@ export function TrendProjection({ sector }: { sector: string }) {
     const { data, loading } = useMarketData(sector);
 
     if (loading) {
-        return (
-            <CardShell title="12-month Trend" icon={LineChart}>
-                <div className="flex-1 flex items-center justify-center min-h-[200px]">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-            </CardShell>
-        );
+        return <ShimmerCard title="12-month Trend" icon={LineChart} heightClass="min-h-[200px]" />;
     }
 
     if (!data || data.status !== "ok" || !data.trend || data.trend.length < 2) {
@@ -232,6 +341,12 @@ export function TrendProjection({ sector }: { sector: string }) {
     const up = last >= first;
     const stroke = up ? "#22c55e" : "#ef4444";
 
+    const closes = chartData.map((p) => p.close);
+    const minClose = Math.min(...closes);
+    const maxClose = Math.max(...closes);
+    const closePadding = (maxClose - minClose) * 0.05 || 1;
+    const yDomain = [minClose - closePadding, maxClose + closePadding];
+
     return (
         <CardShell
             title="12-month Trend"
@@ -244,10 +359,10 @@ export function TrendProjection({ sector }: { sector: string }) {
         >
             <div className="h-[200px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+                    <AreaChart data={chartData} margin={{ top: 15, right: 15, bottom: 10, left: 10 }}>
                         <defs>
                             <linearGradient id="trend-gradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={stroke} stopOpacity={0.3} />
+                                <stop offset="5%" stopColor={stroke} stopOpacity={0.15} />
                                 <stop offset="95%" stopColor={stroke} stopOpacity={0} />
                             </linearGradient>
                         </defs>
@@ -258,20 +373,10 @@ export function TrendProjection({ sector }: { sector: string }) {
                             fontSize={11}
                             tickLine={false}
                             axisLine={false}
-                            domain={["auto", "auto"]}
+                            domain={yDomain}
                             tickFormatter={(v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v))}
                         />
-                        <Tooltip
-                            contentStyle={{
-                                backgroundColor: "#1e1e1e",
-                                border: "1px solid #333",
-                                borderRadius: 8,
-                                fontSize: 12,
-                            }}
-                            labelStyle={{ color: "#aaa" }}
-                            itemStyle={{ color: "#fff" }}
-                            formatter={(v: number) => [v.toLocaleString(), "Close"]}
-                        />
+                        <Tooltip content={<PremiumChartTooltip />} cursor={{ stroke: "rgba(34, 197, 94, 0.15)", strokeWidth: 1.5 }} />
                         <Area
                             type="monotone"
                             dataKey="close"
@@ -279,6 +384,9 @@ export function TrendProjection({ sector }: { sector: string }) {
                             strokeWidth={2}
                             fillOpacity={1}
                             fill="url(#trend-gradient)"
+                            isAnimationActive={true}
+                            animationDuration={1200}
+                            animationEasing="ease-out"
                         />
                     </AreaChart>
                 </ResponsiveContainer>
@@ -298,13 +406,7 @@ export function SentimentBubbles({ sector = "" }: { sector?: string }) {
     const { items, loading } = useSectorNews(sector, 6);
 
     if (loading) {
-        return (
-            <CardShell title="Social Sentiment" icon={MessageSquare}>
-                <div className="flex-1 flex items-center justify-center min-h-[200px]">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-            </CardShell>
-        );
+        return <ShimmerCard title="Social Sentiment" icon={MessageSquare} heightClass="min-h-[200px]" />;
     }
 
     if (!items.length) {
@@ -393,13 +495,7 @@ export function CapitalFlowChart({ sector }: { sector: string }) {
     const { data, loading } = useRelativeStrength(sector);
 
     if (loading) {
-        return (
-            <CardShell title="Relative Strength" icon={BarChart3}>
-                <div className="flex-1 flex items-center justify-center min-h-[200px]">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-            </CardShell>
-        );
+        return <ShimmerCard title="Relative Strength" icon={BarChart3} heightClass="min-h-[180px]" />;
     }
 
     if (!data || data.status !== "ok" || !data.sector_series || !data.benchmark_series) {
@@ -422,6 +518,12 @@ export function CapitalFlowChart({ sector }: { sector: string }) {
     const outperform = data.outperformance_pct ?? 0;
     const winning = outperform >= 0;
 
+    const values = merged.flatMap(d => [d.sector, d.nifty].filter((v): v is number => v !== null));
+    const minVal = Math.min(...values);
+    const maxVal = Math.max(...values);
+    const valPadding = (maxVal - minVal) * 0.05 || 1;
+    const yDomain = [minVal - valPadding, maxVal + valPadding];
+
     return (
         <CardShell
             title="Relative Strength"
@@ -434,23 +536,35 @@ export function CapitalFlowChart({ sector }: { sector: string }) {
         >
             <div className="h-[180px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                    <RCLineChart data={merged} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+                    <RCLineChart data={merged} margin={{ top: 15, right: 15, bottom: 10, left: 10 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" vertical={false} />
                         <XAxis dataKey="date" stroke="#666" fontSize={10} tickLine={false} axisLine={false} tick={false} />
-                        <YAxis stroke="#666" fontSize={10} tickLine={false} axisLine={false} domain={["auto", "auto"]} />
-                        <Tooltip
-                            contentStyle={{
-                                backgroundColor: "#1e1e1e",
-                                border: "1px solid #333",
-                                borderRadius: 8,
-                                fontSize: 12,
-                            }}
-                            labelStyle={{ color: "#aaa" }}
-                            formatter={(v: number) => v.toFixed(2)}
-                        />
+                        <YAxis stroke="#666" fontSize={10} tickLine={false} axisLine={false} domain={yDomain} />
+                        <Tooltip content={<PremiumChartTooltip />} cursor={{ stroke: "rgba(34, 197, 94, 0.15)", strokeWidth: 1.5 }} />
                         <Legend wrapperStyle={{ fontSize: 11 }} />
-                        <Line type="monotone" dataKey="sector" stroke="#22c55e" strokeWidth={2} dot={false} name={sector} />
-                        <Line type="monotone" dataKey="nifty" stroke="#666" strokeWidth={1.5} strokeDasharray="4 3" dot={false} name="Nifty 50" />
+                        <Line
+                            type="monotone"
+                            dataKey="sector"
+                            stroke="#22c55e"
+                            strokeWidth={2}
+                            dot={false}
+                            name={sector}
+                            isAnimationActive={true}
+                            animationDuration={1200}
+                            animationEasing="ease-out"
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey="nifty"
+                            stroke="#666"
+                            strokeWidth={1.5}
+                            strokeDasharray="4 3"
+                            dot={false}
+                            name="Nifty 50"
+                            isAnimationActive={true}
+                            animationDuration={1200}
+                            animationEasing="ease-out"
+                        />
                     </RCLineChart>
                 </ResponsiveContainer>
             </div>
@@ -490,13 +604,7 @@ export function CorrelationHeatmap() {
     }, []);
 
     if (loading) {
-        return (
-            <CardShell title="Sector Correlations" icon={Network}>
-                <div className="flex-1 flex items-center justify-center min-h-[200px]">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-            </CardShell>
-        );
+        return <ShimmerCard title="Sector Correlations" icon={Network} heightClass="min-h-[200px]" />;
     }
 
     if (!matrix || !matrix.labels.length) {

@@ -9,3 +9,55 @@
  GET /login 200 in 16649ms
  ✓ Compiled in 1947ms (662 modules)
  ✓ Compiled in 244ms (648 modules)
+ GET /login 200 in 116ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 6.7s (1363 modules)
+ GET /manifest.webmanifest 200 in 7185ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 6965ms
+ GET /_next/static/webpack/8cad0690b1a299c7.webpack.hot-update.json 404 in 754ms
+ GET /login 200 in 220ms
+ ✓ Compiled /apple-icon.png in 392ms (715 modules)
+ ✓ Compiled in 763ms (1365 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 1084ms
+ GET /manifest.webmanifest 200 in 1318ms
+ ✓ Compiled /favicon.ico in 346ms (717 modules)
+ GET /favicon.ico 200 in 692ms
+ GET /apple-icon.png 200 in 702ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1386ms (1419 modules)
+ GET /manifest.webmanifest 200 in 23ms
+ GET /apple-icon.png 200 in 28ms
+ GET /dashboard 200 in 321ms
+ GET /manifest.webmanifest 200 in 23ms
+ GET /favicon.ico 200 in 30ms
+ GET /apple-icon.png 200 in 18ms
+ GET /dashboard 200 in 103ms
+ GET /manifest.webmanifest 200 in 28ms
+ GET /dashboard 200 in 95ms
+ GET /manifest.webmanifest 200 in 21ms
+ GET /favicon.ico 200 in 36ms
+ GET /apple-icon.png 200 in 14ms
+ ○ Compiling /voice ...
+ ✓ Compiled /voice in 1569ms (1482 modules)
+ GET /manifest.webmanifest 200 in 35ms
+ GET /apple-icon.png 200 in 23ms
+ ○ Compiling /history ...
+ ✓ Compiled /history in 908ms (1499 modules)
+ GET /manifest.webmanifest 200 in 23ms
+ GET /apple-icon.png 200 in 23ms
+ GET /manifest.webmanifest 200 in 14ms
+ GET /apple-icon.png 200 in 21ms
+ ○ Compiling /results ...
+ ✓ Compiled /results in 8.6s (2996 modules)
+ ○ Compiling /settings ...
+ ✓ Compiled /settings in 1222ms (3013 modules)
+ GET /manifest.webmanifest 200 in 35ms
+ GET /apple-icon.png 200 in 21ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1767ms (3072 modules)
+ GET / 200 in 2347ms
+ GET /manifest.webmanifest 200 in 45ms
+ GET /apple-icon.png 200 in 30ms
+ GET / 200 in 150ms
+ GET /manifest.webmanifest 200 in 15ms
+ GET /apple-icon.png 200 in 18ms

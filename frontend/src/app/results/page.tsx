@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useAnalysis } from "@/hooks/useAnalysis";
 import { motion } from "framer-motion";
-import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, Activity, BarChart3, Network, MessageSquare, LineChart } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { WatchButton } from "@/components/dashboard/WatchButton";
 
@@ -16,6 +16,8 @@ const CorrelationHeatmap = dynamic(() => import("@/components/results/ResultsCom
 const SentimentBubbles = dynamic(() => import("@/components/results/ResultsComponents").then(m => ({ default: m.SentimentBubbles })), { ssr: false });
 const AnalysisReport = dynamic(() => import("@/components/dashboard/AnalysisReport").then(m => ({ default: m.AnalysisReport })), { ssr: false });
 const AIOperatorStudio = dynamic(() => import("@/components/results/AIOperatorStudio").then(m => ({ default: m.AIOperatorStudio })), { ssr: false });
+const ShimmerCard = dynamic(() => import("@/components/results/ResultsComponents").then(m => ({ default: m.ShimmerCard })), { ssr: false });
+const BorderBeam = dynamic(() => import("@/components/animations/BorderBeam").then(m => ({ default: m.BorderBeam })), { ssr: false });
 
 function ResultsContent() {
     const searchParams = useSearchParams();
@@ -58,8 +60,13 @@ function ResultsContent() {
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <div>
-                        <h1 className="text-3xl md:text-4xl font-display font-semibold tracking-tight flex items-center gap-2">
-                            {displaySector || "Loading…"} <span className="text-primary/60 text-xl font-normal">Analysis</span>
+                        <h1 className="text-4xl md:text-5xl font-display font-extrabold tracking-tight flex items-baseline gap-2 leading-none py-1">
+                            <span className="bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
+                                {displaySector || "Loading…"}
+                            </span>{" "}
+                            <span className="text-primary/80 text-lg md:text-xl font-medium font-sans tracking-normal">
+                                Intelligence Report
+                            </span>
                         </h1>
                         <p className="text-muted-foreground text-sm tracking-wide uppercase font-mono opacity-60">AI-Powered Market Intelligence • v2.1</p>
                     </div>
@@ -78,11 +85,43 @@ function ResultsContent() {
             </div>
 
             {isLoadingView ? (
-                <div className="flex flex-col items-center justify-center min-h-[400px]">
-                    <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-                    <p className="text-muted-foreground animate-pulse font-display text-xl italic">
-                        {idParam ? "Restoring intelligence from archive…" : "Synthesizing market report from live sources..."}
-                    </p>
+                <div className="space-y-6 animate-pulse">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        <div className="md:col-span-3">
+                            <ShimmerCard title="Sector Vitals" icon={Activity} heightClass="min-h-[160px]" />
+                        </div>
+                        <div className="md:col-span-6">
+                            <div className="bg-zinc-950/45 backdrop-blur-md border border-white/[0.06] rounded-[2rem] p-8 min-h-[268px] relative overflow-hidden flex flex-col justify-between">
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent bg-[length:200%_100%] animate-shimmer" />
+                                <div>
+                                    <div className="flex items-center gap-2 mb-4 relative z-10">
+                                        <div className="w-9 h-9 rounded-lg bg-white/[0.04] flex items-center justify-center">
+                                            <Sparkles className="h-4.5 w-4.5 text-white/20 animate-pulse" />
+                                        </div>
+                                        <div className="h-5 w-1/3 bg-white/[0.05] rounded-md animate-pulse" />
+                                    </div>
+                                    <div className="space-y-3 relative z-10">
+                                        <div className="h-3.5 bg-white/[0.05] rounded w-full animate-pulse" />
+                                        <div className="h-3.5 bg-white/[0.04] rounded w-5/6 animate-pulse" />
+                                        <div className="h-3.5 bg-white/[0.03] rounded w-4/6 animate-pulse" />
+                                    </div>
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-2 mt-6 relative z-10">
+                                    <div className="h-12 bg-white/[0.03] rounded-2xl border border-white/5 animate-pulse" />
+                                    <div className="h-12 bg-white/[0.03] rounded-2xl border border-white/5 animate-pulse" />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="md:col-span-3">
+                            <ShimmerCard title="Relative Strength" icon={BarChart3} heightClass="min-h-[160px]" />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:h-[300px]">
+                        <ShimmerCard title="Social Sentiment" icon={MessageSquare} heightClass="min-h-[180px]" />
+                        <ShimmerCard title="Sector Correlations" icon={Network} heightClass="min-h-[180px]" />
+                        <ShimmerCard title="12-month Trend" icon={LineChart} heightClass="min-h-[180px]" />
+                    </div>
                 </div>
             ) : error ? (
                 <div className="border border-red-500/50 bg-red-500/10 rounded-[2rem] p-8 text-center">
@@ -105,19 +144,23 @@ function ResultsContent() {
                             {displaySector && <SectorVitals sector={displaySector} />}
                         </div>
                         <div className="md:col-span-6 flex flex-col gap-6">
-                            <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-[2rem] p-8 min-h-[200px] shadow-inner relative overflow-hidden group">
+                            <div className="bg-gradient-to-br from-primary/[0.08] to-primary/[0.02] backdrop-blur-lg border border-primary/20 rounded-[2rem] p-8 min-h-[200px] shadow-[0_12px_40px_rgba(0,0,0,0.4)] dark:shadow-primary/[0.03] relative overflow-hidden group transition-all duration-300">
+                                <BorderBeam colorFrom="#22c55e" colorTo="#10b981" duration={8} size={250} />
                                 <div className="absolute top-4 right-6 text-[10px] font-mono font-bold text-primary/40">§ EXECUTIVE</div>
-                                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                                    <Sparkles className="h-4 w-4 text-primary" /> AI Intelligence
+                                <h3 className="text-xl font-semibold tracking-tight text-white mb-4 flex items-center gap-2">
+                                    <span className="p-1 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                        <Sparkles className="h-4.5 w-4.5 text-primary" />
+                                    </span>
+                                    <span className="bg-gradient-to-r from-white to-zinc-300 bg-clip-text text-transparent">AI Executive Synthesis</span>
                                 </h3>
                                 <div className="prose prose-invert prose-sm max-w-none line-clamp-6 text-foreground/80 leading-relaxed italic font-display text-lg">
                                     {analysis?.report ? analysis.report.split('\n').filter(line => !line.startsWith('#')).slice(0, 5).join(' ') + "..." : "Generating insights..."}
                                 </div>
                                 <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                                    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-[11px] text-muted-foreground leading-snug">
+                                    <div className="rounded-2xl border border-white/[0.06] bg-zinc-900/40 backdrop-blur-md px-4 py-3 text-[11px] text-muted-foreground leading-snug shadow-md hover:bg-zinc-900/60 transition-colors">
                                         Voice Briefing Studio now turns this report into a premium spoken memo.
                                     </div>
-                                    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-[11px] text-muted-foreground leading-snug">
+                                    <div className="rounded-2xl border border-white/[0.06] bg-zinc-900/40 backdrop-blur-md px-4 py-3 text-[11px] text-muted-foreground leading-snug shadow-md hover:bg-zinc-900/60 transition-colors">
                                         Vision Lab can inspect charts, receipts, and screenshots with structured output.
                                     </div>
                                 </div>
@@ -128,7 +171,7 @@ function ResultsContent() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[300px]">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:h-[300px]">
                         {displaySector && <SentimentBubbles sector={displaySector} />}
                         <CorrelationHeatmap />
                         {displaySector && <TrendProjection sector={displaySector} />}
@@ -138,9 +181,11 @@ function ResultsContent() {
                         <AIOperatorStudio sector={displaySector} report={analysis.report} />
                     )}
 
-                    <div className="bg-card border border-border/50 rounded-[2rem] p-8 shadow-2xl shadow-black/20 relative overflow-hidden">
+                    <div className="bg-zinc-950/40 backdrop-blur-lg border border-white/[0.06] rounded-[2rem] p-8 shadow-2xl shadow-black/60 relative overflow-hidden transition-all duration-300">
                         <div className="absolute top-6 right-8 text-[10px] font-mono font-bold text-muted-foreground/30">§ COMPLETE REPORT</div>
-                        <h2 className="text-2xl md:text-3xl font-display font-semibold mb-8">Comprehensive Report</h2>
+                        <h2 className="text-3xl md:text-4xl font-display font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent mb-8">
+                            Market Intelligence Dossier
+                        </h2>
                         {analysis && <AnalysisReport analysis={analysis} />}
                     </div>
                 </motion.div>
