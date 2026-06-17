@@ -689,7 +689,7 @@ class VoiceAgent:
             min_voice_ms=settings.voice_vad_min_voice_ms,
             pad_ms=settings.voice_vad_pad_ms,
         )
-        self.router = ProviderRouter(["openrouter", "gemini"])
+        self.router = ProviderRouter(["openrouter", "gemini", "deepgram"])
         self._tts_timeout = httpx.Timeout(60.0, connect=10.0)
 
     # -- public API -------------------------------------------------------
@@ -738,7 +738,7 @@ class VoiceAgent:
         order = (
             self.router.order()
             if settings.voice_arbitrage_enabled
-            else ["openrouter", "gemini"]
+            else ["openrouter", "gemini", "deepgram"]
         )
         last_err: Optional[str] = None
         for provider_name in order:
@@ -754,6 +754,10 @@ class VoiceAgent:
                     )
                 elif provider_name == "gemini":
                     audio, media_type, used_model = await self._gemini_tts(
+                        text=text, voice=voice
+                    )
+                elif provider_name == "deepgram":
+                    audio, media_type, used_model = await self._deepgram_tts(
                         text=text, voice=voice
                     )
                 else:
@@ -1036,6 +1040,35 @@ class VoiceAgent:
         wav = SimpleVAD.to_wav(pcm_bytes, 24000, 2, 1)
         return wav, "audio/wav", settings.gemini_tts_model
 
+    async def _deepgram_tts(
+        self, *, text: str, voice: str
+    ) -> Tuple[bytes, str, str]:
+        if not settings.deepgram_api_key:
+            raise VoiceProviderError("DEEPGRAM_API_KEY not configured")
+
+        model = settings.deepgram_tts_model
+        payload = {"text": text}
+        headers = {
+            "Authorization": f"Token {settings.deepgram_api_key}",
+            "Content-Type": "application/json",
+        }
+
+        async with httpx.AsyncClient(timeout=self._tts_timeout) as client:
+            try:
+                response = await client.post(
+                    f"https://api.deepgram.com/v1/speak?model={model}",
+                    headers=headers,
+                    json=payload,
+                )
+            except httpx.RequestError as exc:
+                raise VoiceProviderError(f"Deepgram TTS network error: {exc}") from exc
+
+        if response.status_code >= 400:
+            body = response.text[:240]
+            raise VoiceProviderError(f"Deepgram TTS {response.status_code}: {body}")
+
+        return response.content, "audio/wav", model
+
     async def _gemini_stt(
         self, wav_bytes: bytes, *, language_hint: Optional[str]
     ) -> str:
@@ -1100,6 +1133,35 @@ voice_agent_service = VoiceAgent()
 # ----------------------------------------------------------------------------
 
 VOICE_CATALOGUE: List[Dict[str, str]] = [
+    # -- Deepgram Aura-2 voices (Indian-optimised pipeline) --
+    {
+        "value": "thalia",
+        "label": "Thalia (Indian Tuned)",
+        "mood": "Warm, clear Indian English",
+        "sample_text": "Namaste. Nifty opened flat today with a positive bias. Let me walk you through the sectors.",
+        "accent": "indian-english",
+        "locale": "en-IN",
+        "provider": "deepgram",
+    },
+    {
+        "value": "zeus",
+        "label": "Zeus (Indian Tuned)",
+        "mood": "Deep command-room tone",
+        "sample_text": "Risk first, conviction second. Here is what the Indian tape is telling us.",
+        "accent": "indian-english",
+        "locale": "en-IN",
+        "provider": "deepgram",
+    },
+    {
+        "value": "arcas",
+        "label": "Arcas (Indian Tuned)",
+        "mood": "Professional analyst",
+        "sample_text": "On a relative-strength basis, the banking sector is leading the Nifty this week.",
+        "accent": "indian-english",
+        "locale": "en-IN",
+        "provider": "deepgram",
+    },
+    # -- OpenAI voices (fallback OpenRouter) --
     {
         "value": "nova",
         "label": "Nova",
@@ -1107,6 +1169,7 @@ VOICE_CATALOGUE: List[Dict[str, str]] = [
         "sample_text": "Good morning. Markets opened steady. Let's run the briefing.",
         "accent": "neutral",
         "locale": "en-IN",
+        "provider": "openai",
     },
     {
         "value": "alloy",
@@ -1115,6 +1178,7 @@ VOICE_CATALOGUE: List[Dict[str, str]] = [
         "sample_text": "On a relative-strength basis, this sector is leading the broader index.",
         "accent": "neutral",
         "locale": "en-US",
+        "provider": "openai",
     },
     {
         "value": "onyx",
@@ -1123,6 +1187,7 @@ VOICE_CATALOGUE: List[Dict[str, str]] = [
         "sample_text": "Risk first, conviction second. Here is what the tape is telling us.",
         "accent": "deep",
         "locale": "en-US",
+        "provider": "openai",
     },
     {
         "value": "sage",
@@ -1131,6 +1196,7 @@ VOICE_CATALOGUE: List[Dict[str, str]] = [
         "sample_text": "Three forces are shaping the next move — let me walk you through them.",
         "accent": "neutral",
         "locale": "en-IN",
+        "provider": "openai",
     },
     {
         "value": "shimmer",
@@ -1139,6 +1205,7 @@ VOICE_CATALOGUE: List[Dict[str, str]] = [
         "sample_text": "Quick take — momentum is building, here's how to play it.",
         "accent": "bright",
         "locale": "en-US",
+        "provider": "openai",
     },
     {
         "value": "echo",
@@ -1147,5 +1214,25 @@ VOICE_CATALOGUE: List[Dict[str, str]] = [
         "sample_text": "Top of the hour: sector flows, key levels, and what to watch next.",
         "accent": "neutral",
         "locale": "en-US",
+        "provider": "openai",
+    },
+    # -- Gemini TTS voices --
+    {
+        "value": "kore",
+        "label": "Kore (Gemini)",
+        "mood": "Calm and measured",
+        "sample_text": "Let me check the latest sector data for you.",
+        "accent": "neutral",
+        "locale": "en-IN",
+        "provider": "gemini",
+    },
+    {
+        "value": "leda",
+        "label": "Leda (Gemini)",
+        "mood": "Warm and engaging",
+        "sample_text": "Here is what I found across the sectors you asked about.",
+        "accent": "neutral",
+        "locale": "en-IN",
+        "provider": "gemini",
     },
 ]

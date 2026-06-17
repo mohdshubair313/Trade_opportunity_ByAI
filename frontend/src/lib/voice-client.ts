@@ -66,7 +66,23 @@ export interface VoiceOption {
   sample_text: string;
   accent?: string;
   locale?: string;
+  provider?: string;
 }
+
+/** Map voice values to their TTS provider for the synthesise pipeline. */
+export const VOICE_PROVIDER_MAP: Record<string, string> = {
+  thalia: "deepgram",
+  zeus: "deepgram",
+  arcas: "deepgram",
+  nova: "openai",
+  alloy: "openai",
+  onyx: "openai",
+  sage: "openai",
+  shimmer: "openai",
+  echo: "openai",
+  kore: "gemini",
+  leda: "gemini",
+};
 
 // ---------------------------------------------------------------------------
 // API helpers
@@ -254,6 +270,8 @@ export async function voiceAgentTurn(
 
 const VOICE_WS_URL =
   process.env.NEXT_PUBLIC_VOICE_WS_URL || "ws://localhost:8765/ws/client";
+const WS_RECONNECT_MAX_ATTEMPTS = 3;
+const WS_RECONNECT_BASE_DELAY = 1000;
 const STREAM_TARGET_RATE = 16000;
 
 export type VoiceStreamState =
@@ -443,103 +461,126 @@ export class VoiceStreamClient {
       this.startMicAnalyser();
       this.startPlaybackAnalyser();
 
-      const ws = new WebSocket(VOICE_WS_URL);
-      ws.binaryType = "arraybuffer";
-      this.ws = ws;
-
-      return new Promise<void>((resolve, reject) => {
-        ws.onopen = () => {
-          this.connected = true;
-          this.callbacks.onConnectionChange(true);
-          this.setState("listening");
-
-          const nativeRate = ctx.sampleRate;
-          const processor = ctx.createScriptProcessor(4096, 1, 1);
-          this.processor = processor;
-          source.connect(processor);
-          processor.connect(ctx.destination);
-
-          processor.onaudioprocess = (ev) => {
-            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-            if (this.aiSpeaking) return;
-            const input = ev.inputBuffer.getChannelData(0);
-            const resampled = resampleLinear(
-              input,
-              nativeRate,
-              STREAM_TARGET_RATE
-            );
-            const int16 = new Int16Array(resampled.length);
-            for (let i = 0; i < resampled.length; i++) {
-              const s = Math.max(-1, Math.min(1, resampled[i]));
-              int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-            }
-            try {
-              this.ws.send(int16.buffer);
-            } catch {}
-          };
-
-          ws.onmessage = (event) => {
-            if (event.data instanceof ArrayBuffer) {
-              if (!this.audioCtx) return;
-              const int16 = new Int16Array(event.data);
-              const float32 = new Float32Array(int16.length);
-              for (let i = 0; i < int16.length; i++)
-                float32[i] = int16[i] / 32768;
-              const buf = this.audioCtx.createBuffer(
-                1,
-                float32.length,
-                STREAM_TARGET_RATE
-              );
-              buf.getChannelData(0).set(float32);
-              this.audioQueue.push(buf);
-              if (!this.isPlaying) this.scheduleNextAudio();
-              this.aiSpeaking = true;
-              this.setState("speaking");
-            } else {
-              try {
-                const data = JSON.parse(event.data);
-                if (data.type === "clear") {
-                  this.clearQueue();
-                  this.aiSpeaking = false;
-                  if (this.connected) this.setState("listening");
-                } else if (data.type === "AgentStartedSpeaking") {
-                  this.aiSpeaking = true;
-                  this.setState("speaking");
-                } else if (data.type === "AgentAudioDone") {
-                  // allow mic after playback finishes
-                } else if (data.type === "ConversationText") {
-                  this.callbacks.onTranscript(
-                    data.role || "assistant",
-                    data.content || ""
-                  );
-                }
-              } catch {}
-            }
-          };
-
-          ws.onclose = () => {
-            this.connected = false;
-            this.callbacks.onConnectionChange(false);
-            this.setState("idle");
-          };
-
-          ws.onerror = () => {
-            reject(new Error("WebSocket connection failed"));
-          };
-
-          resolve();
-        };
-
-        ws.onerror = () => {
-          reject(new Error("WebSocket connection failed"));
-        };
-      });
+      await this._connectWebSocket(ctx, source, 0);
     } catch (err) {
       this.callbacks.onError(
         err instanceof Error ? err : new Error(String(err))
       );
       throw err;
     }
+  }
+
+  private _connectWebSocket(
+    ctx: AudioContext,
+    source: MediaStreamAudioSourceNode,
+    attempt: number
+  ): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(VOICE_WS_URL);
+      ws.binaryType = "arraybuffer";
+      this.ws = ws;
+
+      ws.onopen = () => {
+        this.connected = true;
+        this.callbacks.onConnectionChange(true);
+        this.setState("listening");
+
+        const nativeRate = ctx.sampleRate;
+        const processor = ctx.createScriptProcessor(4096, 1, 1);
+        this.processor = processor;
+        source.connect(processor);
+        processor.connect(ctx.destination);
+
+        processor.onaudioprocess = (ev) => {
+          if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+          if (this.aiSpeaking) return;
+          const input = ev.inputBuffer.getChannelData(0);
+          const resampled = resampleLinear(
+            input,
+            nativeRate,
+            STREAM_TARGET_RATE
+          );
+          const int16 = new Int16Array(resampled.length);
+          for (let i = 0; i < resampled.length; i++) {
+            const s = Math.max(-1, Math.min(1, resampled[i]));
+            int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+          }
+          try {
+            this.ws.send(int16.buffer);
+          } catch {}
+        };
+
+        ws.onmessage = (event) => {
+          if (event.data instanceof ArrayBuffer) {
+            if (!this.audioCtx) return;
+            const int16 = new Int16Array(event.data);
+            const float32 = new Float32Array(int16.length);
+            for (let i = 0; i < int16.length; i++)
+              float32[i] = int16[i] / 32768;
+            const buf = this.audioCtx.createBuffer(
+              1,
+              float32.length,
+              STREAM_TARGET_RATE
+            );
+            buf.getChannelData(0).set(float32);
+            this.audioQueue.push(buf);
+            if (!this.isPlaying) this.scheduleNextAudio();
+            this.aiSpeaking = true;
+            this.setState("speaking");
+          } else {
+            try {
+              const data = JSON.parse(event.data);
+              if (data.type === "clear") {
+                this.clearQueue();
+                this.aiSpeaking = false;
+                if (this.connected) this.setState("listening");
+              } else if (data.type === "AgentStartedSpeaking") {
+                this.aiSpeaking = true;
+                this.setState("speaking");
+              } else if (data.type === "AgentAudioDone") {
+                // allow mic after playback finishes
+              } else if (data.type === "ConversationText") {
+                this.callbacks.onTranscript(
+                  data.role || "assistant",
+                  data.content || ""
+                );
+              } else if (data.type === "Info") {
+                // Server-side info message (e.g. reconnecting)
+                console.info("[voice] info:", data.content);
+              } else if (data.type === "Error") {
+                this.callbacks.onError(new Error(data.content || "Voice agent error"));
+              }
+            } catch {}
+          }
+        };
+
+        ws.onclose = () => {
+          this.connected = false;
+          this.callbacks.onConnectionChange(false);
+          this.setState("idle");
+          // Auto-reconnect if not intentionally disconnected
+          if (this.stream && attempt < WS_RECONNECT_MAX_ATTEMPTS) {
+            const delay = WS_RECONNECT_BASE_DELAY * Math.pow(2, attempt);
+            console.info(`[voice] reconnecting in ${delay}ms (attempt ${attempt + 1})`);
+            setTimeout(() => {
+              this._connectWebSocket(ctx, source, attempt + 1)
+                .then(resolve)
+                .catch(reject);
+            }, delay);
+          }
+        };
+
+        ws.onerror = () => {
+          if (attempt === 0) reject(new Error("WebSocket connection failed"));
+        };
+
+        resolve();
+      };
+
+      ws.onerror = () => {
+        if (attempt === 0) reject(new Error("WebSocket connection failed"));
+      };
+    });
   }
 
   disconnect(): void {
@@ -571,8 +612,9 @@ export class VoiceStreamClient {
       this.ws.close();
       this.ws = null;
     }
-    if (this.stream) {
-      this.stream.getTracks().forEach((t) => t.stop());
+    const trackStream = this.stream;
+    if (trackStream) {
+      trackStream.getTracks().forEach((t: MediaStreamTrack) => t.stop());
       this.stream = null;
     }
     this.clearQueue();

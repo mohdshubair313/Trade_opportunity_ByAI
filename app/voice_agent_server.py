@@ -10,6 +10,10 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
+# Bypass websockets lazy-import mechanism (broken with Python 3.14 + uvicorn).
+# Importing the submodule eagerly at load time avoids the __getattr__ path.
+import websockets.asyncio.client as _dg_ws_client  # noqa: F401
+
 load_dotenv()
 
 from app.trade_functions import function_map
@@ -34,14 +38,43 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ---------------------------------------------------------------------------
+# Reconnection constants
+# ---------------------------------------------------------------------------
+_RECONNECT_MAX_ATTEMPTS = 3
+_RECONNECT_BASE_DELAY_S = 1.0
+_RECONNECT_MAX_DELAY_S = 8.0
 
-def sts_connect():
+
+async def sts_connect(retries: int = _RECONNECT_MAX_ATTEMPTS):
+    """Connect to Deepgram Voice Agent API with exponential backoff."""
     if not DEEPGRAM_API_KEY:
         raise ValueError("DEEPGRAM_API_KEY environment variable is not set")
-    return websockets.connect(
-        "wss://agent.deepgram.com/v1/agent/converse",
-        subprotocols=["token", DEEPGRAM_API_KEY],
-    )
+    last_err: Exception = ConnectionError("No connection attempted")
+
+    for attempt in range(1, retries + 1):
+        try:
+            ws = await websockets.asyncio.client.connect(
+                "wss://agent.deepgram.com/v1/agent/converse",
+                subprotocols=["token", DEEPGRAM_API_KEY],
+                ping_interval=20,
+                ping_timeout=10,
+                max_size=10 * 1024 * 1024,
+            )
+            logger.info("deepgram connected on attempt %d/%d", attempt, retries)
+            return ws
+        except (websockets.WebSocketException, OSError) as exc:
+            last_err = exc
+            delay = min(
+                _RECONNECT_BASE_DELAY_S * (2 ** (attempt - 1)),
+                _RECONNECT_MAX_DELAY_S,
+            )
+            logger.warning(
+                "deepgram connect attempt %d/%d failed: %s — retrying in %.1fs",
+                attempt, retries, exc, delay,
+            )
+            await asyncio.sleep(delay)
+    raise last_err
 
 
 def handle_function_call_request(message: dict) -> list[dict]:
@@ -81,6 +114,7 @@ def handle_function_call_request(message: dict) -> list[dict]:
 async def deepgram_receiver(
     dg_ws: websockets.WebSocketClientProtocol,
     client_ws: WebSocket,
+    settings_applied: asyncio.Event,
 ):
     try:
         async for message in dg_ws:
@@ -88,33 +122,55 @@ async def deepgram_receiver(
                 decoded = json.loads(message)
                 msg_type = decoded.get("type")
                 logger.info("dg << %s", msg_type)
-                if msg_type == "UserStartedSpeaking":
-                    logger.info("barge-in detected")
+
+                if msg_type == "Welcome":
+                    logger.info("deepgram welcome: %s", decoded.get("agent_id", ""))
+
+                elif msg_type == "SettingsApplied":
+                    logger.info("deepgram settings applied — audio channel open")
+                    settings_applied.set()
+
+                elif msg_type == "UserStartedSpeaking":
+                    logger.info("barge-in detected — clearing agent audio")
                     await client_ws.send_text(json.dumps({"type": "clear"}))
+
+                elif msg_type == "UserStoppedSpeaking":
+                    logger.info("user stopped speaking — agent thinking")
+
                 elif msg_type == "FunctionCallRequest":
                     logger.info("function call: %s", decoded.get("functions"))
                     responses = handle_function_call_request(decoded)
                     for resp in responses:
                         await dg_ws.send(json.dumps(resp))
+
                 elif msg_type in ("AgentStartedSpeaking", "AgentAudioDone"):
                     logger.info("forwarding %s to client", msg_type)
                     await client_ws.send_text(json.dumps({"type": msg_type}))
+
                 elif msg_type == "ConversationText":
                     await client_ws.send_text(json.dumps({
                         "type": "ConversationText",
                         "role": decoded.get("role"),
                         "content": decoded.get("content", ""),
                     }))
+
                 elif msg_type in (
-                    "SettingsApplied", "Welcome",
                     "AgentThinking",
                     "SpeakUpdated", "ThinkUpdated", "PromptUpdated",
+                    "KeepAlive", "Close",
                 ):
                     pass
+
                 elif msg_type == "Error":
                     logger.error("deepgram error: %s", decoded)
+                    await client_ws.send_text(json.dumps({
+                        "type": "Error",
+                        "content": str(decoded),
+                    }))
+
                 elif msg_type == "Warning":
                     logger.warning("deepgram warning: %s", decoded)
+
                 else:
                     logger.debug("unhandled dg message: %s", msg_type)
             else:
@@ -130,23 +186,33 @@ async def deepgram_receiver(
         logger.exception("error in deepgram_receiver")
 
 
-async def keepalive_sender(dg_ws: websockets.WebSocketClientProtocol):
-    while True:
-        await asyncio.sleep(5)
-        try:
-            await dg_ws.send(json.dumps({"type": "KeepAlive"}))
-            logger.debug("sent keepalive")
-        except websockets.exceptions.ConnectionClosed:
-            break
-        except Exception:
-            logger.exception("keepalive error")
-            break
+async def keepalive_sender(dg_ws: websockets.WebSocketClientProtocol, stop: asyncio.Event):
+    try:
+        while not stop.is_set():
+            await asyncio.sleep(5)
+            try:
+                await dg_ws.send(json.dumps({"type": "KeepAlive"}))
+                logger.debug("sent keepalive")
+            except websockets.exceptions.ConnectionClosed:
+                break
+            except Exception:
+                logger.exception("keepalive error")
+                break
+    except asyncio.CancelledError:
+        pass
 
 
 async def client_receiver(
     client_ws: WebSocket,
     dg_ws: websockets.WebSocketClientProtocol,
+    settings_applied: asyncio.Event,
 ):
+    # Wait for Deepgram settings to apply before accepting audio
+    try:
+        await asyncio.wait_for(settings_applied.wait(), timeout=10.0)
+    except asyncio.TimeoutError:
+        logger.warning("settings not applied within 10s — proceeding anyway")
+
     try:
         while True:
             raw = await client_ws.receive()
@@ -159,9 +225,14 @@ async def client_receiver(
                     await dg_ws.send(raw["bytes"])
                 elif "text" in raw:
                     data = json.loads(raw["text"])
-                    if data.get("type") == "close":
+                    msg_type = data.get("type", "")
+                    if msg_type == "close":
                         logger.info("client requested close")
                         break
+                    elif msg_type == "Settings" or msg_type == "Update":
+                        # Allow client to update agent settings dynamically
+                        await dg_ws.send(raw["text"])
+                        logger.info("forwarded %s to deepgram", msg_type)
     except WebSocketDisconnect:
         logger.info("browser client disconnected (client_receiver)")
 
@@ -171,25 +242,69 @@ async def websocket_endpoint(client_ws: WebSocket):
     await client_ws.accept()
     logger.info("browser client connected")
     config = build_settings_config()
-    try:
-        async with sts_connect() as dg_ws:
-            logger.info("connected to deepgram voice agent api")
+    stop_keepalive = asyncio.Event()
+
+    for dg_attempt in range(1, _RECONNECT_MAX_ATTEMPTS + 1):
+        try:
+            dg_ws = await sts_connect(retries=1)
+        except Exception as exc:
+            logger.error("deepgram connect failed (attempt %d/%d): %s", dg_attempt, _RECONNECT_MAX_ATTEMPTS, exc)
+            if dg_attempt < _RECONNECT_MAX_ATTEMPTS:
+                delay = min(_RECONNECT_BASE_DELAY_S * (2 ** dg_attempt), _RECONNECT_MAX_DELAY_S)
+                logger.info("reconnecting in %.1fs...", delay)
+                await asyncio.sleep(delay)
+                continue
+            await client_ws.send_text(json.dumps({
+                "type": "Error",
+                "content": "Could not connect to voice agent service",
+            }))
+            await client_ws.close()
+            return
+
+        try:
+            settings_applied = asyncio.Event()
             await dg_ws.send(json.dumps(config))
             logger.info("sent settings config to deepgram")
             tasks = [
-                asyncio.ensure_future(deepgram_receiver(dg_ws, client_ws)),
-                asyncio.ensure_future(client_receiver(client_ws, dg_ws)),
-                asyncio.ensure_future(keepalive_sender(dg_ws)),
+                asyncio.ensure_future(deepgram_receiver(dg_ws, client_ws, settings_applied)),
+                asyncio.ensure_future(client_receiver(client_ws, dg_ws, settings_applied)),
+                asyncio.ensure_future(keepalive_sender(dg_ws, stop_keepalive)),
             ]
             done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            stop_keepalive.set()
             for task in pending:
                 task.cancel()
-    except WebSocketDisconnect:
-        logger.info("browser client disconnected")
-    except websockets.exceptions.ConnectionClosed:
-        logger.info("deepgram websocket closed")
-    except Exception:
-        logger.exception("error in websocket handler")
+            # If we got here cleanly, break the retry loop
+            break
+        except (websockets.exceptions.ConnectionClosed, OSError) as exc:
+            logger.warning("deepgram connection lost (attempt %d/%d): %s", dg_attempt, _RECONNECT_MAX_ATTEMPTS, exc)
+            if dg_attempt < _RECONNECT_MAX_ATTEMPTS:
+                try:
+                    await client_ws.send_text(json.dumps({
+                        "type": "Info",
+                        "content": "Reconnecting...",
+                    }))
+                except Exception:
+                    pass
+                delay = min(_RECONNECT_BASE_DELAY_S * (2 ** dg_attempt), _RECONNECT_MAX_DELAY_S)
+                await asyncio.sleep(delay)
+                continue
+            await client_ws.send_text(json.dumps({
+                "type": "Error",
+                "content": "Voice agent connection lost",
+            }))
+        except WebSocketDisconnect:
+            logger.info("browser client disconnected")
+            break
+        except Exception:
+            logger.exception("error in websocket handler")
+            break
+        finally:
+            stop_keepalive.set()
+            try:
+                await dg_ws.close()
+            except Exception:
+                pass
 
 
 @app.get("/", response_class=HTMLResponse)
