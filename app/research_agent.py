@@ -27,6 +27,9 @@ from google import genai
 from google.genai import types
 from google.genai import errors as genai_errors
 
+from app.ai_harness.registry import get_profile
+from app.ai_harness.validators import validate_report_text
+
 logger = logging.getLogger(__name__)
 
 
@@ -331,6 +334,7 @@ def research_sector(sector: str, *, persona: Optional[Dict] = None, client=None)
         except Exception as exc:
             raise ResearchUnavailable(f"Could not initialise Gemini client: {exc}") from exc
 
+    profile = get_profile("sector_research")
     prompt = build_prompt(sector, persona)
     # Use GoogleSearchRetrieval with dynamic retrieval so Gemini always searches
     tools = [types.Tool(google_search=types.GoogleSearchRetrieval(
@@ -347,8 +351,8 @@ def research_sector(sector: str, *, persona: Optional[Dict] = None, client=None)
             contents=prompt,
             config=types.GenerateContentConfig(
                 tools=tools,
-                temperature=0.4,
-                max_output_tokens=8192,
+                temperature=profile.temperature,
+                max_output_tokens=profile.max_output_tokens,
             ),
         )
     except Exception as exc:
@@ -364,6 +368,9 @@ def research_sector(sector: str, *, persona: Optional[Dict] = None, client=None)
 
     if not text:
         raise ResearchUnavailable("Gemini returned an empty response")
+
+    if not validate_report_text(text, required_headings=("Executive Summary", "Recommendations")):
+        raise ResearchUnavailable("Gemini returned an incomplete research report")
 
     sources: List[GroundedSource] = []
     queries: List[str] = []
@@ -462,6 +469,9 @@ def research_sector_offline(sector: str, *, persona: Optional[Dict] = None) -> G
             "All LLM providers exhausted on offline path. "
             f"Attempts: {[(a.model_id, a.error or 'ok') for a in result.attempts]}"
         )
+
+    if not validate_report_text(result.text, required_headings=("Executive Summary", "Recommendations")):
+        raise ResearchUnavailable("Offline router returned an incomplete research report")
 
     logger.info(
         "Offline research for %s produced %d chars via %s",

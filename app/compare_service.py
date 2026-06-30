@@ -10,12 +10,14 @@ meaningful numbers.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 from datetime import datetime, timezone
 from typing import Dict, List
 
 from app.data_collector import DataCollector
+from app.ai_harness.context import compact_json_payload
+from app.ai_harness.registry import get_profile
+from app.ai_harness.validators import validate_compare_payload
 from app.llm_router import router
 from app.market_data import get_sector_market_data
 
@@ -137,9 +139,13 @@ def _heuristic_score(payload: Dict) -> Dict:
     }
 
 
-def _looks_valid(payload: Dict) -> bool:
-    scores = payload.get("scores")
-    return isinstance(scores, list) and len(scores) >= 1
+def _validator_for(sectors: List[str]):
+    allowed = {s.strip().lower() for s in sectors}
+
+    def _looks_valid(payload: Dict) -> bool:
+        return validate_compare_payload(payload, allowed)
+
+    return _looks_valid
 
 
 async def compare_sectors(sectors: List[str], *, ai_analyzer=None, force_heuristic: bool = False) -> Dict:
@@ -163,9 +169,12 @@ async def compare_sectors(sectors: List[str], *, ai_analyzer=None, force_heurist
 
     payloads = await _gather_payloads_async(sectors)
 
+    profile = get_profile("compare")
+    prompt_overhead = len(_USER_TEMPLATE) + 500
+    payload_budget = max(2_000, profile.context_budget_chars - prompt_overhead)
     user_prompt = _USER_TEMPLATE.format(
         count=len(sectors),
-        payload=json.dumps(payloads, indent=2),
+        payload=compact_json_payload(payloads, max_chars=payload_budget),
     )
 
     model_used = "heuristic"
@@ -177,7 +186,7 @@ async def compare_sectors(sectors: List[str], *, ai_analyzer=None, force_heurist
             loop = asyncio.get_running_loop()
             result = await loop.run_in_executor(
                 None,
-                lambda: router.run("compare", system=_SYSTEM, user=user_prompt, validate=_looks_valid),
+                lambda: router.run("compare", system=_SYSTEM, user=user_prompt, validate=_validator_for(sectors)),
             )
         except Exception as exc:
             logger.warning("compare router call failed (%s); using heuristic", exc)

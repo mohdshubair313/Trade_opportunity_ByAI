@@ -32,6 +32,9 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
+from app.ai_harness.registry import get_profile
+from app.ai_harness.telemetry import HarnessEvent, log_event
+
 logger = logging.getLogger(__name__)
 
 
@@ -91,6 +94,9 @@ class TaskProfile:
     max_output_tokens: int = 2048
     temperature: float = 0.2
     web_search: bool = False       # Attach OpenRouter's `web` plugin (native→exa)
+    context_budget_chars: int = 24_000
+    fallback: str = ""
+    repair_attempts: int = 0
 
 
 # Pre-wired agents. Each maps to a specific TaskProfile with its own chain so
@@ -131,6 +137,21 @@ TASKS: Dict[str, TaskProfile] = {
         temperature=0.4,
     ),
 }
+
+
+def _task_from_harness(task_key: str) -> TaskProfile:
+    profile = get_profile(task_key)
+    return TaskProfile(
+        name=profile.name,
+        chain=profile.model_chain,
+        json_mode=profile.json_mode,
+        max_output_tokens=profile.max_output_tokens,
+        temperature=profile.temperature,
+        web_search="openrouter_web" in profile.tools,
+        context_budget_chars=profile.context_budget_chars,
+        fallback=profile.fallback,
+        repair_attempts=profile.repair_attempts,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -303,9 +324,12 @@ class LLMRouter:
         the next model in the chain — useful when one model emits malformed
         JSON.
         """
-        profile = TASKS.get(task_key)
-        if profile is None:
-            raise KeyError(f"Unknown task profile: {task_key}")
+        try:
+            profile = _task_from_harness(task_key)
+        except KeyError:
+            profile = TASKS.get(task_key)
+            if profile is None:
+                raise KeyError(f"Unknown task profile: {task_key}")
 
         result = LLMResult(text="", model_key="")
         for model_key in profile.chain:
@@ -367,6 +391,17 @@ class LLMRouter:
                 "ok" if ok else "fail",
                 f" ({error})" if error else "",
             )
+            log_event(HarnessEvent(
+                task=profile.name,
+                phase="model_attempt",
+                model=spec.name,
+                ok=ok,
+                latency_ms=latency_ms,
+                input_chars=len(system) + len(user),
+                output_chars=len(text),
+                fallback=profile.fallback if not ok else None,
+                error=error,
+            ))
 
             if ok:
                 result.text = text

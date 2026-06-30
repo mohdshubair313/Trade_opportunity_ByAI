@@ -13,6 +13,9 @@ import logging
 from dataclasses import dataclass
 from typing import Optional
 
+from app.ai_harness.context import pack_sections
+from app.ai_harness.registry import get_profile
+from app.ai_harness.validators import validate_diff_payload
 from app.llm_router import router
 
 logger = logging.getLogger(__name__)
@@ -122,14 +125,7 @@ def _fallback_verdict(previous: str, current: str) -> DiffVerdict:
 
 def _looks_valid(payload: dict) -> bool:
     """Lightweight schema check before accepting a model's JSON output."""
-    if not isinstance(payload, dict):
-        return False
-    if "changed" not in payload:
-        return False
-    # Require a headline string when a change is claimed.
-    if payload.get("changed") and not isinstance(payload.get("headline"), str):
-        return False
-    return True
+    return isinstance(payload, dict) and validate_diff_payload(payload)
 
 
 def diff_reports(sector: str, previous: str, current: str, *, ai_analyzer=None) -> DiffVerdict:
@@ -145,10 +141,20 @@ def diff_reports(sector: str, previous: str, current: str, *, ai_analyzer=None) 
     if not current:
         return DiffVerdict(False, "No current report", "neutral", 0.0, None, "heuristic")
 
+    profile = get_profile("diff")
+    prompt_overhead = len(_USER_TEMPLATE) + len(sector) + 500
+    packed = pack_sections(
+        {
+            "YESTERDAY": previous or "(no prior report)",
+            "TODAY": current,
+        },
+        max_chars=max(2_000, profile.context_budget_chars - prompt_overhead),
+    )
+
     user_prompt = _USER_TEMPLATE.format(
         sector=sector,
-        previous=(previous[:40_000] if previous else "(no prior report)"),
-        current=current[:40_000],
+        previous=packed.split("## TODAY")[0].replace("## YESTERDAY", "").strip(),
+        current=(packed.split("## TODAY", 1)[1].strip() if "## TODAY" in packed else current[:20_000]),
     )
 
     try:
