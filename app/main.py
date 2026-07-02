@@ -23,13 +23,13 @@ from sqlalchemy.exc import SQLAlchemyError
 # Load environment variables
 load_dotenv()
 
-from app.config import get_settings, get_environment_info
+from app.core.config import get_settings, get_environment_info
 from app.database import (
     get_db_session, init_db,
     UserCRUD, AnalysisCRUD, FavoriteCRUD, ContactCRUD, WatchlistCRUD, AlertCRUD,
     InventoryCRUD, User, Analysis, Watchlist, AlertEvent, Order,
 )
-from app.auth import (
+from app.core.auth import (
     authenticate_user,
     register_user,
     create_token_pair,
@@ -41,7 +41,7 @@ from app.auth import (
     seed_demo_user
 )
 from pydantic import ValidationError as PydanticValidationError
-from app.schemas import (
+from app.core.schemas import (
     UserCreate, UserLogin, UserResponse, UserUpdate, PasswordChange,
     Token, TokenRefresh,
     AnalysisRequest, AnalysisResponse, AnalysisSource, AnalysisHistoryResponse, AnalysisHistoryItem,
@@ -56,33 +56,33 @@ from app.schemas import (
     CompareRequest, CompareResponse, CompareSectorScore,
     HealthResponse, APIInfoResponse, ErrorResponse, UserStats
 )
-from app.rate_limiter import limiter, rate_limit_exceeded_handler
-from app.cache import get_cache, AnalysisCache
-from app.data_collector import DataCollector
-from app.ai_analyzer import AIAnalyzer
-from app.report_generator import ReportGenerator
-from app.research_agent import research_sector, research_sector_offline, ResearchUnavailable
-from app.market_data import (
+from app.core.rate_limiter import limiter, rate_limit_exceeded_handler
+from app.core.cache import get_cache, AnalysisCache
+from app.services.data_collector import DataCollector
+from app.services.ai_analyzer import AIAnalyzer
+from app.services.report_generator import ReportGenerator
+from app.services.research_agent import research_sector, research_sector_offline, ResearchUnavailable
+from app.services.market_data import (
     get_sector_market_data,
     get_sector_relative_strength,
     get_sector_correlation_matrix,
 )
-from app.export_service import export_analysis, CONTENT_TYPES
-from app.compare_service import compare_sectors
-from app.payment_service import (
+from app.services.export_service import export_analysis, CONTENT_TYPES
+from app.services.compare_service import compare_sectors
+from app.integrations.payment_service import (
     PaymentService,
     PaymentError,
     RazorpaySignatureError,
     RazorpayUpstreamError,
     InventoryUnavailableError,
 )
-from app.multimodal_ai import (
+from app.integrations.multimodal_ai import (
     MultimodalAIService,
     MultimodalAIError,
     InvalidImageError,
     ProviderUnavailableError,
 )
-from app.voice_agent import (
+from app.integrations.voice_agent import (
     voice_agent_service,
     VOICE_CATALOGUE,
     VoiceAgentError,

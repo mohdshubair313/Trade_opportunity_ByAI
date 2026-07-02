@@ -31,9 +31,9 @@ load_dotenv()
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from app.ai_analyzer import AIAnalyzer
-from app.cache import AnalysisCache
-from app.data_collector import DataCollector
+from app.services.ai_analyzer import AIAnalyzer
+from app.core.cache import AnalysisCache
+from app.services.data_collector import DataCollector
 from app.database import (
     AlertCRUD,
     AnalysisCRUD,
@@ -42,9 +42,9 @@ from app.database import (
     WatchlistCRUD,
     init_db,
 )
-from app.diff_engine import diff_reports
-from app.notifications import AlertPayload, build_notifiers
-from app.report_generator import ReportGenerator
+from app.services.diff_engine import diff_reports
+from app.integrations.notifications import AlertPayload, build_notifiers
+from app.services.report_generator import ReportGenerator
 
 logging.basicConfig(
     level=logging.INFO,

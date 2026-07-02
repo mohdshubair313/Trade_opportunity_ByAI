@@ -1,25 +1,69 @@
-fastapi-env
-E:\Trade_AI\.env
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Environment files
 .env
-.env.example
 .env.local
-.env.development
-.env.production
-.env.test
-.env.staging
-.env.ci
-.env.qa
-.env.preprod
-.env.demo
-.env.sandbox
-.env.dev
-.env.stg
-.env.prd
-.env.hml
-.env.hmg
-.env.uat
-.env.int
-.env.integration
-.env.stg
-.env.prod
+.env.*.local
+.env.example
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+trade_opportunities_v2.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Next.js / Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+
+# Logs
+*.log
+
+# Runtime outputs (generated data, not project files)
+outputs/
+reports/*.md
+reports/local-test-logs/
+reports/voice_cache/
+reports/failed_webhooks/
+
+# opencode
 opencode.json
