@@ -192,15 +192,17 @@ export function VoiceAgentStream({ className }: { className?: string }) {
       const micSource = sourceRef.current;
       if (micSource) {
         micSource.connect(scriptNode);
-        scriptNode.connect(ctx.destination);
+        // Do NOT connect scriptNode to destination — that would echo mic audio through speakers.
       }
 
       scriptNode.onaudioprocess = (ev) => {
         if (wsRef.current?.readyState !== WebSocket.OPEN) return;
         const input = ev.inputBuffer.getChannelData(0);
-        const int16 = new Int16Array(input.length);
-        for (let i = 0; i < input.length; i++) {
-          const s = Math.max(-1, Math.min(1, input[i]));
+        const nativeRate = audioCtxRef.current?.sampleRate || ctx.sampleRate;
+        const resampled = resampleLinear(input, nativeRate, TARGET_SAMPLE_RATE);
+        const int16 = new Int16Array(resampled.length);
+        for (let i = 0; i < resampled.length; i++) {
+          const s = Math.max(-1, Math.min(1, resampled[i]));
           int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
         }
         wsRef.current.send(int16.buffer);
@@ -311,4 +313,19 @@ export function VoiceAgentStream({ className }: { className?: string }) {
       </div>
     </div>
   );
+}
+
+function resampleLinear(input: Float32Array, fromRate: number, toRate: number): Float32Array {
+  if (fromRate === toRate) return input;
+  const ratio = fromRate / toRate;
+  const length = Math.floor(input.length / ratio);
+  const out = new Float32Array(length);
+  for (let i = 0; i < length; i += 1) {
+    const idx = i * ratio;
+    const left = Math.floor(idx);
+    const right = Math.min(left + 1, input.length - 1);
+    const frac = idx - left;
+    out[i] = input[left] * (1 - frac) + input[right] * frac;
+  }
+  return out;
 }

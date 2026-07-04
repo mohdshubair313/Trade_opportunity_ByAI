@@ -36,15 +36,29 @@ export default function AlertsPage() {
     const [slotInfo, setSlotInfo] = useState<{ used: number; limit: number }>({ used: 0, limit: 1 });
     const [loading, setLoading] = useState(true);
     const [showSeen, setShowSeen] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const refresh = useCallback(async () => {
-        const [alertsRes, watchlistsRes] = await Promise.all([
+        const results = await Promise.allSettled([
             listAlerts(showSeen, 100),
             listWatchlists(),
         ]);
-        setAlerts(alertsRes.items);
-        setWatchlists(watchlistsRes.items);
-        setSlotInfo({ used: watchlistsRes.slots_used, limit: watchlistsRes.slot_limit });
+        const alertsResult = results[0];
+        const watchlistsResult = results[1];
+        
+        if (alertsResult.status === "fulfilled") {
+            setAlerts(alertsResult.value.items);
+        } else {
+            console.error("Failed to load alerts:", alertsResult.reason);
+            toast.error("Could not load alerts");
+        }
+        
+        if (watchlistsResult.status === "fulfilled") {
+            setWatchlists(watchlistsResult.value.items);
+            setSlotInfo({ used: watchlistsResult.value.slots_used, limit: watchlistsResult.value.slot_limit });
+        } else {
+            console.error("Failed to load watchlists:", watchlistsResult.reason);
+        }
     }, [showSeen]);
 
     useEffect(() => {
@@ -57,7 +71,12 @@ export default function AlertsPage() {
         let cancelled = false;
         setLoading(true);
         refresh()
-            .catch(() => !cancelled && toast.error("Could not load alerts."))
+            .catch((err) => {
+                if (cancelled) return;
+                const msg = err instanceof Error ? err.message : "Could not load alerts.";
+                setError(msg);
+                toast.error(msg);
+            })
             .finally(() => !cancelled && setLoading(false));
         return () => {
             cancelled = true;
@@ -92,6 +111,32 @@ export default function AlertsPage() {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <Loader2 className="h-8 w-8 text-primary animate-spin" />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+                <BellOff className="h-12 w-12 text-muted-foreground" />
+                <p className="text-muted-foreground text-sm">{error}</p>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                        setError(null);
+                        setLoading(true);
+                        refresh()
+                            .catch((err) => {
+                                const msg = err instanceof Error ? err.message : "Could not load alerts.";
+                                setError(msg);
+                                toast.error(msg);
+                            })
+                            .finally(() => setLoading(false));
+                    }}
+                >
+                    Retry
+                </Button>
             </div>
         );
     }

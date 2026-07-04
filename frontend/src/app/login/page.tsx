@@ -93,8 +93,8 @@ export default function LoginPage() {
 
       setIsLoading(true);
       try {
-        resetUserScoped();
         const response = await login({ username, password });
+        resetUserScoped();
         setToken(response.access_token);
         setUser({ username, isGuest: false });
         toast.success("Login successful!");

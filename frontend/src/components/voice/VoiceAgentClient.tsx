@@ -75,6 +75,7 @@ export function VoiceAgentClient({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,12 +94,10 @@ export function VoiceAgentClient({
   }, []);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    const ctx = audioCtxRef.current;
     return () => {
       streamRef.current?.disconnect();
-      audio?.pause();
-      ctx?.close().catch(() => {});
+      audioRef.current?.pause();
+      audioCtxRef.current?.close().catch(() => {});
     };
   }, []);
 
@@ -221,7 +220,7 @@ export function VoiceAgentClient({
         setActivePlaybackId(turn.id);
         setUiState("speaking");
         try {
-          await attachPlaybackAnalyser(audio, audioCtxRef, analyserRef, playbackLevelRef);
+          await attachPlaybackAnalyser(audio, audioCtxRef, analyserRef, playbackLevelRef, sourceRef);
           await audio.play();
         } catch {
           setUiState("idle");
@@ -477,7 +476,7 @@ export function VoiceAgentClient({
                 audio.src = turn.audioUrl;
                 setActivePlaybackId(turn.id);
                 setUiState("speaking");
-                void attachPlaybackAnalyser(audio, audioCtxRef, analyserRef, playbackLevelRef);
+                void attachPlaybackAnalyser(audio, audioCtxRef, analyserRef, playbackLevelRef, sourceRef);
                 void audio.play();
               }
             }
@@ -537,7 +536,8 @@ async function attachPlaybackAnalyser(
   audio: HTMLAudioElement,
   ctxRef: React.MutableRefObject<AudioContext | null>,
   analyserRef: React.MutableRefObject<AnalyserNode | null>,
-  levelRef: React.MutableRefObject<number>
+  levelRef: React.MutableRefObject<number>,
+  sourceRef: React.MutableRefObject<MediaElementAudioSourceNode | null>
 ) {
   if (!ctxRef.current) {
     const Ctx =
@@ -545,14 +545,23 @@ async function attachPlaybackAnalyser(
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     ctxRef.current = new Ctx();
   }
+  // Disconnect existing source if it's attached to a different audio element
+  if (sourceRef.current) {
+    try {
+      sourceRef.current.disconnect();
+    } catch {}
+    sourceRef.current = null;
+  }
   if (!analyserRef.current) {
     const analyser = ctxRef.current.createAnalyser();
     analyser.fftSize = 1024;
     analyserRef.current = analyser;
-    const source = ctxRef.current.createMediaElementSource(audio);
-    source.connect(analyser);
     analyser.connect(ctxRef.current.destination);
   }
+  // Create new source for this audio element
+  const source = ctxRef.current.createMediaElementSource(audio);
+  source.connect(analyserRef.current!);
+  sourceRef.current = source;
   const data = new Uint8Array(analyserRef.current!.fftSize);
   const tick = () => {
     if (!analyserRef.current) return;

@@ -90,7 +90,7 @@ class User(Base):
     is_premium = Column(Boolean, default=False)
     tier = Column(String(20), default="free")  # free, pro, enterprise
     analysis_count_month = Column(Integer, default=0)
-    last_reset_date = Column(DateTime, default=datetime.utcnow)
+    last_reset_date = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Persona fields (§4.3) — drive report framing / voice.
     persona = Column(String(32), nullable=True)  # investor|exporter|sme_owner|student|consultant
@@ -98,8 +98,8 @@ class User(Base):
     region = Column(String(64), nullable=True)
     risk_appetite = Column(String(16), nullable=True)  # low | medium | high
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     last_login = Column(DateTime, nullable=True)
     
     # Relationships

@@ -36,7 +36,7 @@ function ResultsContent() {
         if (sector) {
             analyze(sector);
         }
-    }, [sector, idParam]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [sector, idParam, analyze, fetchAnalysisById]);
 
     const displaySector = sector || analysis?.sector || "";
 

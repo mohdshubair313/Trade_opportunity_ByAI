@@ -50,7 +50,7 @@ export function useAuth() {
     };
 
     checkAuthentication();
-  }, [setUser, storeLogout]);
+  }, []); // mount only — storeLogout/setUser may be unstable refs
 
   const login = useCallback(
     async (credentials: LoginRequest) => {

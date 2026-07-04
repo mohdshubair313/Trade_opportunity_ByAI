@@ -20,6 +20,7 @@ import { POPULAR_SECTORS, getAvailableSectors, SectorInfo, getCurrentUser, isAut
 import { useFavorites } from "@/hooks/useFavorites";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { formatDate } from "@/lib/utils";
+import toast from "react-hot-toast";
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -51,8 +52,9 @@ function DashboardContent() {
       .then((res) => {
         if (!cancelled && res?.sectors?.length) setSectors(res.sectors);
       })
-      .catch(() => {
-        // keep fallback
+      .catch((err) => {
+        console.warn("Failed to load sectors, using fallback:", err);
+        toast.error("Could not load sector catalog. Showing defaults.");
       });
     return () => {
       cancelled = true;
@@ -67,7 +69,9 @@ function DashboardContent() {
       .then((p) => {
         if (!cancelled && !p.persona) setNeedsPersona(true);
       })
-      .catch(() => { });
+      .catch((err) => {
+        console.warn("Failed to fetch current user:", err);
+      });
     return () => {
       cancelled = true;
     };
@@ -89,7 +93,9 @@ function DashboardContent() {
         setRemoteHistory(res.items);
         setTotalAnalyses(res.total);
       })
-      .catch(() => { });
+      .catch((err) => {
+        console.warn("Failed to load analysis history:", err);
+      });
     return () => {
       cancelled = true;
     };

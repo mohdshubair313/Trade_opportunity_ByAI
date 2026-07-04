@@ -117,6 +117,7 @@ export default function ContactPage() {
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
                                         error={errors.name}
+                                        required
                                     />
                                 </div>
 
@@ -129,6 +130,7 @@ export default function ContactPage() {
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         error={errors.email}
+                                        required
                                     />
                                 </div>
 
@@ -171,6 +173,7 @@ export default function ContactPage() {
                                         onChange={(e) => setMessage(e.target.value)}
                                         placeholder="We analyze 15 sectors every quarter for internal research — looking for automated weekly briefs…"
                                         rows={5}
+                                        required
                                         className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none"
                                     />
                                     {errors.message && (

@@ -140,9 +140,9 @@ export const useStore = create<AppState>()(
         return state;
       },
       partialize: (state) => ({
-        token: state.token,
         user: state.user,
         theme: state.theme,
+        // token is stored separately via setToken() — see note above.
         // analysisHistory, favoriteSectors and currentAnalysis are
         // intentionally NOT persisted — see `version: 2` note above.
       }),

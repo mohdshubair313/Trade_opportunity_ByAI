@@ -58,8 +58,7 @@ export default function SettingsPage() {
                 setRiskAppetite((p.risk_appetite ?? "") as RiskAppetite | "");
             } catch {
                 if (!cancelled) {
-                    toast.error("Please sign in to access settings.");
-                    router.push("/login");
+                    setProfileError("Failed to load profile. Please try again.");
                 }
                 return;
             } finally {
@@ -161,6 +160,36 @@ export default function SettingsPage() {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <Loader2 className="h-8 w-8 text-primary animate-spin" />
+            </div>
+        );
+    }
+
+    if (profileError) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+                <p className="text-destructive text-sm">{profileError}</p>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                        setProfileError(null);
+                        setProfileLoading(true);
+                        getCurrentUser()
+                            .then((p) => {
+                                setProfile(p);
+                                setFullName(p.full_name ?? "");
+                                setEmail(p.email);
+                                setPersona((p.persona ?? "") as Persona | "");
+                                setCapitalRange((p.capital_range ?? "") as CapitalRange | "");
+                                setRegion(p.region ?? "");
+                                setRiskAppetite((p.risk_appetite ?? "") as RiskAppetite | "");
+                            })
+                            .catch(() => setProfileError("Failed to load profile. Please try again."))
+                            .finally(() => setProfileLoading(false));
+                    }}
+                >
+                    Retry
+                </Button>
             </div>
         );
     }

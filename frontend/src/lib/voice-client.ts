@@ -489,7 +489,7 @@ export class VoiceStreamClient {
         const processor = ctx.createScriptProcessor(4096, 1, 1);
         this.processor = processor;
         source.connect(processor);
-        processor.connect(ctx.destination);
+        // Do NOT connect processor to destination — that would echo mic audio through speakers.
 
         processor.onaudioprocess = (ev) => {
           if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
@@ -701,7 +701,7 @@ export async function startRecording(
   const bufferSize = 4096;
   const processor = ctx.createScriptProcessor(bufferSize, 1, 1);
   source.connect(processor);
-  processor.connect(ctx.destination);
+  // Do NOT connect processor to destination — that would echo mic audio through speakers.
 
   const buffers: Float32Array[] = [];
   let totalSamples = 0;

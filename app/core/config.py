@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     # (http://localhost:3000, http://127.0.0.1:3000) are always included at
     # runtime so you can hit the deployed backend from your dev machine for
     # debugging without changing this value.
+    #
+    # IMPORTANT: Add your deployed frontend URL here (e.g. https://your-app.vercel.app)
+    # Otherwise users will see CORS errors in production.
     cors_origins: str = ""
     # Optional regex matched against the request Origin. Use this to allow
     # Vercel preview URLs without listing every branch manually, e.g.:

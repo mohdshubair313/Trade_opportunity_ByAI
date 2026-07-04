@@ -59,14 +59,16 @@ export function useFavorites() {
             if (isAuthenticated()) {
                 try {
                     await apiAddFavorite(sector);
+                    toast.success(`Added ${sector} to favorites`);
                 } catch {
-                    // Keep local addition even if API fails
+                    removeLocalFavorite(sector);
+                    toast.error(`Failed to add ${sector} to favorites`);
                 }
+            } else {
+                toast.success(`Added ${sector} to favorites`);
             }
-
-            toast.success(`Added ${sector} to favorites`);
         },
-        [addLocalFavorite]
+        [addLocalFavorite, removeLocalFavorite]
     );
 
     const removeFavorite = useCallback(
@@ -78,14 +80,16 @@ export function useFavorites() {
             if (isAuthenticated()) {
                 try {
                     await apiRemoveFavorite(sector);
+                    toast.success(`Removed ${sector} from favorites`);
                 } catch {
-                    // Keep local removal even if API fails
+                    addLocalFavorite(sector);
+                    toast.error(`Failed to remove ${sector} from favorites`);
                 }
+            } else {
+                toast.success(`Removed ${sector} from favorites`);
             }
-
-            toast.success(`Removed ${sector} from favorites`);
         },
-        [removeLocalFavorite]
+        [removeLocalFavorite, addLocalFavorite]
     );
 
     const toggleFavorite = useCallback(

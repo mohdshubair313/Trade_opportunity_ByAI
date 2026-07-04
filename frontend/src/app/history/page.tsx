@@ -79,16 +79,19 @@ export default function HistoryPage() {
         setDeletingId(item.id);
         try {
             await deleteAnalysis(item.id);
-            setItems((prev) => prev.filter((i) => i.id !== item.id));
+            setItems((prev) => {
+                const next = prev.filter((i) => i.id !== item.id);
+                // If the last item on this page was removed and there are more pages,
+                // shift to the previous page so the user isn't stuck on an empty view.
+                if (prev.length === 1 && page > 1) {
+                    // Use a microtask to allow state to update first
+                    queueMicrotask(() => refresh(page - 1));
+                } else if (meta) {
+                    setMeta({ ...meta, total: Math.max(0, meta.total - 1) });
+                }
+                return next;
+            });
             toast.success("Analysis deleted.");
-            // If the last item on this page was removed and there are more pages,
-            // shift to the previous page so the user isn't stuck on an empty view.
-            if (items.length === 1 && page > 1) {
-                refresh(page - 1);
-            } else if (meta) {
-                // refresh counts silently
-                setMeta({ ...meta, total: Math.max(0, meta.total - 1) });
-            }
         } catch {
             toast.error("Could not delete this analysis.");
         } finally {

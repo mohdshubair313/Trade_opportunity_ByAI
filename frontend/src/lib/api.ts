@@ -2,7 +2,7 @@
 // slash defensively so that `https://api.example.com/` and `https://api.example.com`
 // both produce correct URLs when the route path starts with `/api/v1/…`.
 export const API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+  (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") ?? ""
 ).replace(/\/+$/, "");
 
 // ==================== Token Management ====================
@@ -60,8 +60,35 @@ async function parseErrorBody(res: Response): Promise<string> {
 
 // ==================== HTTP Client ====================
 
-let isRefreshing = false;
 const DEFAULT_TIMEOUT = 120000;
+
+let refreshPromise: Promise<TokenResponse> | null = null;
+
+async function doRefresh(): Promise<TokenResponse> {
+  if (refreshPromise) return refreshPromise;
+  const refreshTokenValue = getRefreshToken();
+  if (!refreshTokenValue) throw new Error("No refresh token");
+  refreshPromise = (async () => {
+    const res = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshTokenValue }),
+    });
+    if (!res.ok) {
+      clearTokens();
+      if (typeof window !== "undefined") window.location.href = "/login";
+      throw new Error("Session expired");
+    }
+    const data: TokenResponse = await res.json();
+    setTokens(data.access_token, data.refresh_token);
+    return data;
+  })();
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
+}
 
 interface FetchOptions {
   params?: Record<string, string | number | boolean>;
@@ -110,12 +137,8 @@ async function request<T>(
     }
   }
 
-  // Only set Content-Type if not FormData (browser sets boundary automatically)
-  if (!isFormData) {
-    fetchInit.headers = headers;
-  } else {
-    fetchInit.headers = headers;
-  }
+  // Only set headers for non-FormData; browser auto-sets Content-Type + boundary for FormData.
+  fetchInit.headers = headers;
 
   // Timeout
   const timeout = options?.timeout ?? DEFAULT_TIMEOUT;
@@ -128,30 +151,14 @@ async function request<T>(
     clearTimeout(timeoutId);
 
     // 401 → try token refresh, then retry once
-    if (response.status === 401 && !path.includes("/auth/refresh") && !isRefreshing) {
+    if (response.status === 401 && !path.includes("/auth/refresh")) {
       const refreshTokenValue = getRefreshToken();
       if (refreshTokenValue) {
-        isRefreshing = true;
         try {
-          const refreshRes = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refresh_token: refreshTokenValue }),
-          });
-          if (refreshRes.ok) {
-            const refreshData: TokenResponse = await refreshRes.json();
-            setTokens(refreshData.access_token, refreshData.refresh_token);
-            // Retry original request with new token
-            headers["Authorization"] = `Bearer ${refreshData.access_token}`;
-            fetchInit.headers = headers;
-            response = await fetch(url, fetchInit);
-          } else {
-            clearTokens();
-            if (typeof window !== "undefined") {
-              window.location.href = "/login";
-            }
-            throw new Error("Session expired");
-          }
+          const refreshData = await doRefresh();
+          headers["Authorization"] = `Bearer ${refreshData.access_token}`;
+          fetchInit.headers = headers;
+          response = await fetch(url, fetchInit);
         } catch (err) {
           if (err instanceof Error && err.message === "Session expired") throw err;
           clearTokens();
@@ -159,8 +166,6 @@ async function request<T>(
             window.location.href = "/login";
           }
           throw new Error("Session expired");
-        } finally {
-          isRefreshing = false;
         }
       }
     }
@@ -239,6 +244,7 @@ export interface UserProfile {
   is_active: boolean;
   is_premium: boolean;
   tier?: string;
+  analysis_count_month?: number;
   persona?: Persona | null;
   capital_range?: CapitalRange | null;
   region?: string | null;
@@ -424,9 +430,7 @@ export async function analyzeVisionImage(
     formData.append("question", question.trim());
   }
 
-  return post<VisionAnalysisResponse>("/api/v1/ai/vision/analyze", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  return post<VisionAnalysisResponse>("/api/v1/ai/vision/analyze", formData);
 }
 
 // ==================== Authentication API ====================

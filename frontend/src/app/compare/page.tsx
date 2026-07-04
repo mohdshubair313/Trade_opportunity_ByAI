@@ -162,7 +162,7 @@ export default function ComparePage() {
 function ResultPanel({ result, onOpen }: { result: CompareResponse; onOpen: (sector: string) => void }) {
     // Sort by opportunity - risk/2 for the leaderboard.
     const sorted = [...result.scores].sort(
-        (a, b) => (b.opportunity_score - b.risk_score / 2) - (a.opportunity_score - a.risk_score / 2)
+        (a, b) => (b.opportunity_score - (b.risk_score / 2)) - (a.opportunity_score - (a.risk_score / 2))
     );
     const maxOpp = Math.max(...sorted.map((s) => s.opportunity_score), 1);
     const maxRisk = Math.max(...sorted.map((s) => s.risk_score), 1);

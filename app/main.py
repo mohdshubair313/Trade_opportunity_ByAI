@@ -1067,10 +1067,20 @@ async def create_payment_order(
     inventory pricing to avoid any floating-point drift or client-side tampering.
     """
     service = _get_payment_service_or_503()
+
+    # Anonymous users are allowed to reach checkout for gift/family flows, but
+    # must provide an email somehow (query param, header, or body). Without a
+    # verifiable identity we cannot create a user-scoped order.
+    if current_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required to create a payment order",
+        )
+
     try:
         order = await service.create_order(
             db,
-            user_id=current_user.id if current_user else None,
+            user_id=current_user.id,
             request=payload,
         )
         return service.order_to_create_response(order)
@@ -1122,8 +1132,14 @@ async def get_payment_order(
     except PaymentError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
+    if current_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required to view order details",
+        )
+
     if order.user_id is not None:
-        if current_user is None or current_user.id != order.user_id:
+        if current_user.id != order.user_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed to view this order")
 
     return _to_order_response(order)
