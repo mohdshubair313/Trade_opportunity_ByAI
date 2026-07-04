@@ -94,10 +94,12 @@ export function VoiceAgentClient({
   }, []);
 
   useEffect(() => {
+    const audio = audioRef.current;
+    const ctx = audioCtxRef.current;
     return () => {
       streamRef.current?.disconnect();
-      audioRef.current?.pause();
-      audioCtxRef.current?.close().catch(() => {});
+      audio?.pause();
+      ctx?.close().catch(() => {});
     };
   }, []);
 

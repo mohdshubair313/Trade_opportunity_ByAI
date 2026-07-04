@@ -247,9 +247,10 @@ export function VoiceAgentStream({ className }: { className?: string }) {
   }, [clearAudioQueue]);
 
   useEffect(() => {
+    const timer = reconnectTimerRef.current;
     return () => {
       stopConnection();
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      if (timer) clearTimeout(timer);
     };
   }, [stopConnection]);
 

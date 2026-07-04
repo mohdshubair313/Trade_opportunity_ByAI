@@ -50,7 +50,7 @@ export function useAuth() {
     };
 
     checkAuthentication();
-  }, []); // mount only — storeLogout/setUser may be unstable refs
+  }, [setUser, storeLogout]); // mount only — setUser/storeLogout are stable zustand references
 
   const login = useCallback(
     async (credentials: LoginRequest) => {
