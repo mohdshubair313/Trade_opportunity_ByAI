@@ -263,28 +263,37 @@ class LLMRouter:
             "temperature": temperature,
         }
         if json_mode:
-            # OpenRouter passes response_format through to providers that
-            # support it; those that don't simply ignore the hint.
             kwargs["response_format"] = {"type": "json_object"}
         if web_search:
-            # Engine is omitted so OpenRouter chooses native search where
-            # supported and falls back to Exa otherwise (see
-            # https://openrouter.ai/docs/guides/features/plugins/web-search).
             kwargs["plugins"] = [{"id": "web", "max_results": 5}]
 
-        response = client.chat.send(**kwargs)
-        choices = getattr(response, "choices", None) or []
-        if not choices:
-            raise RuntimeError("empty choices")
-        msg = choices[0].message
-        if getattr(msg, "refusal", None):
-            raise RuntimeError(f"model refused: {msg.refusal}")
-        content = getattr(msg, "content", None) or ""
-        if not content:
-            # Some models stuff output under `reasoning_content` only — treat
-            # that as a failure so the chain moves on.
-            raise RuntimeError("empty content")
-        return content
+        # Retry on transient 429s (rate limits that clear within seconds)
+        import time as _time
+        last_exc: Optional[Exception] = None
+        for attempt in range(3):
+            try:
+                response = client.chat.send(**kwargs)
+                choices = getattr(response, "choices", None) or []
+                if not choices:
+                    raise RuntimeError("empty choices")
+                msg = choices[0].message
+                if getattr(msg, "refusal", None):
+                    raise RuntimeError(f"model refused: {msg.refusal}")
+                content = getattr(msg, "content", None) or ""
+                if not content:
+                    raise RuntimeError("empty content")
+                return content
+            except Exception as exc:
+                last_exc = exc
+                err_str = str(exc).lower()
+                if "429" in err_str or "rate limit" in err_str or "too many requests" in err_str or "provider returned error" in err_str:
+                    if attempt < 2:
+                        delay = 3 * (attempt + 1)
+                        logger.info(f"[openrouter] rate limited on {spec.name}, retrying in {delay}s (attempt {attempt + 1})")
+                        _time.sleep(delay)
+                        continue
+                raise
+        raise RuntimeError(f"OpenRouter call failed after retries") from last_exc
 
     def _call_gemini(self, spec: ModelSpec, system: str, user: str,
                     *, json_mode: bool, max_tokens: int, temperature: float) -> str:

@@ -559,7 +559,7 @@ async def analyze_sector(
             
             # Define limits
             tier = current_user.tier.lower() if current_user.tier else "free"
-            limits = {"free": 5, "pro": 100, "enterprise": 999999}
+            limits = {"free": 50, "pro": 100, "enterprise": 999999}
             limit = limits.get(tier, 5)
             
             if current_user.analysis_count_month >= limit:
@@ -620,8 +620,32 @@ async def analyze_sector(
                     logger.warning("[research] DDG returned 0 results; skipping Gemini-only path")
                     search_results = []
             except Exception as exc:
-                logger.warning(f"[research] DDG + Gemini path failed ({exc}); trying OpenRouter offline")
-                search_results = []
+                logger.warning(f"[research] DDG + Gemini path failed ({exc}); trying DDG + OpenRouter")
+                # If DDG returned results but Gemini rejected them, send them
+                # through the OpenRouter prose chain so they don't go to waste.
+                if search_results:
+                    try:
+                        offline = research_sector_offline(
+                            validated_sector,
+                            persona=persona_context,
+                            search_context=search_results,
+                        )
+                        analysis_report = offline.report
+                        grounded_sources = [
+                            {
+                                "n": i + 1,
+                                "title": s.get("title", ""),
+                                "url": s.get("url", ""),
+                                "snippet": s.get("body", ""),
+                            }
+                            for i, s in enumerate(search_results)
+                        ]
+                        logger.info("[research] DDG + OpenRouter succeeded")
+                    except ResearchUnavailable as or_exc:
+                        logger.warning(f"[research] DDG + OpenRouter also failed ({or_exc})")
+                        search_results = []
+                else:
+                    search_results = []
 
         # Fallback path #3: OpenRouter prose chain (no web access, model's
         # training knowledge only). Always returns SOMETHING useful when API

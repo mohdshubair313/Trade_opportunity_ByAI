@@ -311,437 +311,302 @@ export function AIOperatorStudio({
   const analysis = visionResult?.analysis || {};
 
   return (
-    <section className="grid gap-6 xl:grid-cols-[1.12fr_0.88fr]">
-      <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.18),transparent_30%),linear-gradient(180deg,rgba(7,10,14,0.98),rgba(8,13,18,0.95))] p-6 shadow-[0_30px_120px_rgba(0,0,0,0.28)]">
-        <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.05),transparent)] opacity-40" />
-        <div className="relative">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                <Badge variant="glow">
-                  <Mic2 className="mr-1 h-3 w-3" />
-                  Voice Briefing Studio
-                </Badge>
-                <Badge variant="outline">
-                  <Headphones className="mr-1 h-3 w-3" />
-                  Premium TTS
-                </Badge>
+    <div className="space-y-6">
+      {/* ── Voice Briefing Studio ── */}
+      <div className="rounded-2xl border border-white/[0.06] bg-zinc-900/30 p-6">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <Badge variant="glow">
+            <Mic2 className="mr-1 h-3.5 w-3.5" />
+            Voice Briefing Studio
+          </Badge>
+          <Badge variant="outline">
+            <Headphones className="mr-1 h-3.5 w-3.5" />
+            Premium TTS
+          </Badge>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_420px]">
+          {/* Script editor */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium uppercase tracking-wider text-slate-400">Briefing script</label>
+              <button
+                type="button"
+                onClick={() => { navigator.clipboard.writeText(voiceText); toast.success("Briefing script copied"); }}
+                className="inline-flex items-center gap-1 text-xs text-slate-500 transition-colors hover:text-white"
+              >
+                <Copy className="h-3 w-3" />
+                Copy
+              </button>
+            </div>
+            <textarea
+              value={voiceText}
+              onChange={(e) => { setVoiceDirty(true); setVoiceText(e.target.value); }}
+              className="h-44 w-full resize-none rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm leading-relaxed text-slate-100 outline-none transition focus:border-emerald-500/60"
+              placeholder="Describe the spoken briefing you want to hear..."
+            />
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-500">Voice</label>
+                <select value={voice} onChange={(e) => setVoice(e.target.value)} className="w-full bg-transparent text-sm text-white outline-none">
+                  {VOICES.map((v) => (
+                    <option key={v.value} value={v.value} className="bg-zinc-950">{v.label}</option>
+                  ))}
+                </select>
               </div>
-              <h3 className="text-2xl font-semibold [font-family:var(--font-display)]">
-                Boardroom-grade spoken briefings
-              </h3>
-              <p className="mt-2 max-w-2xl text-sm text-slate-300">
-                Generate a polished audio briefing from your report, stream it from the backend,
-                and keep the script editable for investor calls, exports, or internal reviews.
-              </p>
+              <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-500">Format</label>
+                <select value={voiceFormat} onChange={(e) => setVoiceFormat(e.target.value as VoiceFormat)} className="w-full bg-transparent text-sm text-white outline-none">
+                  <option value="mp3" className="bg-zinc-950">MP3</option>
+                  <option value="pcm" className="bg-zinc-950">PCM</option>
+                </select>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-500">Direction</label>
+                <input value={voiceInstructions} onChange={(e) => setVoiceInstructions(e.target.value)}
+                  className="w-full bg-transparent text-sm text-white outline-none" placeholder="How should the voice sound?" />
+              </div>
             </div>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="rounded-[24px] border border-white/10 bg-black/20 p-5 backdrop-blur">
-              <div className="mb-3 flex items-center justify-between">
-                <label className="text-sm font-medium text-slate-200">Briefing script</label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(voiceText);
-                    toast.success("Briefing script copied");
-                  }}
-                  className="inline-flex items-center gap-2 text-xs text-slate-400 transition-colors hover:text-white"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                  Copy
-                </button>
+          {/* Playback deck */}
+          <div className="flex flex-col gap-3 rounded-2xl border border-emerald-500/15 bg-gradient-to-b from-black/40 to-black/20 p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-400/70">Playback deck</p>
+                <p className="mt-0.5 text-sm font-semibold text-white">{selectedVoice.label} voice operator</p>
+                {voiceMeta && (
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    {voiceMeta.cacheHit ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] text-emerald-200">
+                        <Zap className="h-2.5 w-2.5" /> Cache hit
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-0.5 text-[10px] text-cyan-100">
+                        <Sparkles className="h-2.5 w-2.5" /> Fresh · {voiceMeta.latencyMs}ms
+                      </span>
+                    )}
+                    <span className="text-[10px] text-slate-500">{voiceMeta.charCount.toLocaleString()} chars</span>
+                  </div>
+                )}
               </div>
-              <textarea
-                value={voiceText}
-                onChange={(event) => {
-                  setVoiceDirty(true);
-                  setVoiceText(event.target.value);
-                }}
-                className="h-[236px] w-full resize-none rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-sm leading-6 text-slate-100 outline-none transition focus:border-emerald-400/60"
-                placeholder="Describe the spoken briefing you want to hear..."
-              />
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <label className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                  <span className="mb-2 block text-xs uppercase tracking-[0.18em] text-slate-400">Voice</span>
-                  <select
-                    value={voice}
-                    onChange={(event) => setVoice(event.target.value)}
-                    className="w-full bg-transparent text-sm text-white outline-none"
-                  >
-                    {VOICES.map((item) => (
-                      <option key={item.value} value={item.value} className="bg-slate-950">
-                        {item.label} • {item.mood}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                  <span className="mb-2 block text-xs uppercase tracking-[0.18em] text-slate-400">Format</span>
-                  <select
-                    value={voiceFormat}
-                    onChange={(event) => setVoiceFormat(event.target.value as VoiceFormat)}
-                    className="w-full bg-transparent text-sm text-white outline-none"
-                  >
-                    <option value="mp3" className="bg-slate-950">MP3</option>
-                    <option value="pcm" className="bg-slate-950">PCM</option>
-                  </select>
-                </label>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-2">
+                <AudioLines className="h-4 w-4 text-emerald-400" />
               </div>
-
-              <label className="mt-3 block rounded-2xl border border-white/10 bg-white/5 p-3">
-                <span className="mb-2 block text-xs uppercase tracking-[0.18em] text-slate-400">Delivery direction</span>
-                <input
-                  value={voiceInstructions}
-                  onChange={(event) => setVoiceInstructions(event.target.value)}
-                  className="w-full bg-transparent text-sm text-white outline-none"
-                  placeholder="How should the voice sound?"
-                />
-              </label>
             </div>
 
-            <div className="flex flex-col gap-4 rounded-[24px] border border-emerald-400/18 bg-[linear-gradient(180deg,rgba(6,10,14,0.96),rgba(8,16,22,0.94))] p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-emerald-300/80">Playback deck</p>
-                  <h4 className="mt-1 text-xl font-semibold">{selectedVoice.label} voice operator</h4>
-                  {voiceMeta && (
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      {voiceMeta.cacheHit ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[11px] text-emerald-200">
-                          <Zap className="h-3 w-3" /> Cache hit · 0 ms
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-0.5 text-[11px] text-cyan-100">
-                          <Sparkles className="h-3 w-3" />
-                          Fresh · {voiceMeta.provider ?? "ai"}
-                          {voiceMeta.latencyMs ? ` · ${voiceMeta.latencyMs} ms` : ""}
-                        </span>
-                      )}
-                      <span className="text-[11px] text-slate-400">
-                        {voiceMeta.charCount.toLocaleString()} chars
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/8 p-3">
-                  <AudioLines className="h-5 w-5 text-emerald-300" />
-                </div>
+            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[10px] text-slate-400">Stream</span>
+                <span className="text-[10px] text-slate-500">{voiceBusy ? bytesLabel(voiceBytes) : audioReady ? "Ready" : "Idle"}</span>
               </div>
-
-              <div className="rounded-[24px] border border-white/10 bg-black/20 p-5">
-                <div className="mb-3 flex items-center justify-between text-sm text-slate-300">
-                  <span>Streaming status</span>
-                  <span>{voiceBusy ? bytesLabel(voiceBytes) : audioReady ? "Ready to play" : "Idle"}</span>
-                </div>
-                <div className="flex h-28 items-end gap-2 rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.06))] px-4 py-5">
-                  {voiceBars.map((bar) => (
-                    <span
-                      key={bar}
-                      className={cn(
-                        "voice-meter-bar w-full rounded-full bg-gradient-to-t from-emerald-500 via-cyan-400 to-white/90",
-                        (voiceBusy || isPlaying) ? "opacity-100" : "opacity-30"
-                      )}
-                      style={{
-                        height: `${28 + ((bar * 17) % 64)}%`,
-                        animationDelay: `${bar * 0.08}s`,
-                      }}
-                    />
-                  ))}
-                </div>
-                <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
-                  <span>{voiceBusy ? "Receiving audio chunks from the backend..." : "Your next market memo, ready on demand."}</span>
-                  {audioReady && <span>{selectedVoice.mood}</span>}
-                </div>
+              <div className="flex h-16 items-end gap-[3px] rounded-lg border border-white/10 bg-black/40 px-3 py-3">
+                {voiceBars.map((bar) => (
+                  <span
+                    key={bar}
+                    className={cn(
+                      "w-full rounded-full bg-gradient-to-t from-emerald-500 via-cyan-400 to-white/80",
+                      (voiceBusy || isPlaying) ? "opacity-100" : "opacity-20"
+                    )}
+                    style={{
+                      height: `${24 + ((bar * 13) % 48)}%`,
+                      animationDelay: `${bar * 0.08}s`,
+                    }}
+                  />
+                ))}
               </div>
+            </div>
 
-              <audio ref={audioRef} src={audioUrl ?? undefined} controls className="w-full" />
+            <audio ref={audioRef} src={audioUrl ?? undefined} controls className="w-full h-8" />
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Button
-                  variant="glow"
-                  size="lg"
-                  isLoading={voiceBusy}
-                  onClick={() => void handleGenerateVoice()}
-                >
-                  {voiceBusy ? "Generating..." : "Generate Voice Briefing"}
-                  <Waves className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  disabled={!voiceBusy}
-                  onClick={() => abortRef.current?.abort()}
-                >
-                  Stop Generation
-                </Button>
-              </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="glow" size="sm" isLoading={voiceBusy} onClick={() => void handleGenerateVoice()} className="text-xs">
+                {voiceBusy ? "Generating..." : "Generate"}
+                <Waves className="h-3 w-3 ml-1" />
+              </Button>
+              <Button variant="outline" size="sm" disabled={!voiceBusy} onClick={() => abortRef.current?.abort()} className="text-xs">
+                Stop
+              </Button>
+            </div>
 
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDownloadAudio}
-                  disabled={!audioReady}
-                >
-                  <Download className="h-4 w-4" />
-                  Download audio
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => void handleShareAudio()}
-                  disabled={!audioReady}
-                >
-                  <Share2 className="h-4 w-4" />
-                  Share / copy link
-                </Button>
-              </div>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={handleDownloadAudio} disabled={!audioReady} className="text-xs flex-1">
+                <Download className="h-3 w-3 mr-1" /> Download
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => void handleShareAudio()} disabled={!audioReady} className="text-xs flex-1">
+                <Share2 className="h-3 w-3 mr-1" /> Share
+              </Button>
+            </div>
 
-              <Link
-                href={`/voice?sector=${encodeURIComponent(sector)}`}
-                className="group flex items-center justify-between rounded-2xl border border-emerald-400/25 bg-emerald-400/8 px-4 py-3 text-sm text-emerald-50 transition hover:border-emerald-400/45 hover:bg-emerald-400/12"
-              >
-                <span className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-emerald-300" />
-                  Open the conversational agent for this sector
-                </span>
-                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-              </Link>
+            <Link
+              href={`/voice?sector=${encodeURIComponent(sector)}`}
+              className="group flex items-center justify-between rounded-xl border border-emerald-400/20 bg-emerald-400/5 px-3 py-2 text-xs text-emerald-100 transition hover:border-emerald-400/40"
+            >
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="h-3 w-3 text-emerald-300" />
+                Open conversational agent
+              </span>
+              <ArrowRight className="h-3 w-3 transition group-hover:translate-x-0.5" />
+            </Link>
 
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-                <div className="mb-2 flex items-center gap-2 text-white">
-                  <Sparkles className="h-4 w-4 text-emerald-300" />
-                  Suggested narration angle
-                </div>
-                <p className="leading-6">
-                  {deferredVoiceText.slice(0, 240)}
-                  {deferredVoiceText.length > 240 ? "..." : ""}
-                </p>
-              </div>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <p className="mb-1 text-[10px] font-medium uppercase tracking-widest text-slate-500">Suggested narration angle</p>
+              <p className="text-xs leading-relaxed text-slate-400 line-clamp-2">
+                {deferredVoiceText.slice(0, 240)}{deferredVoiceText.length > 240 ? "..." : ""}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.18),transparent_28%),linear-gradient(180deg,rgba(7,10,14,0.98),rgba(8,13,18,0.96))] p-6 shadow-[0_30px_120px_rgba(0,0,0,0.24)]">
-        <div className="absolute inset-0 bg-[linear-gradient(145deg,transparent,rgba(255,255,255,0.04),transparent)] opacity-30" />
-        <div className="relative">
-          <div className="mb-5 flex items-start justify-between gap-3">
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                <Badge variant="info">
-                  <ScanSearch className="mr-1 h-3 w-3" />
-                  Vision Lab
-                </Badge>
-                <Badge variant="outline">
-                  <FileText className="mr-1 h-3 w-3" />
-                  Charts & receipts
-                </Badge>
-              </div>
-              <h3 className="text-2xl font-semibold [font-family:var(--font-display)]">
-                Multimodal verification layer
-              </h3>
-              <p className="mt-2 text-sm text-slate-300">
-                Upload a chart, invoice, or image and turn it into structured analysis with server-side validation and clear uncertainty handling.
-              </p>
-            </div>
-          </div>
+      {/* ── Vision Lab ── */}
+      <div className="rounded-2xl border border-white/[0.06] bg-zinc-900/30 p-6">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <Badge variant="info">
+            <ScanSearch className="mr-1 h-3.5 w-3.5" />
+            Vision Lab
+          </Badge>
+          <Badge variant="outline">
+            <FileText className="mr-1 h-3.5 w-3.5" />
+            Charts & receipts
+          </Badge>
+        </div>
 
-          <div className="rounded-[24px] border border-white/10 bg-black/20 p-4">
-            <input
-              ref={uploadRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(event) => handleFileSelection(event.target.files?.[0] ?? null)}
-            />
+        <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+          {/* Upload area */}
+          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+            <input ref={uploadRef} type="file" accept="image/*" className="hidden"
+              onChange={(e) => handleFileSelection(e.target.files?.[0] ?? null)} />
             <button
               type="button"
               onClick={() => uploadRef.current?.click()}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => {
-                event.preventDefault();
-                handleFileSelection(event.dataTransfer.files?.[0] ?? null);
-              }}
-              className="group flex w-full flex-col items-center justify-center rounded-[22px] border border-dashed border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.05))] px-6 py-8 text-center transition hover:border-cyan-400/45 hover:bg-cyan-400/5"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => { e.preventDefault(); handleFileSelection(e.dataTransfer.files?.[0] ?? null); }}
+              className="group flex w-full flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-gradient-to-b from-white/[0.02] to-white/[0.04] px-4 py-6 text-center transition hover:border-cyan-400/40"
             >
-              <div className="mb-4 rounded-2xl border border-white/10 bg-white/8 p-4">
-                <UploadCloud className="h-6 w-6 text-cyan-300" />
+              <div className="mb-2 rounded-xl border border-white/10 bg-white/5 p-2.5">
+                <UploadCloud className="h-5 w-5 text-cyan-300" />
               </div>
-              <p className="text-base font-medium text-white">
-                Drop an image here or choose a file
-              </p>
-              <p className="mt-2 max-w-sm text-sm text-slate-400">
-                Great for candlestick charts, annotated market screenshots, invoices, or photographed receipts.
-              </p>
+              <p className="text-sm font-medium text-white">Drop an image or choose a file</p>
+              <p className="mt-1 text-xs text-slate-500">Charts, screenshots, invoices, or receipts</p>
             </button>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                <span className="mb-2 block text-xs uppercase tracking-[0.18em] text-slate-400">Task mode</span>
-                <select
-                  value={visionTask}
-                  onChange={(event) => setVisionTask(event.target.value as VisionTask)}
-                  className="w-full bg-transparent text-sm text-white outline-none"
-                >
-                  <option value="trade_chart" className="bg-slate-950">Trade chart</option>
-                  <option value="receipt" className="bg-slate-950">Receipt / invoice</option>
-                  <option value="generic" className="bg-slate-950">Generic image</option>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-500">Task</label>
+                <select value={visionTask} onChange={(e) => setVisionTask(e.target.value as VisionTask)}
+                  className="w-full bg-transparent text-sm text-white outline-none">
+                  <option value="trade_chart" className="bg-zinc-950">Trade chart</option>
+                  <option value="receipt" className="bg-zinc-950">Receipt</option>
+                  <option value="generic" className="bg-zinc-950">Generic</option>
                 </select>
-              </label>
-              <label className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                <span className="mb-2 block text-xs uppercase tracking-[0.18em] text-slate-400">Focus question</span>
-                <input
-                  value={visionQuestion}
-                  onChange={(event) => setVisionQuestion(event.target.value)}
-                  className="w-full bg-transparent text-sm text-white outline-none"
-                  placeholder="Example: highlight support and resistance"
-                />
-              </label>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-500">Question</label>
+                <input value={visionQuestion} onChange={(e) => setVisionQuestion(e.target.value)}
+                  className="w-full bg-transparent text-sm text-white outline-none" placeholder="e.g. support/resistance" />
+              </div>
             </div>
 
-            <Button
-              variant="gradient"
-              size="lg"
-              className="mt-4 w-full"
-              isLoading={visionBusy}
-              onClick={() => void handleAnalyzeVision()}
-            >
+            <Button variant="gradient" size="sm" className="mt-3 w-full text-xs" isLoading={visionBusy}
+              onClick={() => void handleAnalyzeVision()}>
               {visionBusy ? "Analyzing..." : "Run Vision Analysis"}
-              <TrendingUp className="h-4 w-4" />
+              <TrendingUp className="h-3 w-3 ml-1" />
             </Button>
           </div>
 
-          {visionPreview && (
-            <div className="mt-5 overflow-hidden rounded-[24px] border border-white/10 bg-black/20">
-              <Image
-                src={visionPreview}
-                alt="Vision upload preview"
-                width={1280}
-                height={720}
-                unoptimized
-                className="h-64 w-full object-cover"
-              />
-            </div>
-          )}
-
-          {visionWarnings.length > 0 && (
-            <div className="mt-5 space-y-2 rounded-[24px] border border-amber-400/25 bg-amber-400/10 p-4">
-              {visionWarnings.map((warning) => (
-                <div key={warning} className="flex items-start gap-2 text-sm text-amber-100">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                  <span>{warning}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {visionResult && (
-            <div className="mt-5 grid gap-4">
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Provider</p>
-                  <p className="mt-2 text-base font-medium text-white">{visionResult.provider}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Model</p>
-                  <p className="mt-2 text-base font-medium text-white">{visionResult.model}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Confidence</p>
-                  <p className="mt-2 text-base font-medium text-white">
-                    {confidenceLabel((analysis.confidence as number | undefined) ?? 0)}
-                  </p>
-                </div>
+          {/* Preview & Results */}
+          <div className="space-y-4">
+            {visionPreview && (
+              <div className="overflow-hidden rounded-xl border border-white/10 bg-black/30">
+                <Image src={visionPreview} alt="Vision upload" width={1280} height={720} unoptimized className="h-44 w-full object-cover" />
               </div>
+            )}
 
-              <div className="rounded-[24px] border border-white/10 bg-black/20 p-5">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Structured output</p>
-                <div className="mt-4 space-y-4 text-sm text-slate-200">
-                  {"summary" in analysis && typeof analysis.summary === "string" && (
-                    <div>
-                      <p className="mb-1 text-xs uppercase tracking-[0.18em] text-slate-400">Summary</p>
-                      <p className="leading-6">{analysis.summary}</p>
+            {visionWarnings.length > 0 && (
+              <div className="space-y-1 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3">
+                {visionWarnings.map((w) => (
+                  <div key={w} className="flex items-start gap-2 text-xs text-amber-200">
+                    <AlertTriangle className="mt-0.5 h-3 w-3 flex-shrink-0" />
+                    <span>{w}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {visionResult && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  {[["Provider", visionResult.provider], ["Model", visionResult.model], ["Confidence", confidenceLabel((analysis.confidence as number | undefined) ?? 0)]].map(([label, value]) => (
+                    <div key={label} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-widest text-slate-500">{label}</p>
+                      <p className="mt-1 text-sm font-medium text-white truncate">{value}</p>
                     </div>
-                  )}
+                  ))}
+                </div>
 
-                  {"trend" in analysis && (
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="info">Trend: {String(analysis.trend)}</Badge>
-                      {"signal" in analysis && <Badge variant="success">Signal: {String(analysis.signal)}</Badge>}
-                      {"timeframe_guess" in analysis && (
-                        <Badge variant="outline">Timeframe: {String(analysis.timeframe_guess)}</Badge>
-                      )}
-                    </div>
-                  )}
-
-                  {"merchant_name" in analysis && (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                        <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Merchant</p>
-                        <p className="mt-2 text-white">{String(analysis.merchant_name ?? "Unknown")}</p>
+                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Structured output</p>
+                  <div className="space-y-3 text-sm text-slate-200">
+                    {"summary" in analysis && typeof analysis.summary === "string" && (
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-0.5">Summary</p>
+                        <p className="text-xs leading-relaxed">{analysis.summary}</p>
                       </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                        <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Total</p>
-                        <p className="mt-2 text-white">
-                          {String(analysis.currency ?? "")} {String(analysis.total ?? "N/A")}
-                        </p>
+                    )}
+                    {"trend" in analysis && (
+                      <div className="flex flex-wrap gap-1.5">
+                        <Badge variant="info">Trend: {String(analysis.trend)}</Badge>
+                        {"signal" in analysis && <Badge variant="success">Signal: {String(analysis.signal)}</Badge>}
                       </div>
-                    </div>
-                  )}
-
-                  {Array.isArray(analysis.line_items) && analysis.line_items.length > 0 && (
-                    <div>
-                      <p className="mb-2 text-xs uppercase tracking-[0.18em] text-slate-400">Line items</p>
-                      <div className="space-y-2">
-                        {(analysis.line_items as Array<Record<string, unknown>>).slice(0, 5).map((item, index) => (
-                          <div key={`${String(item.name ?? "item")}-${index}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                            <div className="flex items-center justify-between gap-3">
-                              <span className="font-medium text-white">{String(item.name ?? `Item ${index + 1}`)}</span>
-                              <span className="text-xs text-slate-400">{String(item.line_total ?? item.unit_price ?? "")}</span>
-                            </div>
+                    )}
+                    {"merchant_name" in analysis && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-widest text-slate-500">Merchant</p>
+                          <p className="text-sm text-white">{String(analysis.merchant_name ?? "-")}</p>
+                        </div>
+                        <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-widest text-slate-500">Total</p>
+                          <p className="text-sm text-white">{String(analysis.currency ?? "")} {String(analysis.total ?? "-")}</p>
+                        </div>
+                      </div>
+                    )}
+                    {Array.isArray(analysis.line_items) && analysis.line_items.length > 0 && (
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Line items</p>
+                        {(analysis.line_items as Array<Record<string, unknown>>).slice(0, 5).map((item, i) => (
+                          <div key={i} className="flex justify-between rounded-xl border border-white/10 bg-black/20 px-3 py-2 mb-1">
+                            <span className="text-xs text-white">{String(item.name ?? `Item ${i + 1}`)}</span>
+                            <span className="text-xs text-slate-400">{String(item.line_total ?? item.unit_price ?? "")}</span>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
-
-                  {["support_levels", "resistance_levels", "patterns", "indicators", "key_findings"].map((key) => {
-                    const value = analysis[key];
-                    if (!Array.isArray(value) || value.length === 0) return null;
-                    return (
-                      <div key={key}>
-                        <p className="mb-2 text-xs uppercase tracking-[0.18em] text-slate-400">
-                          {key.replace(/_/g, " ")}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {value.map((entry) => (
-                            <Badge key={`${key}-${String(entry)}`} variant="outline">
-                              {String(entry)}
-                            </Badge>
-                          ))}
+                    )}
+                    {["support_levels", "resistance_levels", "patterns", "indicators", "key_findings"].map((key) => {
+                      const val = analysis[key];
+                      if (!Array.isArray(val) || val.length === 0) return null;
+                      return (
+                        <div key={key}>
+                          <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">{key.replace(/_/g, " ")}</p>
+                          <div className="flex flex-wrap gap-1">
+                            {val.map((entry) => <Badge key={`${key}-${String(entry)}`} variant="outline" className="text-[10px]">{String(entry)}</Badge>)}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-
-                  {"raw_ocr_text" in analysis && typeof analysis.raw_ocr_text === "string" && (
-                    <details className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                      <summary className="cursor-pointer text-sm font-medium text-white">Raw OCR text</summary>
-                      <pre className="mt-3 whitespace-pre-wrap text-xs text-slate-300">
-                        {analysis.raw_ocr_text}
-                      </pre>
-                    </details>
-                  )}
+                      );
+                    })}
+                    {"raw_ocr_text" in analysis && typeof analysis.raw_ocr_text === "string" && (
+                      <details className="rounded-xl border border-white/10 bg-black/20 p-3">
+                        <summary className="cursor-pointer text-xs font-medium text-white">Raw OCR text</summary>
+                        <pre className="mt-2 whitespace-pre-wrap text-xs text-slate-400">{analysis.raw_ocr_text}</pre>
+                      </details>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

@@ -177,10 +177,6 @@ function ResultsContent() {
                         {displaySector && <TrendProjection sector={displaySector} />}
                     </div>
 
-                    {analysis?.report && displaySector && (
-                        <AIOperatorStudio sector={displaySector} report={analysis.report} />
-                    )}
-
                     <div className="bg-zinc-950/40 backdrop-blur-lg border border-white/[0.06] rounded-[2rem] p-8 shadow-2xl shadow-black/60 relative overflow-hidden transition-all duration-300">
                         <div className="absolute top-6 right-8 text-[10px] font-mono font-bold text-muted-foreground/30">§ COMPLETE REPORT</div>
                         <h2 className="text-3xl md:text-4xl font-display font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent mb-8">
@@ -188,6 +184,16 @@ function ResultsContent() {
                         </h2>
                         {analysis && <AnalysisReport analysis={analysis} />}
                     </div>
+
+                    {analysis?.report && displaySector && (
+                        <div className="bg-zinc-950/40 backdrop-blur-lg border border-white/[0.06] rounded-[2rem] p-8 shadow-2xl shadow-black/60 relative overflow-hidden transition-all duration-300">
+                            <div className="absolute top-6 right-8 text-[10px] font-mono font-bold text-muted-foreground/30">§ VOICE & VISION</div>
+                            <h2 className="text-3xl md:text-4xl font-display font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent mb-8">
+                                Voice Briefing Studio & Vision Lab
+                            </h2>
+                            <AIOperatorStudio sector={displaySector} report={analysis.report} />
+                        </div>
+                    )}
                 </motion.div>
             )}
         </div>

@@ -738,7 +738,7 @@ class VoiceAgent:
         order = (
             self.router.order()
             if settings.voice_arbitrage_enabled
-            else ["openrouter", "gemini", "deepgram"]
+            else ["gemini", "deepgram", "openrouter"]
         )
         last_err: Optional[str] = None
         for provider_name in order:

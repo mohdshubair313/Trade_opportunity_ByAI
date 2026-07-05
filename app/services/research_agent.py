@@ -336,13 +336,12 @@ def research_sector(sector: str, *, persona: Optional[Dict] = None, client=None)
 
     profile = get_profile("sector_research")
     prompt = build_prompt(sector, persona)
-    # Use GoogleSearchRetrieval with dynamic retrieval so Gemini always searches
-    tools = [types.Tool(google_search=types.GoogleSearchRetrieval(
-        dynamic_retrieval_config=types.DynamicRetrievalConfig(
-            mode=types.DynamicRetrievalConfigMode.MODE_DYNAMIC,
-            dynamic_threshold=0.1,
-        ),
-    ))]
+    # Always-on Google Search grounding. `GoogleSearchRetrieval` (which carries
+    # the dynamic_retrieval_config knob) belongs in the deprecated
+    # `google_search_retrieval` slot; the modern `google_search` slot expects
+    # a bare `GoogleSearch()`. Both work, but the SDK now rejects the swap
+    # with `Type mismatch in Tool.google_search: expected GoogleSearch`.
+    tools = [types.Tool(google_search=types.GoogleSearch())]
 
     try:
         response = _call_with_retry(
@@ -413,9 +412,58 @@ _OFFLINE_SYSTEM = (
     "market knowledge, not real-time news, so the reader knows the limitation."
 )
 
+_OFFLINE_SYSTEM_WEB = (
+    "You are a senior sector analyst covering Indian markets. You have been "
+    "provided with live web search results below. Use them as your primary "
+    "source material. Cite each source by its [n] number in the report. "
+    "If the search results are insufficient, supplement with your training "
+    "knowledge but clearly mark which claims are from search vs knowledge."
+)
 
-def _build_offline_prompt(sector: str, persona: Optional[Dict]) -> str:
+
+def _build_offline_prompt(sector: str, persona: Optional[Dict], search_context: Optional[List[Dict[str, str]]] = None) -> str:
     today = datetime.now(timezone.utc).strftime("%B %Y")
+    if search_context:
+        items = "\n".join(
+            f"[{i+1}] {s.get('title', 'Untitled')} — {s.get('url', '')}\n"
+            f"    {s.get('snippet', s.get('body', ''))[:500]}"
+            for i, s in enumerate(search_context[:15])
+        )
+        return f"""Write a structured markdown report on the **{sector}** sector in India. Today's
+date is {today}. Below are live web search results — use them as your primary
+source and cite each by its [n] number in the text.
+
+WEB SEARCH RESULTS:
+{items}
+
+READER CONTEXT
+{_persona_block(persona)}
+
+Use this structure (exact H1/H2 headings):
+# {sector.title()} Sector — Trade Opportunities Analysis
+## Executive Summary
+## Current Market Snapshot
+## What's Happening Now
+## What's Coming Next (3-6 months)
+## Stock Suggestions
+## Cross-Sector Impact
+## Trade Opportunities
+### Export Opportunities
+### Import Opportunities
+### Domestic Trade Opportunities
+## Market Drivers
+## Challenges and Risks
+## Recommendations
+## Key Contacts and Resources
+
+Rules:
+- You MUST cite sources with [n] markers. Every claim should have a citation.
+- Be specific. Use company names and policy names from the search results.
+- If search results lack info on a section, write "Further research needed."
+- Mark any forward-looking claim as an estimate.
+- Keep under 1500 words.
+""".strip()
+
     return f"""Write a structured markdown report on the **{sector}** sector in India. Today's
 month is {today}. You cannot search the web — use your training knowledge, and call
 that limitation out in the opening sentence.
@@ -449,18 +497,27 @@ Rules:
 """.strip()
 
 
-def research_sector_offline(sector: str, *, persona: Optional[Dict] = None) -> GroundedReport:
+def research_sector_offline(
+    sector: str, *,
+    persona: Optional[Dict] = None,
+    search_context: Optional[List[Dict[str, str]]] = None,
+) -> GroundedReport:
     """
     Fallback path used when grounded research AND DDG both fail (container IP
     rate-limited, API quota out, etc.). Routes through the OpenRouter `prose`
     chain so we still return a real LLM-generated report — never the mock
     demo text — with an honest banner explaining the data limitation.
+
+    When *search_context* (DDG web results) is provided, they're injected
+    into the prompt so OpenRouter can produce a grounded report despite
+    Gemini being unavailable.
     """
     from app.llm.llm_router import router as llm_router
 
-    prompt = _build_offline_prompt(sector, persona)
+    prompt = _build_offline_prompt(sector, persona, search_context=search_context)
+    system = _OFFLINE_SYSTEM_WEB if search_context else _OFFLINE_SYSTEM
     try:
-        result = llm_router.run("prose", system=_OFFLINE_SYSTEM, user=prompt)
+        result = llm_router.run("prose", system=system, user=prompt)
     except Exception as exc:
         raise ResearchUnavailable(f"Offline router call failed: {exc}") from exc
 
