@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -13,6 +12,8 @@ import {
   AlertTriangle,
   ArrowRight,
   AudioLines,
+  Bot,
+  Check,
   Copy,
   Download,
   FileText,
@@ -34,17 +35,16 @@ import {
   analyzeVisionImage,
   VisionAnalysisResponse,
 } from "@/lib/api";
-import { synthesize } from "@/lib/voice-client";
+import { synthesize, voiceQuery } from "@/lib/voice-client";
 import { cn } from "@/lib/utils";
 
 type VisionTask = "trade_chart" | "receipt" | "generic";
-type VoiceFormat = "mp3" | "pcm";
 
 const VOICES = [
-  { value: "nova", label: "Nova", mood: "Executive and balanced" },
-  { value: "alloy", label: "Alloy", mood: "Calm analyst" },
-  { value: "onyx", label: "Onyx", mood: "Deep command-room tone" },
-  { value: "sage", label: "Sage", mood: "Measured and premium" },
+  { value: "nova", label: "Nova", mood: "Executive and balanced", icon: "👔" },
+  { value: "alloy", label: "Alloy", mood: "Calm analyst", icon: "🎯" },
+  { value: "onyx", label: "Onyx", mood: "Deep command-room tone", icon: "🎙" },
+  { value: "sage", label: "Sage", mood: "Measured and premium", icon: "📊" },
 ];
 
 function deriveBriefingScript(report: string, sector: string): string {
@@ -67,12 +67,12 @@ function deriveBriefingScript(report: string, sector: string): string {
 
 function bytesLabel(bytes: number): string {
   if (bytes >= 1024 * 1024) {
-    return `${(bytes / (1024 * 1024)).toFixed(2)} MB streamed`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   }
   if (bytes >= 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB streamed`;
+    return `${(bytes / 1024).toFixed(1)} KB`;
   }
-  return `${bytes} B streamed`;
+  return `${bytes} B`;
 }
 
 function confidenceLabel(value: unknown): string {
@@ -101,7 +101,6 @@ export function AIOperatorStudio({
   const [voiceText, setVoiceText] = useState("");
   const [voiceDirty, setVoiceDirty] = useState(false);
   const [voice, setVoice] = useState("nova");
-  const [voiceFormat, setVoiceFormat] = useState<VoiceFormat>("mp3");
   const [voiceInstructions, setVoiceInstructions] = useState(
     "Speak like a premium market operator delivering a boardroom voice note."
   );
@@ -110,6 +109,7 @@ export function AIOperatorStudio({
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [audioReady, setAudioReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [agentResponse, setAgentResponse] = useState<string | null>(null);
   const [voiceMeta, setVoiceMeta] = useState<{
     cacheHit: boolean;
     provider: string | null;
@@ -127,15 +127,15 @@ export function AIOperatorStudio({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const uploadRef = useRef<HTMLInputElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const deferredVoiceText = useDeferredValue(voiceText);
 
   useEffect(() => {
-    const nextScript = deriveBriefingScript(report, sector);
-    if (!voiceDirty || !voiceText.trim()) {
+    // Only auto-generate the script if the user hasn't modified it yet
+    if (!voiceDirty) {
+      const nextScript = deriveBriefingScript(report, sector);
       setVoiceText(nextScript);
-      setVoiceDirty(false);
     }
-  }, [report, sector, voiceDirty, voiceText]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [report, sector]);
 
   useEffect(() => {
     return () => {
@@ -172,6 +172,12 @@ export function AIOperatorStudio({
     [voice]
   );
 
+  /**
+   * Voice generation: If the user has modified the script (custom prompt),
+   * route through the voice agent which processes the prompt with LLM context
+   * and then synthesizes speech. Otherwise, use direct TTS for the auto-generated
+   * report summary.
+   */
   const handleGenerateVoice = async () => {
     if (!voiceText.trim()) {
       toast.error("Add some text for the briefing first.");
@@ -187,32 +193,74 @@ export function AIOperatorStudio({
       setVoiceBytes(0);
       setAudioReady(false);
       setVoiceMeta(null);
+      setAgentResponse(null);
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
         setAudioUrl(null);
       }
 
-      const result = await synthesize(
-        {
-          text: voiceText,
-          voice,
-          responseFormat: voiceFormat,
-          instructions: voiceInstructions,
-        },
-        {
-          signal: controller.signal,
-          onChunk: (received) => setVoiceBytes(received),
-        }
-      );
+      if (voiceDirty) {
+        // User wrote a custom prompt → route through voice agent for AI processing
+        const promptWithStyle = voiceInstructions.trim() 
+          ? `${voiceText}\n\n[STYLE DIRECTION: ${voiceInstructions}]` 
+          : voiceText;
+          
+        const result = await voiceQuery(
+          {
+            prompt: promptWithStyle,
+            sector,
+            mode: "briefing",
+            voice,
+            responseFormat: "mp3",
+          },
+          controller.signal
+        );
 
-      setAudioUrl(result.audioUrl);
-      setAudioReady(true);
-      setVoiceMeta({
-        cacheHit: result.cacheHit,
-        provider: result.provider,
-        latencyMs: result.latencyMs,
-        charCount: result.charCount,
-      });
+        // Agent returns assistant text + audio as base64
+        const assistantText = result.transcript?.assistant_text || "";
+        setAgentResponse(assistantText);
+
+        if (result.audio_base64 && result.audio_format) {
+          // Decode base64 audio
+          const binary = atob(result.audio_base64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          const blob = new Blob([bytes.buffer], { type: result.audio_format });
+          const url = URL.createObjectURL(blob);
+          setAudioUrl(url);
+          setAudioReady(true);
+          setVoiceBytes(bytes.length);
+          setVoiceMeta({
+            cacheHit: result.cache_hit,
+            provider: result.provider,
+            latencyMs: result.latency_ms,
+            charCount: assistantText.length,
+          });
+        }
+      } else {
+        // Auto-generated script → direct TTS synthesis (cheaper, no LLM call)
+        const result = await synthesize(
+          {
+            text: voiceText,
+            voice,
+            responseFormat: "mp3",
+            instructions: voiceInstructions,
+          },
+          {
+            signal: controller.signal,
+            onChunk: (received) => setVoiceBytes(received),
+          }
+        );
+
+        setAudioUrl(result.audioUrl);
+        setAudioReady(true);
+        setVoiceMeta({
+          cacheHit: result.cacheHit,
+          provider: result.provider,
+          latencyMs: result.latencyMs,
+          charCount: result.charCount,
+        });
+      }
 
       window.requestAnimationFrame(() => {
         audioRef.current?.play().catch(() => {
@@ -220,9 +268,11 @@ export function AIOperatorStudio({
         });
       });
       toast.success(
-        result.cacheHit
+        voiceMeta?.cacheHit
           ? "Voice briefing served from cache — zero cost"
-          : "Voice briefing generated"
+          : voiceDirty
+            ? "Agent briefing generated"
+            : "Voice briefing generated"
       );
     } catch (error) {
       if ((error as Error).name === "AbortError") {
@@ -243,8 +293,7 @@ export function AIOperatorStudio({
     }
     const a = document.createElement("a");
     a.href = audioUrl;
-    const ext = voiceFormat === "mp3" ? "mp3" : "wav";
-    a.download = `${sector.replace(/\s+/g, "_").toLowerCase()}_voice_briefing.${ext}`;
+    a.download = `${sector.replace(/\s+/g, "_").toLowerCase()}_voice_briefing.mp3`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -256,10 +305,8 @@ export function AIOperatorStudio({
       return;
     }
     try {
-      // navigator.share with a File works on Chromium / Safari mobile.
       const blob = await fetch(audioUrl).then((r) => r.blob());
-      const ext = voiceFormat === "mp3" ? "mp3" : "wav";
-      const file = new File([blob], `${sector}_voice_briefing.${ext}`, { type: blob.type });
+      const file = new File([blob], `${sector}_voice_briefing.mp3`, { type: blob.type });
       const navAny = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
       if (navAny.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: `${sector} voice briefing` });
@@ -307,32 +354,45 @@ export function AIOperatorStudio({
     setVisionWarnings([]);
   };
 
-  const voiceBars = Array.from({ length: 18 }, (_, index) => index);
+  const voiceBars = Array.from({ length: 24 }, (_, index) => index);
   const analysis = visionResult?.analysis || {};
+  const isActive = voiceBusy || isPlaying;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* ── Voice Briefing Studio ── */}
-      <div className="rounded-2xl border border-white/[0.06] bg-zinc-900/30 p-6">
-        <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="rounded-2xl border border-emerald-500/10 bg-gradient-to-b from-zinc-900/50 to-zinc-950/30 p-6 relative overflow-hidden">
+        {/* Subtle background mesh */}
+        <div className="pointer-events-none absolute inset-0 opacity-30" style={{ background: "radial-gradient(ellipse at 20% 30%, rgba(34,197,94,0.05), transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(6,182,212,0.04), transparent 60%)" }} />
+
+        <div className="flex flex-wrap items-center gap-2 mb-5 relative z-10">
           <Badge variant="glow">
-            <Mic2 className="mr-1 h-3.5 w-3.5" />
+            <Mic2 className="mr-1.5 h-3.5 w-3.5" />
             Voice Briefing Studio
           </Badge>
           <Badge variant="outline">
-            <Headphones className="mr-1 h-3.5 w-3.5" />
+            <Headphones className="mr-1.5 h-3.5 w-3.5" />
             Premium TTS
           </Badge>
+          {voiceDirty && (
+            <Badge variant="info">
+              <Bot className="mr-1 h-3 w-3" />
+              Agent Mode
+            </Badge>
+          )}
         </div>
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_420px]">
+
+        <div className="grid gap-6 lg:grid-cols-[1fr_380px] xl:grid-cols-[1fr_440px] relative z-10">
           {/* Script editor */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium uppercase tracking-wider text-slate-400">Briefing script</label>
+              <label className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
+                {voiceDirty ? "Agent Prompt" : "Briefing Script"}
+              </label>
               <button
                 type="button"
-                onClick={() => { navigator.clipboard.writeText(voiceText); toast.success("Briefing script copied"); }}
-                className="inline-flex items-center gap-1 text-xs text-slate-500 transition-colors hover:text-white"
+                onClick={() => { navigator.clipboard.writeText(voiceText); toast.success("Copied to clipboard"); }}
+                className="inline-flex items-center gap-1.5 text-[11px] text-slate-500 transition-colors hover:text-white rounded-lg px-2 py-1 hover:bg-white/5"
               >
                 <Copy className="h-3 w-3" />
                 Copy
@@ -341,86 +401,114 @@ export function AIOperatorStudio({
             <textarea
               value={voiceText}
               onChange={(e) => { setVoiceDirty(true); setVoiceText(e.target.value); }}
-              className="h-44 w-full resize-none rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm leading-relaxed text-slate-100 outline-none transition focus:border-emerald-500/60"
-              placeholder="Describe the spoken briefing you want to hear..."
+              className="h-48 w-full resize-none rounded-xl border border-white/10 bg-black/50 px-4 py-3.5 text-sm leading-relaxed text-slate-100 outline-none transition-all duration-300 focus:border-emerald-500/50 focus:shadow-[0_0_20px_rgba(34,197,94,0.08)] placeholder:text-slate-600"
+              placeholder="Write a custom prompt for the AI agent, or use the auto-generated briefing script..."
             />
-            <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-                <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-500">Voice</label>
-                <select value={voice} onChange={(e) => setVoice(e.target.value)} className="w-full bg-transparent text-sm text-white outline-none">
+
+            {voiceDirty && (
+              <div className="rounded-lg border border-emerald-500/15 bg-emerald-500/5 px-3 py-2 text-[11px] text-emerald-300/80 flex items-start gap-2">
+                <Bot className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                <span>Agent mode: Your prompt will be processed by the AI agent with sector context. The agent will generate a contextual response and voice it.</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              {/* Voice selector — card picker */}
+              <div className="col-span-2">
+                <label className="mb-2 block text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Voice</label>
+                <div className="grid grid-cols-4 gap-2">
                   {VOICES.map((v) => (
-                    <option key={v.value} value={v.value} className="bg-zinc-950">{v.label}</option>
+                    <button
+                      key={v.value}
+                      type="button"
+                      onClick={() => setVoice(v.value)}
+                      className={cn(
+                        "rounded-xl border px-3 py-2.5 text-left transition-all duration-200",
+                        voice === v.value
+                          ? "border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_12px_rgba(34,197,94,0.1)]"
+                          : "border-white/8 bg-black/30 hover:border-white/15 hover:bg-white/[0.03]"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{v.icon}</span>
+                        <span className={cn("text-xs font-bold", voice === v.value ? "text-emerald-300" : "text-white")}>{v.label}</span>
+                        {voice === v.value && <Check className="h-3 w-3 text-emerald-400 ml-auto" />}
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1 line-clamp-1">{v.mood}</p>
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
-              <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-                <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-500">Format</label>
-                <select value={voiceFormat} onChange={(e) => setVoiceFormat(e.target.value as VoiceFormat)} className="w-full bg-transparent text-sm text-white outline-none">
-                  <option value="mp3" className="bg-zinc-950">MP3</option>
-                  <option value="pcm" className="bg-zinc-950">PCM</option>
-                </select>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-                <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-500">Direction</label>
-                <input value={voiceInstructions} onChange={(e) => setVoiceInstructions(e.target.value)}
-                  className="w-full bg-transparent text-sm text-white outline-none" placeholder="How should the voice sound?" />
+
+              {/* Voice style direction */}
+              <div className="col-span-2 rounded-xl border border-white/8 bg-black/30 px-3 py-2.5">
+                <label className="mb-1.5 block text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Voice Style Direction</label>
+                <input
+                  value={voiceInstructions}
+                  onChange={(e) => setVoiceInstructions(e.target.value)}
+                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-600"
+                  placeholder="How should the voice sound? e.g. confident, measured..."
+                />
               </div>
             </div>
           </div>
 
           {/* Playback deck */}
-          <div className="flex flex-col gap-3 rounded-2xl border border-emerald-500/15 bg-gradient-to-b from-black/40 to-black/20 p-5">
+          <div className="flex flex-col gap-3 rounded-2xl border border-emerald-500/15 bg-gradient-to-b from-black/60 to-black/30 p-5 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-400/70">Playback deck</p>
-                <p className="mt-0.5 text-sm font-semibold text-white">{selectedVoice.label} voice operator</p>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-emerald-400/60 font-bold">Playback Deck</p>
+                <p className="mt-0.5 text-sm font-bold text-white">{selectedVoice.label} <span className="text-emerald-400/60 font-normal">voice operator</span></p>
                 {voiceMeta && (
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     {voiceMeta.cacheHit ? (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] text-emerald-200">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] text-emerald-200 font-medium">
                         <Zap className="h-2.5 w-2.5" /> Cache hit
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-0.5 text-[10px] text-cyan-100">
-                        <Sparkles className="h-2.5 w-2.5" /> Fresh · {voiceMeta.latencyMs}ms
+                      <span className="inline-flex items-center gap-1 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-0.5 text-[10px] text-cyan-100 font-medium">
+                        <Sparkles className="h-2.5 w-2.5" /> {voiceMeta.latencyMs}ms
                       </span>
                     )}
-                    <span className="text-[10px] text-slate-500">{voiceMeta.charCount.toLocaleString()} chars</span>
+                    <span className="text-[10px] text-slate-500 font-mono">{voiceMeta.charCount.toLocaleString()} chars</span>
                   </div>
                 )}
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-2">
-                <AudioLines className="h-4 w-4 text-emerald-400" />
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-2.5">
+                <AudioLines className={cn("h-4.5 w-4.5 text-emerald-400", isActive && "animate-pulse")} />
               </div>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+            {/* Equalizer visualiser */}
+            <div className="rounded-xl border border-white/8 bg-black/50 p-3">
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-[10px] text-slate-400">Stream</span>
-                <span className="text-[10px] text-slate-500">{voiceBusy ? bytesLabel(voiceBytes) : audioReady ? "Ready" : "Idle"}</span>
+                <span className="text-[10px] text-slate-500 font-medium">Stream</span>
+                <span className="text-[10px] text-slate-500 font-mono">
+                  {voiceBusy ? bytesLabel(voiceBytes) : audioReady ? "Ready" : "Idle"}
+                </span>
               </div>
-              <div className="flex h-16 items-end gap-[3px] rounded-lg border border-white/10 bg-black/40 px-3 py-3">
+              <div className="flex h-16 items-end gap-[2px] rounded-xl border border-white/6 bg-black/60 px-3 py-3">
                 {voiceBars.map((bar) => (
                   <span
                     key={bar}
                     className={cn(
                       "w-full rounded-full bg-gradient-to-t from-emerald-500 via-cyan-400 to-white/80",
-                      (voiceBusy || isPlaying) ? "opacity-100" : "opacity-20"
+                      isActive ? "voice-bar-active" : "voice-bar-idle"
                     )}
                     style={{
-                      height: `${24 + ((bar * 13) % 48)}%`,
-                      animationDelay: `${bar * 0.08}s`,
+                      height: isActive ? undefined : "15%",
+                      animationDelay: isActive ? `${bar * 0.06}s` : undefined,
                     }}
                   />
                 ))}
               </div>
             </div>
 
-            <audio ref={audioRef} src={audioUrl ?? undefined} controls className="w-full h-8" />
+            <audio ref={audioRef} src={audioUrl ?? undefined} controls className="w-full h-9" />
 
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="glow" size="sm" isLoading={voiceBusy} onClick={() => void handleGenerateVoice()} className="text-xs">
-                {voiceBusy ? "Generating..." : "Generate"}
+              <Button variant="glow" size="sm" isLoading={voiceBusy} onClick={() => void handleGenerateVoice()} className="text-xs font-bold">
+                {voiceBusy ? "Generating..." : voiceDirty ? "Run Agent" : "Generate"}
                 <Waves className="h-3 w-3 ml-1" />
               </Button>
               <Button variant="outline" size="sm" disabled={!voiceBusy} onClick={() => abortRef.current?.abort()} className="text-xs">
@@ -437,9 +525,22 @@ export function AIOperatorStudio({
               </Button>
             </div>
 
+            {/* Agent response panel */}
+            {agentResponse && (
+              <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/[0.03] p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Bot className="h-3 w-3 text-emerald-400" />
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400/70">Agent Response</p>
+                </div>
+                <p className="text-xs leading-relaxed text-slate-300 line-clamp-6">
+                  {agentResponse}
+                </p>
+              </div>
+            )}
+
             <Link
               href={`/voice?sector=${encodeURIComponent(sector)}`}
-              className="group flex items-center justify-between rounded-xl border border-emerald-400/20 bg-emerald-400/5 px-3 py-2 text-xs text-emerald-100 transition hover:border-emerald-400/40"
+              className="group flex items-center justify-between rounded-xl border border-emerald-400/15 bg-emerald-400/5 px-3 py-2.5 text-xs text-emerald-200 transition-all hover:border-emerald-400/30 hover:bg-emerald-400/8"
             >
               <span className="flex items-center gap-1.5">
                 <Sparkles className="h-3 w-3 text-emerald-300" />
@@ -447,33 +548,29 @@ export function AIOperatorStudio({
               </span>
               <ArrowRight className="h-3 w-3 transition group-hover:translate-x-0.5" />
             </Link>
-
-            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-              <p className="mb-1 text-[10px] font-medium uppercase tracking-widest text-slate-500">Suggested narration angle</p>
-              <p className="text-xs leading-relaxed text-slate-400 line-clamp-2">
-                {deferredVoiceText.slice(0, 240)}{deferredVoiceText.length > 240 ? "..." : ""}
-              </p>
-            </div>
           </div>
         </div>
       </div>
 
       {/* ── Vision Lab ── */}
-      <div className="rounded-2xl border border-white/[0.06] bg-zinc-900/30 p-6">
-        <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="rounded-2xl border border-cyan-500/10 bg-gradient-to-b from-zinc-900/50 to-zinc-950/30 p-6 relative overflow-hidden">
+        {/* Subtle background mesh */}
+        <div className="pointer-events-none absolute inset-0 opacity-30" style={{ background: "radial-gradient(ellipse at 80% 20%, rgba(6,182,212,0.05), transparent 60%), radial-gradient(ellipse at 20% 80%, rgba(139,92,246,0.03), transparent 60%)" }} />
+
+        <div className="flex flex-wrap items-center gap-2 mb-5 relative z-10">
           <Badge variant="info">
-            <ScanSearch className="mr-1 h-3.5 w-3.5" />
+            <ScanSearch className="mr-1.5 h-3.5 w-3.5" />
             Vision Lab
           </Badge>
           <Badge variant="outline">
-            <FileText className="mr-1 h-3.5 w-3.5" />
+            <FileText className="mr-1.5 h-3.5 w-3.5" />
             Charts & receipts
           </Badge>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+        <div className="grid gap-6 lg:grid-cols-[1fr_1fr] relative z-10">
           {/* Upload area */}
-          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+          <div className="rounded-xl border border-white/8 bg-black/30 p-4">
             <input ref={uploadRef} type="file" accept="image/*" className="hidden"
               onChange={(e) => handleFileSelection(e.target.files?.[0] ?? null)} />
             <button
@@ -481,18 +578,18 @@ export function AIOperatorStudio({
               onClick={() => uploadRef.current?.click()}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => { e.preventDefault(); handleFileSelection(e.dataTransfer.files?.[0] ?? null); }}
-              className="group flex w-full flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-gradient-to-b from-white/[0.02] to-white/[0.04] px-4 py-6 text-center transition hover:border-cyan-400/40"
+              className="group flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/10 bg-gradient-to-b from-white/[0.02] to-white/[0.01] px-4 py-8 text-center transition-all duration-300 hover:border-cyan-400/40 hover:bg-cyan-400/[0.02] hover:shadow-[0_0_30px_rgba(6,182,212,0.06)]"
             >
-              <div className="mb-2 rounded-xl border border-white/10 bg-white/5 p-2.5">
-                <UploadCloud className="h-5 w-5 text-cyan-300" />
+              <div className="mb-3 rounded-xl border border-white/10 bg-white/5 p-3 group-hover:border-cyan-400/20 group-hover:bg-cyan-400/5 transition-colors">
+                <UploadCloud className="h-6 w-6 text-cyan-300" />
               </div>
-              <p className="text-sm font-medium text-white">Drop an image or choose a file</p>
-              <p className="mt-1 text-xs text-slate-500">Charts, screenshots, invoices, or receipts</p>
+              <p className="text-sm font-semibold text-white">Drop an image or choose a file</p>
+              <p className="mt-1.5 text-xs text-slate-500">Charts, screenshots, invoices, or receipts</p>
             </button>
 
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-                <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-500">Task</label>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-white/8 bg-black/30 px-3 py-2.5">
+                <label className="mb-1.5 block text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Task</label>
                 <select value={visionTask} onChange={(e) => setVisionTask(e.target.value as VisionTask)}
                   className="w-full bg-transparent text-sm text-white outline-none">
                   <option value="trade_chart" className="bg-zinc-950">Trade chart</option>
@@ -500,14 +597,14 @@ export function AIOperatorStudio({
                   <option value="generic" className="bg-zinc-950">Generic</option>
                 </select>
               </div>
-              <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-                <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-500">Question</label>
+              <div className="rounded-xl border border-white/8 bg-black/30 px-3 py-2.5">
+                <label className="mb-1.5 block text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Question</label>
                 <input value={visionQuestion} onChange={(e) => setVisionQuestion(e.target.value)}
-                  className="w-full bg-transparent text-sm text-white outline-none" placeholder="e.g. support/resistance" />
+                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-600" placeholder="e.g. support/resistance" />
               </div>
             </div>
 
-            <Button variant="gradient" size="sm" className="mt-3 w-full text-xs" isLoading={visionBusy}
+            <Button variant="gradient" size="sm" className="mt-4 w-full text-xs font-bold" isLoading={visionBusy}
               onClick={() => void handleAnalyzeVision()}>
               {visionBusy ? "Analyzing..." : "Run Vision Analysis"}
               <TrendingUp className="h-3 w-3 ml-1" />
@@ -517,13 +614,13 @@ export function AIOperatorStudio({
           {/* Preview & Results */}
           <div className="space-y-4">
             {visionPreview && (
-              <div className="overflow-hidden rounded-xl border border-white/10 bg-black/30">
-                <Image src={visionPreview} alt="Vision upload" width={1280} height={720} unoptimized className="h-44 w-full object-cover" />
+              <div className="overflow-hidden rounded-xl border border-white/8 bg-black/40 group/preview">
+                <Image src={visionPreview} alt="Vision upload" width={1280} height={720} unoptimized className="h-48 w-full object-cover transition-transform duration-500 group-hover/preview:scale-[1.02]" />
               </div>
             )}
 
             {visionWarnings.length > 0 && (
-              <div className="space-y-1 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3">
+              <div className="space-y-1.5 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3">
                 {visionWarnings.map((w) => (
                   <div key={w} className="flex items-start gap-2 text-xs text-amber-200">
                     <AlertTriangle className="mt-0.5 h-3 w-3 flex-shrink-0" />
@@ -537,19 +634,19 @@ export function AIOperatorStudio({
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-2">
                   {[["Provider", visionResult.provider], ["Model", visionResult.model], ["Confidence", confidenceLabel((analysis.confidence as number | undefined) ?? 0)]].map(([label, value]) => (
-                    <div key={label} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-                      <p className="text-[10px] uppercase tracking-widest text-slate-500">{label}</p>
-                      <p className="mt-1 text-sm font-medium text-white truncate">{value}</p>
+                    <div key={label} className="rounded-xl border border-white/8 bg-black/30 px-3 py-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">{label}</p>
+                      <p className="mt-1 text-sm font-bold text-white truncate">{value}</p>
                     </div>
                   ))}
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-2">Structured output</p>
+                <div className="rounded-xl border border-white/8 bg-black/30 p-4">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold mb-3">Structured output</p>
                   <div className="space-y-3 text-sm text-slate-200">
                     {"summary" in analysis && typeof analysis.summary === "string" && (
                       <div>
-                        <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-0.5">Summary</p>
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 mb-0.5">Summary</p>
                         <p className="text-xs leading-relaxed">{analysis.summary}</p>
                       </div>
                     )}
@@ -561,23 +658,23 @@ export function AIOperatorStudio({
                     )}
                     {"merchant_name" in analysis && (
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-                          <p className="text-[10px] uppercase tracking-widest text-slate-500">Merchant</p>
-                          <p className="text-sm text-white">{String(analysis.merchant_name ?? "-")}</p>
+                        <div className="rounded-xl border border-white/8 bg-black/30 px-3 py-2.5">
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Merchant</p>
+                          <p className="text-sm text-white font-medium">{String(analysis.merchant_name ?? "-")}</p>
                         </div>
-                        <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-                          <p className="text-[10px] uppercase tracking-widest text-slate-500">Total</p>
-                          <p className="text-sm text-white">{String(analysis.currency ?? "")} {String(analysis.total ?? "-")}</p>
+                        <div className="rounded-xl border border-white/8 bg-black/30 px-3 py-2.5">
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Total</p>
+                          <p className="text-sm text-white font-medium">{String(analysis.currency ?? "")} {String(analysis.total ?? "-")}</p>
                         </div>
                       </div>
                     )}
                     {Array.isArray(analysis.line_items) && analysis.line_items.length > 0 && (
                       <div>
-                        <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Line items</p>
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 mb-1.5">Line items</p>
                         {(analysis.line_items as Array<Record<string, unknown>>).slice(0, 5).map((item, i) => (
-                          <div key={i} className="flex justify-between rounded-xl border border-white/10 bg-black/20 px-3 py-2 mb-1">
-                            <span className="text-xs text-white">{String(item.name ?? `Item ${i + 1}`)}</span>
-                            <span className="text-xs text-slate-400">{String(item.line_total ?? item.unit_price ?? "")}</span>
+                          <div key={i} className="flex justify-between rounded-xl border border-white/8 bg-black/30 px-3 py-2 mb-1">
+                            <span className="text-xs text-white font-medium">{String(item.name ?? `Item ${i + 1}`)}</span>
+                            <span className="text-xs text-slate-400 font-mono">{String(item.line_total ?? item.unit_price ?? "")}</span>
                           </div>
                         ))}
                       </div>
@@ -587,7 +684,7 @@ export function AIOperatorStudio({
                       if (!Array.isArray(val) || val.length === 0) return null;
                       return (
                         <div key={key}>
-                          <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">{key.replace(/_/g, " ")}</p>
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 mb-1.5">{key.replace(/_/g, " ")}</p>
                           <div className="flex flex-wrap gap-1">
                             {val.map((entry) => <Badge key={`${key}-${String(entry)}`} variant="outline" className="text-[10px]">{String(entry)}</Badge>)}
                           </div>
@@ -595,8 +692,8 @@ export function AIOperatorStudio({
                       );
                     })}
                     {"raw_ocr_text" in analysis && typeof analysis.raw_ocr_text === "string" && (
-                      <details className="rounded-xl border border-white/10 bg-black/20 p-3">
-                        <summary className="cursor-pointer text-xs font-medium text-white">Raw OCR text</summary>
+                      <details className="rounded-xl border border-white/8 bg-black/30 p-3">
+                        <summary className="cursor-pointer text-xs font-semibold text-white">Raw OCR text</summary>
                         <pre className="mt-2 whitespace-pre-wrap text-xs text-slate-400">{analysis.raw_ocr_text}</pre>
                       </details>
                     )}

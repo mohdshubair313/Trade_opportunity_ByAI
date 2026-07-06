@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useAnalysis } from "@/hooks/useAnalysis";
 import { motion } from "framer-motion";
-import { ArrowLeft, Loader2, Sparkles, Activity, BarChart3, Network, MessageSquare, LineChart } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, Activity, BarChart3, Network, MessageSquare, LineChart, Mic2, ScanSearch, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { WatchButton } from "@/components/dashboard/WatchButton";
 
@@ -60,15 +60,27 @@ function ResultsContent() {
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <div>
-                        <h1 className="text-4xl md:text-5xl font-display font-extrabold tracking-tight flex items-baseline gap-2 leading-none py-1">
-                            <span className="bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
-                                {displaySector || "Loading…"}
-                            </span>{" "}
-                            <span className="text-primary/80 text-lg md:text-xl font-medium font-sans tracking-normal">
-                                Intelligence Report
-                            </span>
-                        </h1>
-                        <p className="text-muted-foreground text-sm tracking-wide uppercase font-mono opacity-60">AI-Powered Market Intelligence • v2.1</p>
+                        <div className="flex items-baseline gap-3 flex-wrap">
+                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-black tracking-tighter leading-none">
+                                <span className="bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent">
+                                    {displaySector || "Loading\u2026"}
+                                </span>
+                            </h1>
+                            <div className="flex items-center gap-2">
+                                <span className="text-primary/90 text-base md:text-lg font-semibold font-display tracking-tight">
+                                    Intelligence Report
+                                </span>
+                                <span className="px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-[10px] font-mono font-bold text-primary/60 tracking-wider">
+                                    v2.1
+                                </span>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1.5">
+                            <div className="h-px w-8 bg-gradient-to-r from-primary/60 to-transparent" />
+                            <p className="text-muted-foreground/50 text-[11px] tracking-[0.2em] uppercase font-mono">
+                                AI-Powered Market Intelligence
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -179,18 +191,42 @@ function ResultsContent() {
 
                     <div className="bg-zinc-950/40 backdrop-blur-lg border border-white/[0.06] rounded-[2rem] p-8 shadow-2xl shadow-black/60 relative overflow-hidden transition-all duration-300">
                         <div className="absolute top-6 right-8 text-[10px] font-mono font-bold text-muted-foreground/30">§ COMPLETE REPORT</div>
-                        <h2 className="text-3xl md:text-4xl font-display font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent mb-8">
-                            Market Intelligence Dossier
-                        </h2>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 flex items-center justify-center shadow-[0_0_16px_rgba(34,197,94,0.1)]">
+                                <BookOpen className="h-5 w-5 text-primary" />
+                            </div>
+                            <h2 className="text-3xl md:text-4xl font-display font-black tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">
+                                Market Intelligence Dossier
+                            </h2>
+                        </div>
+                        <div className="section-divider mb-8" />
                         {analysis && <AnalysisReport analysis={analysis} />}
                     </div>
 
                     {analysis?.report && displaySector && (
                         <div className="bg-zinc-950/40 backdrop-blur-lg border border-white/[0.06] rounded-[2rem] p-8 shadow-2xl shadow-black/60 relative overflow-hidden transition-all duration-300">
                             <div className="absolute top-6 right-8 text-[10px] font-mono font-bold text-muted-foreground/30">§ VOICE & VISION</div>
-                            <h2 className="text-3xl md:text-4xl font-display font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent mb-8">
-                                Voice Briefing Studio & Vision Lab
-                            </h2>
+                            <div className="flex items-center gap-3 mb-1">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/15 to-cyan-500/10 border border-emerald-500/20 flex items-center justify-center shadow-[0_0_16px_rgba(34,197,94,0.1)]">
+                                    <Mic2 className="h-5 w-5 text-emerald-400" />
+                                </div>
+                                <div>
+                                    <h2 className="text-3xl md:text-4xl font-display font-black tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">
+                                        Voice Briefing Studio
+                                    </h2>
+                                </div>
+                                <span className="text-[11px] text-muted-foreground/40 font-mono">&</span>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/15 to-blue-500/10 border border-cyan-500/20 flex items-center justify-center">
+                                        <ScanSearch className="h-4 w-4 text-cyan-400" />
+                                    </div>
+                                    <span className="text-xl md:text-2xl font-display font-bold tracking-tight bg-gradient-to-r from-cyan-200 to-cyan-400 bg-clip-text text-transparent">
+                                        Vision Lab
+                                    </span>
+                                </div>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground/50 ml-[52px] mb-2">Transform your report into a premium spoken briefing or analyse charts with AI vision</p>
+                            <div className="section-divider mb-6" />
                             <AIOperatorStudio sector={displaySector} report={analysis.report} />
                         </div>
                     )}

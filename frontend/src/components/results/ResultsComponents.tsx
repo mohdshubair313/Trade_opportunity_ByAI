@@ -85,21 +85,25 @@ export function CardShell({
             onMouseLeave={handleMouseLeave}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-zinc-950/45 backdrop-blur-md border border-white/[0.06] rounded-2xl p-6 h-full flex flex-col shadow-[0_8px_30px_rgb(0,0,0,0.5)] hover:border-primary/20 hover:shadow-primary/[0.02] transition-all duration-300 relative overflow-hidden group"
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="bg-zinc-950/50 backdrop-blur-xl border border-white/[0.06] rounded-2xl p-6 h-full flex flex-col shadow-[0_8px_32px_rgb(0,0,0,0.6)] hover:border-primary/25 hover:shadow-[0_12px_40px_rgba(34,197,94,0.06)] transition-all duration-500 relative overflow-hidden group"
         >
+            {/* Top accent gradient bar */}
+            <div className="card-accent-bar" />
+
             {/* Interactive Spotlight Radial Background */}
             <div
-                className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
                 style={{
-                    background: `radial-gradient(250px circle at ${coords.x}px ${coords.y}px, rgba(34, 197, 94, 0.07), transparent 80%)`,
+                    background: `radial-gradient(280px circle at ${coords.x}px ${coords.y}px, rgba(34, 197, 94, 0.06), rgba(6, 182, 212, 0.03) 50%, transparent 80%)`,
                     opacity: isHovered ? 1 : 0,
                 }}
             />
             {/* Interactive Spotlight Radial Border overlay */}
             <div
-                className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-300"
+                className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-500"
                 style={{
-                    background: `radial-gradient(150px circle at ${coords.x}px ${coords.y}px, rgba(34, 197, 94, 0.25), transparent 60%)`,
+                    background: `radial-gradient(160px circle at ${coords.x}px ${coords.y}px, rgba(34, 197, 94, 0.2), rgba(6, 182, 212, 0.1) 40%, transparent 60%)`,
                     opacity: isHovered ? 1 : 0,
                     maskImage: "linear-gradient(black, black) content-box, linear-gradient(black, black)",
                     WebkitMaskImage: "linear-gradient(black, black) content-box, linear-gradient(black, black)",
@@ -109,14 +113,23 @@ export function CardShell({
                 }}
             />
 
-            <div className="flex items-center justify-between gap-2 mb-4 relative z-10">
-                <div className="flex items-center gap-2">
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Icon className="h-4 w-4 text-primary" />
+            {/* Subtle noise texture */}
+            <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-[0.015]" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22/%3E%3C/filter%3E%3Crect width=%22256%22 height=%22256%22 filter=%22url(%23n)%22/%3E%3C/svg%3E')" }} />
+
+            <div className="flex items-center justify-between gap-3 mb-5 relative z-10">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 flex items-center justify-center icon-pulse-ring shadow-[0_0_12px_rgba(34,197,94,0.1)]">
+                        <Icon className="h-4.5 w-4.5 text-primary" />
                     </div>
-                    <h3 className="text-lg font-semibold text-foreground/90">{title}</h3>
+                    <div>
+                        <h3 className="text-[15px] font-bold text-foreground/95 tracking-tight font-display">{title}</h3>
+                    </div>
                 </div>
-                {badge}
+                {badge && (
+                    <div className="shrink-0">
+                        {badge}
+                    </div>
+                )}
             </div>
             <div className="relative z-10 flex-1 flex flex-col">
                 {children}
@@ -419,52 +432,91 @@ export function SentimentBubbles({ sector = "" }: { sector?: string }) {
 
     const avg = items.reduce((s, i) => s + i.sentiment_score, 0) / items.length;
     const avgLabel = avg >= 0.25 ? "Bullish" : avg <= -0.25 ? "Bearish" : "Neutral";
-    const avgColor = avg >= 0.25 ? "text-green-500" : avg <= -0.25 ? "text-red-500" : "text-yellow-500";
+    const avgBg = avg >= 0.25 ? "bg-green-500" : avg <= -0.25 ? "bg-red-500" : "bg-yellow-500";
+    const avgColor = avg >= 0.25 ? "text-green-400" : avg <= -0.25 ? "text-red-400" : "text-yellow-400";
+    const avgBgFaded = avg >= 0.25 ? "bg-green-500/15" : avg <= -0.25 ? "bg-red-500/15" : "bg-yellow-500/15";
+    const bullishCount = items.filter(i => i.sentiment_label === "bullish").length;
+    const bearishCount = items.filter(i => i.sentiment_label === "bearish").length;
+    // Gauge: 0 = all bearish, 100 = all bullish
+    const gaugePercent = items.length > 0 ? Math.round(((avg + 1) / 2) * 100) : 50;
 
     return (
         <CardShell
             title="Social Sentiment"
             icon={MessageSquare}
             badge={
-                <span className={`text-xs font-medium ${avgColor}`}>
-                    {avgLabel} ({avg.toFixed(2)})
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${avgBgFaded} ${avgColor} border border-current/10`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${avgBg}`} />
+                    {avgLabel}
                 </span>
             }
         >
-            <div className="space-y-2 overflow-y-auto max-h-[220px] pr-1">
-                {items.slice(0, 6).map((item) => (
-                    <a
-                        key={item.url}
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block p-2.5 rounded-lg border border-border/40 hover:border-primary/50 hover:bg-primary/5 transition-colors"
-                    >
-                        <div className="flex items-start justify-between gap-2">
-                            <p className="text-xs text-foreground/90 line-clamp-2 flex-1">
-                                {item.title}
-                            </p>
-                            <ExternalLink className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
-                        </div>
-                        <div className="flex items-center gap-2 mt-1.5">
-                            <span
-                                className={`inline-flex px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wide font-medium ${item.sentiment_label === "bullish"
-                                    ? "bg-green-500/10 text-green-500"
-                                    : item.sentiment_label === "bearish"
-                                        ? "bg-red-500/10 text-red-500"
-                                        : "bg-yellow-500/10 text-yellow-500"
-                                    }`}
-                            >
-                                {item.sentiment_label} {item.sentiment_score.toFixed(2)}
-                            </span>
-                            {item.source && (
-                                <span className="text-[10px] text-muted-foreground truncate">
-                                    {item.source}
-                                </span>
-                            )}
-                        </div>
-                    </a>
-                ))}
+            {/* Sentiment gauge bar */}
+            <div className="mb-4">
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1.5">
+                    <span>Bearish</span>
+                    <span className={`font-bold text-[11px] ${avgColor}`}>{avg.toFixed(2)} avg</span>
+                    <span>Bullish</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+                    <div
+                        className={`h-full rounded-full gauge-fill-animate ${avgBg}`}
+                        style={{ width: `${gaugePercent}%`, opacity: 0.7 }}
+                    />
+                </div>
+            </div>
+
+            <div className="space-y-2 overflow-y-auto max-h-[180px] pr-1 scrollbar-thin">
+                {items.slice(0, 6).map((item) => {
+                    const sentColor = item.sentiment_label === "bullish" ? "border-green-500/30 hover:border-green-500/60" : item.sentiment_label === "bearish" ? "border-red-500/30 hover:border-red-500/60" : "border-yellow-500/30 hover:border-yellow-500/60";
+                    const dotColor = item.sentiment_label === "bullish" ? "bg-green-500" : item.sentiment_label === "bearish" ? "bg-red-500" : "bg-yellow-500";
+                    return (
+                        <a
+                            key={item.url}
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`block p-2.5 rounded-xl border ${sentColor} bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-200`}
+                        >
+                            <div className="flex items-start gap-2.5">
+                                <div className={`w-2 h-2 rounded-full ${dotColor} mt-1.5 flex-shrink-0 shadow-[0_0_6px_currentColor]`} style={{ color: item.sentiment_label === "bullish" ? "#22c55e" : item.sentiment_label === "bearish" ? "#ef4444" : "#eab308" }} />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs text-foreground/90 line-clamp-2 leading-relaxed font-medium">
+                                        {item.title}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-1.5">
+                                        <span
+                                            className={`inline-flex px-1.5 py-0.5 rounded-md text-[9px] uppercase tracking-wider font-bold ${
+                                                item.sentiment_label === "bullish"
+                                                    ? "bg-green-500/10 text-green-400"
+                                                    : item.sentiment_label === "bearish"
+                                                        ? "bg-red-500/10 text-red-400"
+                                                        : "bg-yellow-500/10 text-yellow-400"
+                                            }`}
+                                        >
+                                            {item.sentiment_score.toFixed(2)}
+                                        </span>
+                                        {item.source && (
+                                            <span className="text-[10px] text-muted-foreground/60 truncate">
+                                                {item.source}
+                                            </span>
+                                        )}
+                                        <ExternalLink className="h-2.5 w-2.5 text-muted-foreground/40 flex-shrink-0 ml-auto" />
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    );
+                })}
+            </div>
+
+            {/* Stats summary row */}
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.06] text-[10px] text-muted-foreground">
+                <span>{items.length} articles</span>
+                <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500" />{bullishCount} bullish</span>
+                    <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500" />{bearishCount} bearish</span>
+                </div>
             </div>
         </CardShell>
     );
@@ -524,29 +576,32 @@ export function CapitalFlowChart({ sector }: { sector: string }) {
     const valPadding = (maxVal - minVal) * 0.05 || 1;
     const yDomain = [minVal - valPadding, maxVal + valPadding];
 
+    const sectorReturn = (data.sector_total_return_pct ?? 0);
+    const benchReturn = (data.benchmark_total_return_pct ?? 0);
+
     return (
         <CardShell
             title="Relative Strength"
             icon={BarChart3}
             badge={
-                <span className={`text-xs font-medium ${winning ? "text-green-500" : "text-red-500"}`}>
-                    {winning ? "▲" : "▼"} {Math.abs(outperform).toFixed(2)} pts vs Nifty
+                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border ${winning ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}>
+                    {winning ? "▲" : "▼"} {Math.abs(outperform).toFixed(2)} pts
                 </span>
             }
         >
             <div className="h-[180px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <RCLineChart data={merged} margin={{ top: 15, right: 15, bottom: 10, left: 10 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" vertical={false} />
-                        <XAxis dataKey="date" stroke="#666" fontSize={10} tickLine={false} axisLine={false} tick={false} />
-                        <YAxis stroke="#666" fontSize={10} tickLine={false} axisLine={false} domain={yDomain} />
-                        <Tooltip content={<PremiumChartTooltip />} cursor={{ stroke: "rgba(34, 197, 94, 0.15)", strokeWidth: 1.5 }} />
-                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" vertical={false} />
+                        <XAxis dataKey="date" stroke="#555" fontSize={10} tickLine={false} axisLine={false} tick={false} />
+                        <YAxis stroke="#555" fontSize={10} tickLine={false} axisLine={false} domain={yDomain} />
+                        <Tooltip content={<PremiumChartTooltip />} cursor={{ stroke: "rgba(34, 197, 94, 0.12)", strokeWidth: 1 }} />
+                        <Legend wrapperStyle={{ fontSize: 10, opacity: 0.7 }} />
                         <Line
                             type="monotone"
                             dataKey="sector"
                             stroke="#22c55e"
-                            strokeWidth={2}
+                            strokeWidth={2.5}
                             dot={false}
                             name={sector}
                             isAnimationActive={true}
@@ -556,7 +611,7 @@ export function CapitalFlowChart({ sector }: { sector: string }) {
                         <Line
                             type="monotone"
                             dataKey="nifty"
-                            stroke="#666"
+                            stroke="#555"
                             strokeWidth={1.5}
                             strokeDasharray="4 3"
                             dot={false}
@@ -568,9 +623,26 @@ export function CapitalFlowChart({ sector }: { sector: string }) {
                     </RCLineChart>
                 </ResponsiveContainer>
             </div>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-                6-month total return: sector {(data.sector_total_return_pct ?? 0).toFixed(1)}% · Nifty {(data.benchmark_total_return_pct ?? 0).toFixed(1)}%
-            </p>
+
+            {/* Stat row */}
+            <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-white/[0.06]">
+                <div className="flex-1 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-green-500" />
+                    <span className="text-[10px] text-muted-foreground">Sector</span>
+                    <span className={`text-[11px] font-bold ${sectorReturn >= 0 ? "text-green-400" : "text-red-400"}`}>{sectorReturn >= 0 ? "+" : ""}{sectorReturn.toFixed(1)}%</span>
+                </div>
+                <div className="w-px h-3 bg-white/10" />
+                <div className="flex-1 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-zinc-500" />
+                    <span className="text-[10px] text-muted-foreground">Nifty 50</span>
+                    <span className={`text-[11px] font-bold ${benchReturn >= 0 ? "text-green-400" : "text-red-400"}`}>{benchReturn >= 0 ? "+" : ""}{benchReturn.toFixed(1)}%</span>
+                </div>
+                <div className="w-px h-3 bg-white/10" />
+                <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-muted-foreground">Alpha</span>
+                    <span className={`text-[11px] font-bold ${winning ? "text-green-400" : "text-red-400"}`}>{winning ? "+" : ""}{outperform.toFixed(1)} pts</span>
+                </div>
+            </div>
         </CardShell>
     );
 }
@@ -620,47 +692,61 @@ export function CorrelationHeatmap() {
         <CardShell
             title="Sector Correlations"
             icon={Network}
-            badge={<span className="text-[11px] text-muted-foreground">90-day daily returns</span>}
+            badge={
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-white/10 bg-white/[0.03] text-[10px] text-muted-foreground">
+                    <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                    90-day returns
+                </span>
+            }
         >
             <div className="overflow-auto">
                 <div
-                    className="grid gap-[2px]"
+                    className="grid gap-[3px]"
                     style={{
-                        gridTemplateColumns: `minmax(48px, auto) repeat(${n}, minmax(28px, 1fr))`,
+                        gridTemplateColumns: `minmax(52px, auto) repeat(${n}, minmax(30px, 1fr))`,
                     }}
                 >
                     <div />
                     {matrix.labels.map((label) => (
-                        <div key={`col-${label}`} className="text-[10px] text-muted-foreground text-center font-medium py-1">
+                        <div key={`col-${label}`} className="text-[10px] text-muted-foreground/80 text-center font-semibold py-1.5 tracking-tight">
                             {label}
                         </div>
                     ))}
 
                     {matrix.labels.map((rowLabel, i) => (
                         <React.Fragment key={`row-${rowLabel}`}>
-                            <div className="text-[10px] text-muted-foreground text-right pr-2 py-0.5 font-medium self-center">
+                            <div className="text-[10px] text-muted-foreground/80 text-right pr-2.5 py-0.5 font-semibold self-center tracking-tight">
                                 {rowLabel}
                             </div>
                             {matrix.matrix[i].map((value, j) => (
                                 <div
                                     key={`cell-${i}-${j}`}
-                                    className="aspect-square rounded-sm flex items-center justify-center text-[9px] font-mono font-medium"
+                                    className="corr-cell aspect-square rounded-lg flex items-center justify-center text-[9px] font-mono font-bold border border-white/[0.04] cursor-default relative"
                                     style={{
                                         backgroundColor: correlationColor(value),
-                                        color: Math.abs(value) > 0.5 ? "white" : "#aaa",
+                                        color: Math.abs(value) > 0.5 ? "white" : "#999",
                                     }}
                                     title={`${rowLabel} ↔ ${matrix.labels[j]}: ${value.toFixed(3)}`}
                                 >
-                                    {value.toFixed(1).replace("1.0", "1")}
+                                    {i === j ? <span className="opacity-40">—</span> : value.toFixed(1)}
                                 </div>
                             ))}
                         </React.Fragment>
                     ))}
                 </div>
             </div>
-            <p className="mt-2 text-[11px] text-muted-foreground">
-                Green = move together · Red = move opposite · intensity scales with strength
-            </p>
+
+            {/* Color legend gradient bar */}
+            <div className="mt-3 pt-2.5 border-t border-white/[0.06]">
+                <div className="flex items-center gap-2">
+                    <span className="text-[9px] text-red-400 font-medium">−1</span>
+                    <div className="flex-1 h-1.5 rounded-full" style={{ background: "linear-gradient(90deg, rgba(239,68,68,0.8), rgba(239,68,68,0.2) 30%, rgba(255,255,255,0.05) 50%, rgba(34,197,94,0.2) 70%, rgba(34,197,94,0.8))" }} />
+                    <span className="text-[9px] text-green-400 font-medium">+1</span>
+                </div>
+                <p className="mt-1 text-[9px] text-muted-foreground/50 text-center">
+                    Red = inverse · Green = correlated · Hover for detail
+                </p>
+            </div>
         </CardShell>
     );
 }

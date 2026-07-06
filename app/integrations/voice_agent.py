@@ -1112,10 +1112,27 @@ class VoiceAgent:
 
 
 def _gemini_voice_name(voice: str) -> str:
+    # Map generic/OpenAI voices to Gemini voices for consistency
+    voice_map = {
+        "alloy": "fenrir",  # Male, calm
+        "echo": "charon",
+        "fable": "puck",
+        "onyx": "orus",     # Male, deep
+        "nova": "kore",     # Female, professional
+        "shimmer": "aoede",
+        "sage": "zephyr",   # Professional/measured
+        "coral": "leda",
+    }
+    
     supported = {
         "aoede", "charon", "fenrir", "kore", "leda", "orus", "puck", "zephyr",
     }
+    
     candidate = (voice or "").strip().lower()
+    
+    # Resolve mapping if it exists
+    candidate = voice_map.get(candidate, candidate)
+    
     if candidate in supported:
         return candidate.capitalize()
     return "Kore"
