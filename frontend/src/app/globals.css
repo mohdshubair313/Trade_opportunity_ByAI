@@ -424,6 +424,69 @@ audio {
   background: rgba(255, 255, 255, 0.04);
 }
 
+/* ─── Live Visitors Widget ─────────────────────────────────────────────── */
+.viewer-pill {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(52, 211, 153, 0.06) inset,
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.viewer-pill:hover {
+  border-color: rgba(52, 211, 153, 0.2);
+  box-shadow:
+    0 4px 32px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(52, 211, 153, 0.12) inset,
+    0 0 20px rgba(52, 211, 153, 0.08);
+}
+
+/* Breathing pulse ring around the live dot */
+@keyframes viewer-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.viewer-pulse-ring {
+  animation: viewer-pulse 2s ease-in-out infinite;
+}
+
+/* Shimmer sweep on "viewing now" text */
+@keyframes viewer-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.viewer-shimmer-text {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted-foreground)) 0%,
+    hsl(var(--muted-foreground)) 35%,
+    hsl(var(--foreground)) 50%,
+    hsl(var(--muted-foreground)) 65%,
+    hsl(var(--muted-foreground)) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: viewer-shimmer 4s linear infinite;
+}
+
 /* Ensure no black bars from overflow */
 html,
 body {
