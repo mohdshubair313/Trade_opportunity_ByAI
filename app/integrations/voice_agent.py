@@ -852,6 +852,9 @@ class VoiceAgent:
         Uses prompt caching where supported so repeated turns don't re-bill
         the static system prompt. Reply length is capped server-side
         (`max_tokens`) and trimmed client-side as belt-and-suspenders.
+
+        In briefing mode, the token budget is expanded to ~1500 tokens so the
+        LLM can produce a rich ~5-minute spoken summary of report content.
         """
         if not settings.openrouter_api_key:
             raise VoiceProviderError("OPENROUTER_API_KEY not configured")
@@ -859,9 +862,10 @@ class VoiceAgent:
         messages = self._build_messages(
             prompt=prompt, sector=sector, mode=mode, history=history
         )
-        # Cap reply tokens. Roughly 4 chars per token → ~370 tokens fits the
-        # 1500-char response cap with headroom for spoken delivery.
-        max_tokens = 380
+        # Briefing mode needs more tokens for a ~5min spoken summary (~800-1200 words).
+        # QA mode stays tight at ~370 tokens for 60-90s responses.
+        is_briefing = mode == "briefing"
+        max_tokens = 1500 if is_briefing else 380
         # Pick a fast cheap chat model — voice replies don't need Opus.
         model = "google/gemma-4-26b-a4b-it:free"
 
@@ -894,7 +898,7 @@ class VoiceAgent:
 
         body = response.json()
         text = ((body.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
-        text = self._enforce_response_length(text.strip())
+        text = self._enforce_response_length(text.strip(), mode=mode)
         usage = body.get("usage") or {}
         cached = usage.get("prompt_tokens_details", {}).get("cached_tokens")
         return text, {
@@ -911,8 +915,13 @@ class VoiceAgent:
 
     # -- response shaping -------------------------------------------------
 
-    def _enforce_response_length(self, text: str) -> str:
-        limit = settings.voice_response_max_chars
+    def _enforce_response_length(self, text: str, *, mode: str = "qa") -> str:
+        # Briefing mode gets a larger budget for ~5-minute spoken summaries.
+        limit = (
+            settings.voice_briefing_max_chars
+            if mode == "briefing"
+            else settings.voice_response_max_chars
+        )
         if len(text) <= limit:
             return text
         # Trim at the last sentence boundary that fits, otherwise hard cap.
@@ -939,8 +948,14 @@ class VoiceAgent:
             system_text += f"\n\nThe listener wants intelligence on the {sector} sector."
         if mode == "briefing":
             system_text += (
-                "\n\nThis turn is a sector briefing. Cover: current setup, biggest "
-                "opportunity, biggest risk, and one concrete next move."
+                "\n\nIMPORTANT: This turn is a REPORT BRIEFING. The user's message "
+                "contains the FULL report content for the sector. Your job is to:\n"
+                "1. Read and deeply understand every section of the report.\n"
+                "2. Synthesize it into a rich, flowing spoken summary (~800-1200 words, approximately 5 minutes when read aloud).\n"
+                "3. Cover: market overview, key findings, biggest opportunities, material risks, sector outlook, and one concrete next action.\n"
+                "4. Use natural spoken language — no bullet points, no markdown, no lists. Speak as if delivering a boardroom voice note.\n"
+                "5. Reference specific data points, numbers, and insights FROM THE REPORT — do NOT invent data.\n"
+                "6. End with a clear, actionable recommendation based on the report's findings."
             )
 
         messages: List[Dict[str, Any]] = [

@@ -35,7 +35,7 @@ import {
   analyzeVisionImage,
   VisionAnalysisResponse,
 } from "@/lib/api";
-import { synthesize, voiceQuery, listVoices, VoiceOption, VOICE_PROVIDER_MAP } from "@/lib/voice-client";
+import { voiceQuery, listVoices, VoiceOption, VOICE_PROVIDER_MAP } from "@/lib/voice-client";
 import { cn } from "@/lib/utils";
 
 type VisionTask = "trade_chart" | "receipt" | "generic";
@@ -49,22 +49,40 @@ const DEFAULT_VOICES: VoiceOption[] = [
   { value: "kore", label: "Kore (Gemini)", mood: "Calm and measured", sample_text: "Let me check sector data.", accent: "neutral", locale: "en-IN", provider: "gemini" },
 ];
 
-function deriveBriefingScript(report: string, sector: string): string {
+/**
+ * Extracts the full report content, stripping markdown formatting.
+ * This text is sent to the LLM as context for summarization — NOT spoken directly.
+ */
+function extractReportContent(report: string): string {
   const cleaned = report
     .split("\n")
-    .map((line) => line.replace(/^#+\s*/, "").trim())
+    .map((line) => line.replace(/^#+\s*/, "").replace(/\*\*/g, "").replace(/\*/g, "").trim())
     .filter((line) => line && !line.startsWith("---") && !line.startsWith("*Report generated"));
 
-  const summary = cleaned.slice(0, 7).join(" ").replace(/\s+/g, " ").trim();
-  const fallback = `Brief me on the ${sector} sector, the current market setup, biggest opportunities, material risks, and the best next actions.`;
-  if (!summary) return fallback;
+  // Join all content lines, truncate to ~8000 chars to fit LLM context
+  return cleaned.join("\n").slice(0, 8000).trim();
+}
+
+/**
+ * Builds the user prompt that instructs the LLM to summarize the report
+ * as a spoken briefing. The report content is embedded as context.
+ */
+function buildBriefingPrompt(reportContent: string, sector: string): string {
+  if (!reportContent) {
+    return `Give me a comprehensive spoken market briefing on the ${sector} sector. Cover the current market setup, biggest opportunities, material risks, sector outlook, and end with your single most important recommendation.`;
+  }
 
   return [
-    `You are the voice briefing layer for TradeInsight AI.`,
-    `Deliver a crisp spoken market briefing on the ${sector} sector.`,
-    `Use a premium operator tone, around sixty to ninety seconds, and end with the single most important next move.`,
-    summary,
-  ].join(" ");
+    `REPORT CONTENT FOR ${sector.toUpperCase()} SECTOR:`,
+    ``,
+    reportContent,
+    ``,
+    `---`,
+    ``,
+    `Based on the above report, deliver a comprehensive 5-minute spoken market briefing.`,
+    `Cover: market overview and current setup, key findings from the report, biggest opportunities identified, material risks and warnings, sector outlook, and end with one clear actionable recommendation.`,
+    `Reference specific data points, numbers, and insights from the report. Speak naturally as if delivering a premium boardroom voice note.`,
+  ].join("\n");
 }
 
 function bytesLabel(bytes: number): string {
@@ -106,6 +124,8 @@ export function AIOperatorStudio({
   const [voiceInstructions, setVoiceInstructions] = useState(
     "Speak like a premium market operator delivering a boardroom voice note."
   );
+  const [briefingTranscript, setBriefingTranscript] = useState<string | null>(null);
+  const [showFullTranscript, setShowFullTranscript] = useState(false);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [voiceBytes, setVoiceBytes] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -146,10 +166,11 @@ export function AIOperatorStudio({
   }, []);
 
   useEffect(() => {
-    // Only auto-generate the script if the user hasn't modified it yet
+    // Only auto-generate the briefing prompt if the user hasn't modified it yet
     if (!voiceDirty) {
-      const nextScript = deriveBriefingScript(report, sector);
-      setVoiceText(nextScript);
+      const reportContent = extractReportContent(report);
+      const nextPrompt = buildBriefingPrompt(reportContent, sector);
+      setVoiceText(nextPrompt);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [report, sector]);
@@ -211,6 +232,8 @@ export function AIOperatorStudio({
       setAudioReady(false);
       setVoiceMeta(null);
       setAgentResponse(null);
+      setBriefingTranscript(null);
+      setShowFullTranscript(false);
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
         setAudioUrl(null);
@@ -218,68 +241,44 @@ export function AIOperatorStudio({
 
       const preferredProvider = selectedVoice?.provider || VOICE_PROVIDER_MAP[voice];
 
-      if (voiceDirty) {
-        // User wrote a custom prompt → route through voice agent for AI processing
-        const promptWithStyle = voiceInstructions.trim() 
-          ? `${voiceText}\n\n[STYLE DIRECTION: ${voiceInstructions}]` 
-          : voiceText;
-          
-        const result = await voiceQuery(
-          {
-            prompt: promptWithStyle,
-            sector,
-            mode: "briefing",
-            voice,
-            responseFormat: "mp3",
-            preferredProvider,
-          },
-          controller.signal
-        );
+      // Always route through the voice agent so the LLM summarizes
+      // the report content before TTS speaks it.
+      const promptWithStyle = voiceInstructions.trim()
+        ? `${voiceText}\n\n[STYLE DIRECTION: ${voiceInstructions}]`
+        : voiceText;
 
-        // Agent returns assistant text + audio as base64
-        const assistantText = result.transcript?.assistant_text || "";
-        setAgentResponse(assistantText);
+      const result = await voiceQuery(
+        {
+          prompt: promptWithStyle,
+          sector,
+          mode: "briefing",
+          voice,
+          responseFormat: "mp3",
+          preferredProvider,
+        },
+        controller.signal
+      );
 
-        if (result.audio_base64 && result.audio_format) {
-          // Decode base64 audio
-          const binary = atob(result.audio_base64);
-          const bytes = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-          const blob = new Blob([bytes.buffer], { type: result.audio_format });
-          const url = URL.createObjectURL(blob);
-          setAudioUrl(url);
-          setAudioReady(true);
-          setVoiceBytes(bytes.length);
-          setVoiceMeta({
-            cacheHit: result.cache_hit,
-            provider: result.provider,
-            latencyMs: result.latency_ms,
-            charCount: assistantText.length,
-          });
-        }
-      } else {
-        // Auto-generated script → direct TTS synthesis (cheaper, no LLM call)
-        const result = await synthesize(
-          {
-            text: voiceText,
-            voice,
-            responseFormat: "mp3",
-            instructions: voiceInstructions,
-            preferredProvider,
-          },
-          {
-            signal: controller.signal,
-            onChunk: (received) => setVoiceBytes(received),
-          }
-        );
+      // Agent returns assistant text (the spoken summary) + audio as base64
+      const assistantText = result.transcript?.assistant_text || "";
+      setAgentResponse(assistantText);
+      setBriefingTranscript(assistantText);
 
-        setAudioUrl(result.audioUrl);
+      if (result.audio_base64 && result.audio_format) {
+        // Decode base64 audio
+        const binary = atob(result.audio_base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const blob = new Blob([bytes.buffer], { type: result.audio_format });
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
         setAudioReady(true);
+        setVoiceBytes(bytes.length);
         setVoiceMeta({
-          cacheHit: result.cacheHit,
+          cacheHit: result.cache_hit,
           provider: result.provider,
-          latencyMs: result.latencyMs,
-          charCount: result.charCount,
+          latencyMs: result.latency_ms,
+          charCount: assistantText.length,
         });
       }
 
@@ -289,11 +288,9 @@ export function AIOperatorStudio({
         });
       });
       toast.success(
-        voiceMeta?.cacheHit
+        result.cache_hit
           ? "Voice briefing served from cache — zero cost"
-          : voiceDirty
-            ? "Agent briefing generated"
-            : "Voice briefing generated"
+          : "Report briefing generated"
       );
     } catch (error) {
       if ((error as Error).name === "AbortError") {
@@ -569,15 +566,32 @@ export function AIOperatorStudio({
               </Button>
             </div>
 
-            {/* Agent response panel */}
-            {agentResponse && (
-              <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/[0.03] p-3">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Bot className="h-3 w-3 text-emerald-400" />
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400/70">Agent Response</p>
+            {/* Briefing transcript panel — shows the AI-generated spoken summary */}
+            {briefingTranscript && (
+              <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/[0.03] p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <Bot className="h-3.5 w-3.5 text-emerald-400" />
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400/70">Briefing Transcript</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {briefingTranscript.split(/\s+/).length} words · ~{Math.ceil(briefingTranscript.split(/\s+/).length / 150)} min
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowFullTranscript(!showFullTranscript)}
+                      className="text-[10px] text-emerald-400/70 hover:text-emerald-300 transition-colors"
+                    >
+                      {showFullTranscript ? "Collapse" : "Expand"}
+                    </button>
+                  </div>
                 </div>
-                <p className="text-xs leading-relaxed text-slate-300 line-clamp-6">
-                  {agentResponse}
+                <p className={cn(
+                  "text-xs leading-relaxed text-slate-300 transition-all duration-300",
+                  showFullTranscript ? "" : "line-clamp-6"
+                )}>
+                  {briefingTranscript}
                 </p>
               </div>
             )}

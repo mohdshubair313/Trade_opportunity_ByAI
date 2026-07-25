@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ExpandToggle } from "@/components/ui/ExpandToggle";
+import { OtpInput } from "@/components/auth/OtpInput";
 import { GradientText } from "@/components/animations/AnimatedText";
 import { GridBackground, Spotlight } from "@/components/animations/AnimatedBackground";
 import { login, register, sendOtp, verifyOtp } from "@/lib/api";
@@ -290,20 +291,22 @@ export default function LoginPage() {
                 className="space-y-5"
               >
                 <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Enter 6-Digit OTP Code
+                  <label className="block text-sm font-medium mb-3 text-center">
+                    Enter 6-Digit Verification Code
                   </label>
-                  <Input
-                    type="text"
-                    maxLength={6}
-                    placeholder="123456"
-                    icon={<KeyRound className="h-4 w-4 text-primary" />}
+                  <OtpInput
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                    className="text-center text-xl tracking-[0.5em] font-mono font-bold"
-                    autoFocus
+                    onChange={(val) => setOtpCode(val)}
+                    onComplete={(val) => {
+                      setOtpCode(val);
+                      // Auto-trigger verification when all 6 digits are entered
+                      if (val.length === 6 && !isLoading) {
+                        void handleVerifyAndRegister();
+                      }
+                    }}
+                    disabled={isLoading}
                   />
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-xs text-muted-foreground mt-3 text-center">
                     Check your email inbox or spam folder for the code. Valid for 5 minutes.
                   </p>
                 </div>

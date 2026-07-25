@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     openrouter_api_key: str = ""
     resend_api_key: str = ""
-    alert_from_email: str = "onboarding@resend.dev"
+    alert_from_email: str = "TradeInsight <otp@send.tradeinsight.shubair.in>"
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""
     razorpay_webhook_secret: str = ""
@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     openrouter_vision_model: str = "google/gemma-4-31b-it:free"
     openrouter_vision_fallback_models: str = "google/gemma-4-26b-a4b-it:free,baidu/qianfan-ocr-fast:free,openrouter/free"
     gemini_vision_model: str = "gemini-2.5-flash"
-    openrouter_tts_model: str = "openai/gpt-4o-mini-tts-2025-12-15"
+    openrouter_tts_model: str = "openai/tts-1"
     gemini_tts_model: str = "gemini-2.5-flash-preview-tts"
     tts_default_voice: str = "nova"
     tts_default_format: str = "mp3"
@@ -82,6 +82,9 @@ class Settings(BaseSettings):
     # expensive — every extra token compounds into more TTS audio. Tuned to
     # fit a 60-90s briefing comfortably.
     voice_response_max_chars: int = 1500
+    # Extended limit for report briefings (~5 minutes of speech at ~150 wpm).
+    # Only applies when mode == "briefing" and the prompt contains report content.
+    voice_briefing_max_chars: int = 6000
     # Silence detector — RMS energy threshold (0..1) and minimum voice frames
     # to count as a real utterance. Empty audio is rejected before STT runs.
     voice_vad_rms_threshold: float = 0.012
