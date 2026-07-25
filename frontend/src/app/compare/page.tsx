@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { compareSectors, CompareResponse, POPULAR_SECTORS } from "@/lib/api";
 import { GradientText } from "@/components/animations/AnimatedText";
+import { Sidebar } from "@/components/dashboard/Sidebar";
+import { TopNavbar } from "@/components/dashboard/TopNavbar";
 
 const DEFAULT_SECTORS = ["Technology", "Pharmaceuticals", "Banking"];
 
@@ -67,7 +69,7 @@ export default function ComparePage() {
     };
 
     return (
-        <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-8">
+        <div className="space-y-8">
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}

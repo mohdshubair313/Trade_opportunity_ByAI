@@ -35,16 +35,18 @@ import {
   analyzeVisionImage,
   VisionAnalysisResponse,
 } from "@/lib/api";
-import { synthesize, voiceQuery } from "@/lib/voice-client";
+import { synthesize, voiceQuery, listVoices, VoiceOption, VOICE_PROVIDER_MAP } from "@/lib/voice-client";
 import { cn } from "@/lib/utils";
 
 type VisionTask = "trade_chart" | "receipt" | "generic";
 
-const VOICES = [
-  { value: "nova", label: "Nova", mood: "Executive and balanced", icon: "👔" },
-  { value: "alloy", label: "Alloy", mood: "Calm analyst", icon: "🎯" },
-  { value: "onyx", label: "Onyx", mood: "Deep command-room tone", icon: "🎙" },
-  { value: "sage", label: "Sage", mood: "Measured and premium", icon: "📊" },
+const DEFAULT_VOICES: VoiceOption[] = [
+  { value: "thalia", label: "Thalia", mood: "Warm, clear Indian English", sample_text: "Namaste. Nifty opened flat today.", accent: "indian-english", locale: "en-IN", provider: "deepgram" },
+  { value: "zeus", label: "Zeus", mood: "Deep command-room tone", sample_text: "Risk first, conviction second.", accent: "indian-english", locale: "en-IN", provider: "deepgram" },
+  { value: "nova", label: "Nova", mood: "Executive and balanced", sample_text: "Good morning. Markets opened steady.", accent: "neutral", locale: "en-IN", provider: "openai" },
+  { value: "alloy", label: "Alloy", mood: "Calm analyst", sample_text: "On a relative-strength basis...", accent: "neutral", locale: "en-US", provider: "openai" },
+  { value: "onyx", label: "Onyx", mood: "Deep command-room tone", sample_text: "Risk first, conviction second.", accent: "deep", locale: "en-US", provider: "openai" },
+  { value: "kore", label: "Kore (Gemini)", mood: "Calm and measured", sample_text: "Let me check sector data.", accent: "neutral", locale: "en-IN", provider: "gemini" },
 ];
 
 function deriveBriefingScript(report: string, sector: string): string {
@@ -116,6 +118,7 @@ export function AIOperatorStudio({
     latencyMs: number;
     charCount: number;
   } | null>(null);
+  const [voiceCatalog, setVoiceCatalog] = useState<VoiceOption[]>(DEFAULT_VOICES);
   const [visionTask, setVisionTask] = useState<VisionTask>("trade_chart");
   const [visionQuestion, setVisionQuestion] = useState("");
   const [visionFile, setVisionFile] = useState<File | null>(null);
@@ -127,6 +130,20 @@ export function AIOperatorStudio({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const uploadRef = useRef<HTMLInputElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    listVoices()
+      .then((res) => {
+        if (!cancelled && res?.length > 0) {
+          setVoiceCatalog(res);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     // Only auto-generate the script if the user hasn't modified it yet
@@ -168,8 +185,8 @@ export function AIOperatorStudio({
   }, []);
 
   const selectedVoice = useMemo(
-    () => VOICES.find((item) => item.value === voice) ?? VOICES[0],
-    [voice]
+    () => voiceCatalog.find((item) => item.value === voice) ?? voiceCatalog[0],
+    [voice, voiceCatalog]
   );
 
   /**
@@ -199,6 +216,8 @@ export function AIOperatorStudio({
         setAudioUrl(null);
       }
 
+      const preferredProvider = selectedVoice?.provider || VOICE_PROVIDER_MAP[voice];
+
       if (voiceDirty) {
         // User wrote a custom prompt → route through voice agent for AI processing
         const promptWithStyle = voiceInstructions.trim() 
@@ -212,6 +231,7 @@ export function AIOperatorStudio({
             mode: "briefing",
             voice,
             responseFormat: "mp3",
+            preferredProvider,
           },
           controller.signal
         );
@@ -245,6 +265,7 @@ export function AIOperatorStudio({
             voice,
             responseFormat: "mp3",
             instructions: voiceInstructions,
+            preferredProvider,
           },
           {
             signal: controller.signal,
@@ -415,28 +436,51 @@ export function AIOperatorStudio({
             <div className="grid grid-cols-2 gap-3">
               {/* Voice selector — card picker */}
               <div className="col-span-2">
-                <label className="mb-2 block text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Voice</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {VOICES.map((v) => (
-                    <button
-                      key={v.value}
-                      type="button"
-                      onClick={() => setVoice(v.value)}
-                      className={cn(
-                        "rounded-xl border px-3 py-2.5 text-left transition-all duration-200",
-                        voice === v.value
-                          ? "border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_12px_rgba(34,197,94,0.1)]"
-                          : "border-white/8 bg-black/30 hover:border-white/15 hover:bg-white/[0.03]"
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">{v.icon}</span>
-                        <span className={cn("text-xs font-bold", voice === v.value ? "text-emerald-300" : "text-white")}>{v.label}</span>
-                        {voice === v.value && <Check className="h-3 w-3 text-emerald-400 ml-auto" />}
-                      </div>
-                      <p className="text-[10px] text-slate-500 mt-1 line-clamp-1">{v.mood}</p>
-                    </button>
-                  ))}
+                <div className="mb-2 flex items-center justify-between">
+                  <label className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">Select Voice & Accent</label>
+                  <span className="text-[10px] text-emerald-400/70 font-mono">{voiceCatalog.length} options available</span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {voiceCatalog.map((v) => {
+                    const providerTag = (v.provider || "openai").toUpperCase();
+                    const isDeepgram = v.provider === "deepgram";
+                    const isGemini = v.provider === "gemini";
+                    return (
+                      <button
+                        key={v.value}
+                        type="button"
+                        onClick={() => setVoice(v.value)}
+                        className={cn(
+                          "rounded-xl border px-3 py-2.5 text-left transition-all duration-200 relative group overflow-hidden",
+                          voice === v.value
+                            ? "border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_16px_rgba(34,197,94,0.15)]"
+                            : "border-white/8 bg-black/30 hover:border-white/15 hover:bg-white/[0.04]"
+                        )}
+                        title={v.sample_text || v.mood}
+                      >
+                        <div className="flex items-center justify-between gap-1.5 mb-1">
+                          <span className={cn("text-xs font-bold truncate", voice === v.value ? "text-emerald-300" : "text-white")}>
+                            {v.label}
+                          </span>
+                          <span className={cn(
+                            "text-[9px] px-1.5 py-0.2 rounded font-mono font-medium tracking-wider uppercase flex-shrink-0",
+                            isDeepgram ? "bg-amber-500/15 text-amber-300 border border-amber-500/30" :
+                            isGemini ? "bg-blue-500/15 text-blue-300 border border-blue-500/30" :
+                            "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                          )}>
+                            {providerTag}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 line-clamp-1">{v.mood}</p>
+                        {v.accent && (
+                          <p className="text-[9px] text-slate-500 mt-0.5 capitalize">{v.accent.replace("-", " ")}</p>
+                        )}
+                        {voice === v.value && (
+                          <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

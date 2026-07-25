@@ -41,6 +41,30 @@ class UserLogin(BaseModel):
     password: str = Field(..., min_length=6)
 
 
+class OTPSendRequest(BaseModel):
+    """Schema to request an email OTP."""
+    email: EmailStr = Field(..., description="Email address to send OTP to")
+
+
+class OTPSendResponse(BaseModel):
+    """Schema response after sending OTP."""
+    message: str
+    email: str
+    expires_in_minutes: int = 5
+
+
+class OTPVerifyRequest(BaseModel):
+    """Schema to verify an email OTP."""
+    email: EmailStr = Field(..., description="Email address")
+    code: str = Field(..., min_length=6, max_length=6, description="6-digit OTP code")
+
+
+class OTPVerifyResponse(BaseModel):
+    """Schema response after OTP verification."""
+    verified: bool
+    message: str
+
+
 PERSONA_VALUES = {"investor", "exporter", "sme_owner", "student", "consultant"}
 CAPITAL_VALUES = {"under_5L", "5L_50L", "50L_5Cr", "5Cr_plus"}
 RISK_VALUES = {"low", "medium", "high"}
@@ -459,6 +483,10 @@ class TTSRequest(BaseModel):
     response_format: str = Field("mp3", description="mp3 | pcm")
     speed: Optional[float] = Field(None, ge=0.25, le=4.0)
     instructions: Optional[str] = Field(None, max_length=200)
+    preferred_provider: Optional[str] = Field(
+        None,
+        description="Hint: prefer this TTS provider (gemini | openrouter | deepgram)",
+    )
 
     @validator("response_format")
     def _valid_response_format(cls, v):
@@ -481,6 +509,10 @@ class VoiceQueryRequest(BaseModel):
     history: Optional[List[Dict[str, str]]] = Field(
         default=None,
         description="Prior conversation turns: [{role, content}]",
+    )
+    preferred_provider: Optional[str] = Field(
+        None,
+        description="Hint: prefer this TTS provider (gemini | openrouter | deepgram)",
     )
 
     @validator("mode")
@@ -540,6 +572,7 @@ class VoiceVoiceOption(BaseModel):
     sample_text: str
     accent: Optional[str] = None
     locale: Optional[str] = None
+    provider: Optional[str] = None
 
 
 # ==================== Error Schemas ====================

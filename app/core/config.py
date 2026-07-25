@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     # ==================== API Keys ====================
     gemini_api_key: str = ""
     openrouter_api_key: str = ""
+    resend_api_key: str = ""
+    alert_from_email: str = "onboarding@resend.dev"
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""
     razorpay_webhook_secret: str = ""
@@ -157,7 +159,14 @@ class Settings(BaseSettings):
             normalised.append(entry)
 
         # Always allow local dev — makes debugging the live backend trivial.
-        for dev_origin in ("http://localhost:3000", "http://127.0.0.1:3000"):
+        for dev_origin in (
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:3001",
+            "http://127.0.0.1:3001",
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+        ):
             if dev_origin not in normalised:
                 normalised.append(dev_origin)
 

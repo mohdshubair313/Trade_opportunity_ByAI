@@ -9,6 +9,9 @@ import { ArrowLeft, Loader2, Sparkles, Activity, BarChart3, Network, MessageSqua
 import { Button } from "@/components/ui/Button";
 import { WatchButton } from "@/components/dashboard/WatchButton";
 
+import { Sidebar } from "@/components/dashboard/Sidebar";
+import { TopNavbar } from "@/components/dashboard/TopNavbar";
+
 const SectorVitals = dynamic(() => import("@/components/results/ResultsComponents").then(m => ({ default: m.SectorVitals })), { ssr: false });
 const CapitalFlowChart = dynamic(() => import("@/components/results/ResultsComponents").then(m => ({ default: m.CapitalFlowChart })), { ssr: false });
 const TrendProjection = dynamic(() => import("@/components/results/ResultsComponents").then(m => ({ default: m.TrendProjection })), { ssr: false });
@@ -52,7 +55,7 @@ function ResultsContent() {
     const isLoadingView = isAnalyzing || (!!idParam && !analysis && !error);
 
     return (
-        <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
+        <div className="space-y-8">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">

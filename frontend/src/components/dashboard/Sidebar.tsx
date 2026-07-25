@@ -20,10 +20,13 @@ import {
   Bell,
   GitCompareArrows,
   Mic,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useTheme } from "@/components/ui/ThemeProvider";
 import { listAlerts, getAnalysisHistory } from "@/lib/api";
 import { isAuthenticated as checkAuth } from "@/lib/api";
 
@@ -54,6 +57,7 @@ export function Sidebar() {
   const [analysisCount, setAnalysisCount] = useState(0);
   const { user, logout } = useAuth();
   const { favorites } = useFavorites();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     setSearch(window.location.search);
@@ -233,12 +237,28 @@ export function Sidebar() {
             </div>
           )}
           {!isCollapsed && (
-            <button
-              onClick={logout}
-              className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+                className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              >
+                {theme === "dark" ? (
+                  <Sun className="h-4 w-4 text-amber-400" />
+                ) : (
+                  <Moon className="h-4 w-4 text-slate-700" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={logout}
+                title="Log out"
+                className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
           )}
         </div>
       </div>

@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 import { useFavorites } from "@/hooks/useFavorites";
+import { Sidebar } from "@/components/dashboard/Sidebar";
+import { TopNavbar } from "@/components/dashboard/TopNavbar";
 
 export default function FavoritesPage() {
     const router = useRouter();
@@ -38,7 +40,7 @@ export default function FavoritesPage() {
     };
 
     return (
-        <div className="p-6 md:p-8 max-w-6xl mx-auto">
+        <div className="space-y-8">
             <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}

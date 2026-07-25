@@ -1,12 +1,7 @@
 "use client";
 
-import { Sidebar } from "@/components/dashboard/Sidebar";
+import { AppLayout } from "@/components/dashboard/AppLayout";
 
 export default function AlertsLayout({ children }: { children: React.ReactNode }) {
-    return (
-        <div className="flex min-h-screen bg-background">
-            <Sidebar />
-            <main className="flex-1 w-full">{children}</main>
-        </div>
-    );
+  return <AppLayout title="Alerts & Watchlist">{children}</AppLayout>;
 }

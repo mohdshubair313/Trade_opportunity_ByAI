@@ -115,6 +115,7 @@ export interface SynthesizeRequest {
   speed?: number;
   responseFormat?: VoiceFormat;
   instructions?: string;
+  preferredProvider?: string;
 }
 
 export interface SynthesizeResult {
@@ -143,6 +144,7 @@ export async function synthesize(
       speed: request.speed,
       response_format: request.responseFormat ?? "mp3",
       instructions: request.instructions,
+      preferred_provider: request.preferredProvider,
     }),
     signal: options.signal,
   });
@@ -191,6 +193,7 @@ export interface VoiceQueryRequest {
   responseFormat?: VoiceFormat;
   speed?: number;
   history?: Array<{ role: "user" | "assistant"; content: string }>;
+  preferredProvider?: string;
 }
 
 export async function voiceQuery(
@@ -211,6 +214,7 @@ export async function voiceQuery(
       response_format: request.responseFormat ?? "mp3",
       speed: request.speed,
       history: request.history,
+      preferred_provider: request.preferredProvider,
     }),
     signal,
   });

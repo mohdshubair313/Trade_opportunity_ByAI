@@ -42,18 +42,11 @@ const PILLARS = [
   },
 ] as const;
 
+import { TopNavbar } from "@/components/dashboard/TopNavbar";
+
 export default function VoicePage() {
   return (
-    <div className="flex min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.06),_transparent_55%),linear-gradient(180deg,#04070a,#06090d)]">
-      <Sidebar />
-      <main className="flex-1 px-4 py-6 sm:px-8 lg:px-12">
-        <Suspense fallback={null}>
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="mx-auto flex max-w-7xl flex-col gap-8"
-          >
+    <div className="space-y-8">
             <header className="flex flex-col gap-3">
               <Link
                 href="/dashboard"
@@ -108,9 +101,6 @@ export default function VoicePage() {
                 ))}
               </div>
             </section>
-          </motion.div>
-        </Suspense>
-      </main>
     </div>
   );
 }

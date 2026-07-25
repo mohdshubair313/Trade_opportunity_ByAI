@@ -32,6 +32,8 @@ from app.database import (
 from app.core.auth import (
     authenticate_user,
     register_user,
+    create_email_otp,
+    verify_email_otp,
     create_token_pair,
     refresh_access_token,
     change_password,
@@ -43,6 +45,7 @@ from app.core.auth import (
 from pydantic import ValidationError as PydanticValidationError
 from app.core.schemas import (
     UserCreate, UserLogin, UserResponse, UserUpdate, PasswordChange,
+    OTPSendRequest, OTPSendResponse, OTPVerifyRequest, OTPVerifyResponse,
     Token, TokenRefresh,
     AnalysisRequest, AnalysisResponse, AnalysisSource, AnalysisHistoryResponse, AnalysisHistoryItem,
     FavoriteAdd, FavoritesListResponse,
@@ -302,6 +305,60 @@ async def health_check():
 
 
 # ==================== Authentication Endpoints ====================
+
+@app.post("/api/v1/auth/send-otp", response_model=OTPSendResponse, tags=["Authentication"])
+@limiter.limit("5/minute")
+async def send_otp(
+    request: Request,
+    payload: OTPSendRequest,
+    db: Session = Depends(get_db_session)
+):
+    """
+    Send a 6-digit OTP code to the requested email address.
+    Expires in 5 minutes.
+    """
+    try:
+        create_email_otp(db, payload.email)
+        return OTPSendResponse(
+            message="Verification code sent to email. Please check your inbox.",
+            email=payload.email,
+            expires_in_minutes=5
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Send OTP error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send verification email"
+        )
+
+
+@app.post("/api/v1/auth/verify-otp", response_model=OTPVerifyResponse, tags=["Authentication"])
+@limiter.limit("10/minute")
+async def verify_otp(
+    request: Request,
+    payload: OTPVerifyRequest,
+    db: Session = Depends(get_db_session)
+):
+    """
+    Verify the 6-digit OTP code sent to an email address.
+    """
+    try:
+        verified = verify_email_otp(db, payload.email, payload.code)
+        return OTPVerifyResponse(
+            verified=verified,
+            message="Email verified successfully. You can now complete registration."
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Verify OTP error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="OTP verification failed"
+        )
+
 
 @app.post("/api/v1/auth/register", response_model=Token, tags=["Authentication"])
 @limiter.limit("5/minute")
@@ -1301,6 +1358,7 @@ async def synthesize_speech(
             speed=payload.speed,
             response_format=payload.response_format,
             instructions=payload.instructions,
+            preferred_provider=payload.preferred_provider,
         )
     except VoiceProviderError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
@@ -1415,6 +1473,7 @@ async def voice_query(
             speed=payload.speed,
             response_format=payload.response_format,
             slug=payload.sector or payload.mode,
+            preferred_provider=payload.preferred_provider,
         )
     except VoiceProviderError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))

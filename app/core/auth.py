@@ -13,7 +13,8 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.database import get_db_session, UserCRUD, RefreshTokenCRUD, User
+from app.database import get_db_session, UserCRUD, RefreshTokenCRUD, OTPCrud, User
+from app.integrations.otp_email import send_otp_email
 
 settings = get_settings()
 security = HTTPBearer(auto_error=False)
@@ -129,33 +130,115 @@ def authenticate_user(db: Session, username: str, password: str) -> Optional[Use
     return user
 
 
-def register_user(db: Session, username: str, email: str, password: str, full_name: str = None) -> User:
-    """Register a new user."""
+def create_email_otp(db: Session, email: str) -> str:
+    """Generate and deliver a 6-digit OTP to the specified email address."""
+    clean_email = email.lower().strip()
+    if UserCRUD.get_user_by_email(db, clean_email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered. Please sign in instead."
+        )
+
+    # Generate cryptographically secure 6-digit numeric OTP
+    otp_code = f"{secrets.randbelow(1000000):06d}"
+    
+    # Store in DB with 5-minute expiry
+    OTPCrud.create_otp(db, email=clean_email, code=otp_code, expires_in_minutes=5)
+    
+    # Send email
+    sent = send_otp_email(to_email=clean_email, otp_code=otp_code, expires_minutes=5)
+    if not sent:
+        logger.warning(f"Failed to dispatch OTP email to {clean_email}, fallback logged")
+        
+    return otp_code
+
+
+def verify_email_otp(db: Session, email: str, code: str) -> bool:
+    """Verify an email OTP code."""
+    clean_email = email.lower().strip()
+    otp = OTPCrud.get_latest_otp(db, clean_email)
+    
+    if not otp:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No pending verification code found for this email. Please request a new code."
+        )
+    
+    if otp.attempts >= 3:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Too many failed attempts. Please request a new verification code."
+        )
+
+    now = datetime.now(timezone.utc)
+    # Handle both timezone-aware and naive timestamps
+    expires_at = otp.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if now > expires_at:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification code has expired. Please request a new code."
+        )
+    
+    if otp.code != code.strip():
+        OTPCrud.increment_attempts(db, otp)
+        remaining = 3 - otp.attempts
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid verification code. {remaining} attempt(s) remaining."
+        )
+    
+    OTPCrud.mark_verified(db, otp)
+    return True
+
+
+def register_user(db: Session, username: str, email: str, password: str, full_name: str = None, require_otp: bool = True) -> User:
+    """Register a new user after email validation."""
+    clean_email = email.lower().strip()
+    clean_username = username.lower().strip()
+
     # Check if username exists
-    if UserCRUD.get_user_by_username(db, username.lower()):
+    if UserCRUD.get_user_by_username(db, clean_username):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already registered"
         )
     
     # Check if email exists
-    if UserCRUD.get_user_by_email(db, email.lower()):
+    if UserCRUD.get_user_by_email(db, clean_email):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
+
+    # Check if email was verified via OTP
+    if require_otp:
+        from app.database import OTPVerification
+        recent_verified = (
+            db.query(OTPVerification)
+            .filter(OTPVerification.email == clean_email, OTPVerification.verified == True)
+            .order_by(OTPVerification.id.desc())
+            .first()
+        )
+        if not recent_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email has not been verified. Please send and enter the OTP verification code first."
+            )
     
     # Create user
     hashed_password = get_password_hash(password)
     user = UserCRUD.create_user(
         db,
-        username=username.lower(),
-        email=email.lower(),
+        username=clean_username,
+        email=clean_email,
         hashed_password=hashed_password,
         full_name=full_name
     )
     
-    logger.info(f"New user registered: {username}")
+    logger.info(f"New user registered: {clean_username} ({clean_email})")
     return user
 
 

@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 export function MagicCard({
   children,
   className,
-  gradientSize = 200,
-  gradientColor = "rgba(34, 197, 94, 0.3)",
+  gradientSize = 250,
+  gradientColor = "rgba(34, 197, 94, 0.25)",
   ...props
 }: {
   children: React.ReactNode;
@@ -34,21 +34,21 @@ export function MagicCard({
     <motion.div
       ref={cardRef}
       className={cn(
-        "relative overflow-hidden rounded-xl bg-card border border-border p-6",
+        "relative overflow-hidden rounded-2xl bg-card/60 backdrop-blur-xl border border-border/80 p-5 transition-all duration-300 hover:border-emerald-500/40 hover:shadow-lg hover:shadow-emerald-500/5",
         className
       )}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ y: -3 }}
       transition={{ duration: 0.2 }}
       {...props}
     >
       {/* Gradient spotlight */}
       <motion.div
-        className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition-opacity duration-300"
+        className="pointer-events-none absolute -inset-px rounded-2xl opacity-0 transition-opacity duration-300"
         style={{
-          background: `radial-gradient(${gradientSize}px circle at ${mousePosition.x}px ${mousePosition.y}px, ${gradientColor}, transparent 60%)`,
+          background: `radial-gradient(${gradientSize}px circle at ${mousePosition.x}px ${mousePosition.y}px, ${gradientColor}, transparent 70%)`,
           opacity: isHovered ? 1 : 0,
         }}
       />

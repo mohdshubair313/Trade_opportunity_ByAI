@@ -2,7 +2,7 @@
 // slash defensively so that `https://api.example.com/` and `https://api.example.com`
 // both produce correct URLs when the route path starts with `/api/v1/…`.
 export const API_BASE_URL = (
-  (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") ?? ""
+  (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000") ?? ""
 ).replace(/\/+$/, "");
 
 // ==================== Token Management ====================
@@ -189,7 +189,11 @@ async function request<T>(
     if (err instanceof Error && err.name === "AbortError") {
       throw new Error("Request timed out");
     }
-    throw new Error(err instanceof Error ? err.message : "Network error");
+    const msg = err instanceof Error ? err.message : "";
+    if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("network")) {
+      throw new Error(`Unable to connect to backend server (${API_BASE_URL}). Please verify backend service is running.`);
+    }
+    throw new Error(msg || "Network error");
   }
 }
 
@@ -434,6 +438,25 @@ export async function analyzeVisionImage(
 }
 
 // ==================== Authentication API ====================
+
+export interface OTPSendResponse {
+  message: string;
+  email: string;
+  expires_in_minutes: number;
+}
+
+export interface OTPVerifyResponse {
+  verified: boolean;
+  message: string;
+}
+
+export async function sendOtp(email: string): Promise<OTPSendResponse> {
+  return post<OTPSendResponse>("/api/v1/auth/send-otp", { email });
+}
+
+export async function verifyOtp(email: string, code: string): Promise<OTPVerifyResponse> {
+  return post<OTPVerifyResponse>("/api/v1/auth/verify-otp", { email, code });
+}
 
 export async function register(data: RegisterRequest): Promise<TokenResponse> {
   const result = await post<TokenResponse>("/api/v1/auth/register", data);

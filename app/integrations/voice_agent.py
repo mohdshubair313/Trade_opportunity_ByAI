@@ -689,8 +689,14 @@ class VoiceAgent:
             min_voice_ms=settings.voice_vad_min_voice_ms,
             pad_ms=settings.voice_vad_pad_ms,
         )
-        self.router = ProviderRouter(["openrouter", "gemini", "deepgram"])
+        self.router = ProviderRouter(["gemini", "openrouter", "deepgram"])
         self._tts_timeout = httpx.Timeout(60.0, connect=10.0)
+
+        # Validate Deepgram key at startup — if invalid, mark unhealthy so it
+        # doesn't waste time on every request.
+        if not settings.deepgram_api_key:
+            self.router.record_failure("deepgram", "DEEPGRAM_API_KEY not set")
+            logger.info("voice agent: deepgram disabled (no API key)")
 
     # -- public API -------------------------------------------------------
 
@@ -703,6 +709,7 @@ class VoiceAgent:
         response_format: str = "mp3",
         instructions: Optional[str] = None,
         slug: str = "voice",
+        preferred_provider: Optional[str] = None,
     ) -> SynthesisResult:
         text = self._enforce_response_length(text)
         voice = voice or settings.tts_default_voice
@@ -735,11 +742,18 @@ class VoiceAgent:
                 )
 
         # Cache miss — synthesise fresh, with arbitrage fallback.
+        # If a preferred_provider is specified (e.g. frontend knows the voice
+        # belongs to Deepgram), try that provider first.
         order = (
-            self.router.order()
+            self.router.order(preferred=preferred_provider)
             if settings.voice_arbitrage_enabled
-            else ["gemini", "deepgram", "openrouter"]
+            else ["gemini", "openrouter", "deepgram"]
         )
+        if preferred_provider and not settings.voice_arbitrage_enabled:
+            # Even without arbitrage, honour the hint.
+            if preferred_provider in order:
+                order.remove(preferred_provider)
+                order.insert(0, preferred_provider)
         last_err: Optional[str] = None
         for provider_name in order:
             started = time.perf_counter()
@@ -1046,7 +1060,16 @@ class VoiceAgent:
         if not settings.deepgram_api_key:
             raise VoiceProviderError("DEEPGRAM_API_KEY not configured")
 
-        model = settings.deepgram_tts_model
+        # Map the voice value to a Deepgram model name.
+        # Deepgram Aura-2 voices use the format: aura-2-{voice}-en
+        deepgram_voice_map = {
+            "thalia": "aura-2-thalia-en",
+            "zeus": "aura-2-zeus-en",
+            "arcas": "aura-2-arcas-en",
+        }
+        voice_lower = (voice or "").strip().lower()
+        model = deepgram_voice_map.get(voice_lower, settings.deepgram_tts_model)
+
         payload = {"text": text}
         headers = {
             "Authorization": f"Token {settings.deepgram_api_key}",

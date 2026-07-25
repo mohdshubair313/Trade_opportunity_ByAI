@@ -11,6 +11,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { ExpandToggle } from "@/components/ui/ExpandToggle";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useStore } from "@/store/useStore";
@@ -118,6 +119,9 @@ export function Header() {
 
             {/* Right side */}
             <div className="flex items-center gap-3">
+              {/* Expand Light/Dark Mode Toggle */}
+              <ExpandToggle size="sm" />
+
               {isAuthenticated ? (
                 <div className="hidden md:flex items-center gap-3">
                   <div className="flex items-center gap-2 text-sm">

@@ -17,6 +17,8 @@ import {
     RiskAppetite,
 } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import { Sidebar } from "@/components/dashboard/Sidebar";
+import { TopNavbar } from "@/components/dashboard/TopNavbar";
 
 export default function SettingsPage() {
     const router = useRouter();
@@ -197,7 +199,7 @@ export default function SettingsPage() {
     if (!profile) return null;
 
     return (
-        <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-8">
+        <div className="space-y-8">
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}

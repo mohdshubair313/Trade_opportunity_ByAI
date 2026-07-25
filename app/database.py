@@ -282,6 +282,19 @@ class PaymentTransaction(Base):
     order = relationship("Order", back_populates="transactions")
 
 
+class OTPVerification(Base):
+    """Email OTP verification storage."""
+    __tablename__ = "otp_verifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), index=True, nullable=False)
+    code = Column(String(6), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    attempts = Column(Integer, default=0)
+    verified = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
 # Create all tables
 def init_db():
     """Initialize the database and create all tables."""
@@ -757,4 +770,54 @@ class PaymentTransactionCRUD:
             .filter(PaymentTransaction.razorpay_event_id == razorpay_event_id)
             .first()
         )
+
+
+class OTPCrud:
+    """CRUD operations for email OTP verification."""
+
+    @staticmethod
+    def create_otp(db: Session, email: str, code: str, expires_in_minutes: int = 5) -> OTPVerification:
+        clean_email = email.lower().strip()
+        # Invalidate/delete prior pending OTPs for this email
+        db.query(OTPVerification).filter(
+            OTPVerification.email == clean_email,
+            OTPVerification.verified == False
+        ).delete(synchronize_session=False)
+
+        now = datetime.now(timezone.utc)
+        expires_at = datetime.fromtimestamp(now.timestamp() + expires_in_minutes * 60, tz=timezone.utc)
+
+        otp = OTPVerification(
+            email=clean_email,
+            code=code,
+            expires_at=expires_at,
+            attempts=0,
+            verified=False,
+            created_at=now,
+        )
+        db.add(otp)
+        db.commit()
+        db.refresh(otp)
+        return otp
+
+    @staticmethod
+    def get_latest_otp(db: Session, email: str) -> Optional[OTPVerification]:
+        clean_email = email.lower().strip()
+        return (
+            db.query(OTPVerification)
+            .filter(OTPVerification.email == clean_email, OTPVerification.verified == False)
+            .order_by(OTPVerification.id.desc())
+            .first()
+        )
+
+    @staticmethod
+    def mark_verified(db: Session, otp: OTPVerification):
+        otp.verified = True
+        db.commit()
+
+    @staticmethod
+    def increment_attempts(db: Session, otp: OTPVerification):
+        otp.attempts += 1
+        db.commit()
+
 

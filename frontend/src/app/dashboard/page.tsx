@@ -10,8 +10,10 @@ import {
   Star,
   FileText,
   ArrowRight,
+  Activity,
 } from "lucide-react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
+import { TopNavbar } from "@/components/dashboard/TopNavbar";
 import { SectorSearch } from "@/components/dashboard/SectorSearch";
 import { StatsCard } from "@/components/ui/Card";
 import { MagicCard } from "@/components/animations/AnimatedCard";
@@ -110,22 +112,31 @@ function DashboardContent() {
   }, [searchParams, handleAnalyze]);
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-
-      <main className="flex-1 w-full">
-        <div className="p-6 md:p-8 max-w-6xl mx-auto">
-          {/* Header */}
+    <div className="space-y-8">
+          {/* Header & Greeting */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
+            className="mb-8 relative"
           >
-            <h1 className="text-3xl font-bold mb-2">
-              Market <GradientText>Intelligence</GradientText>
-            </h1>
-            <p className="text-muted-foreground">
-              Analyze any sector to discover trade opportunities in Indian markets
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-xs font-mono font-medium mb-3">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span>Indian Equity & Trade Feeds • Active</span>
+                </div>
+                <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+                  Market <GradientText>Intelligence Studio</GradientText>
+                </h1>
+              </div>
+
+              <div className="flex items-center gap-2 bg-card/80 backdrop-blur-md border border-border/80 rounded-2xl px-4 py-2 text-xs font-medium shadow-sm">
+                <Activity className="h-4 w-4 text-emerald-500 animate-pulse" />
+                <span>NSE / BSE Realtime AI Engine</span>
+              </div>
+            </div>
+            <p className="text-muted-foreground text-sm max-w-2xl">
+              AI-powered fundamental & regulatory analysis tailored for your portfolio. Type any sector name below to generate an executive briefing.
             </p>
           </motion.div>
 
@@ -293,8 +304,6 @@ function DashboardContent() {
               ))}
             </div>
           </div>
-        </div>
-      </main>
     </div>
   );
 }

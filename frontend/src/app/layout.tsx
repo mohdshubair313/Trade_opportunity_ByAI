@@ -95,6 +95,8 @@ export const viewport: Viewport = {
   ],
 };
 
+import { ThemeProvider } from "@/components/ui/ThemeProvider";
+
 export default function RootLayout({
   children,
 }: {
@@ -104,26 +106,28 @@ export default function RootLayout({
     <>
       <html lang="en" className={`dark ${inter.variable} ${instrumentSerif.variable}`}>
         <body className="min-h-screen bg-background font-sans antialiased">
-          <SmoothScroll />
-          <ScrollProgress />
-          {children}
-          <Toaster
-            position="bottom-right"
-            toastOptions={{
-              style: {
-                background: "hsl(var(--card))",
-                color: "hsl(var(--foreground))",
-                border: "1px solid hsl(var(--border))",
-              },
-              success: {
-                iconTheme: {
-                  primary: "hsl(var(--primary))",
-                  secondary: "white",
+          <ThemeProvider>
+            <SmoothScroll />
+            <ScrollProgress />
+            {children}
+            <Toaster
+              position="bottom-right"
+              toastOptions={{
+                style: {
+                  background: "hsl(var(--card))",
+                  color: "hsl(var(--foreground))",
+                  border: "1px solid hsl(var(--border))",
                 },
-              },
-            }}
-          />
-          <Analytics />
+                success: {
+                  iconTheme: {
+                    primary: "hsl(var(--primary))",
+                    secondary: "white",
+                  },
+                },
+              }}
+            />
+            <Analytics />
+          </ThemeProvider>
         </body>
       </html>
     </>
