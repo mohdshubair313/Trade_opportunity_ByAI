@@ -13,7 +13,6 @@ import {
   ArrowRight,
   AudioLines,
   Bot,
-  Check,
   Copy,
   Download,
   FileText,
@@ -131,7 +130,6 @@ export function AIOperatorStudio({
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [audioReady, setAudioReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [agentResponse, setAgentResponse] = useState<string | null>(null);
   const [voiceMeta, setVoiceMeta] = useState<{
     cacheHit: boolean;
     provider: string | null;
@@ -231,7 +229,6 @@ export function AIOperatorStudio({
       setVoiceBytes(0);
       setAudioReady(false);
       setVoiceMeta(null);
-      setAgentResponse(null);
       setBriefingTranscript(null);
       setShowFullTranscript(false);
       if (audioUrl) {
@@ -261,7 +258,6 @@ export function AIOperatorStudio({
 
       // Agent returns assistant text (the spoken summary) + audio as base64
       const assistantText = result.transcript?.assistant_text || "";
-      setAgentResponse(assistantText);
       setBriefingTranscript(assistantText);
 
       if (result.audio_base64 && result.audio_format) {

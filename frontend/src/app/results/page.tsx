@@ -8,10 +8,6 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Loader2, Sparkles, Activity, BarChart3, Network, MessageSquare, LineChart, Mic2, ScanSearch, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { WatchButton } from "@/components/dashboard/WatchButton";
-
-import { Sidebar } from "@/components/dashboard/Sidebar";
-import { TopNavbar } from "@/components/dashboard/TopNavbar";
-
 const SectorVitals = dynamic(() => import("@/components/results/ResultsComponents").then(m => ({ default: m.SectorVitals })), { ssr: false });
 const CapitalFlowChart = dynamic(() => import("@/components/results/ResultsComponents").then(m => ({ default: m.CapitalFlowChart })), { ssr: false });
 const TrendProjection = dynamic(() => import("@/components/results/ResultsComponents").then(m => ({ default: m.TrendProjection })), { ssr: false });

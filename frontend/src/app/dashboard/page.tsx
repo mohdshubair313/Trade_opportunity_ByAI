@@ -12,8 +12,6 @@ import {
   ArrowRight,
   Activity,
 } from "lucide-react";
-import { Sidebar } from "@/components/dashboard/Sidebar";
-import { TopNavbar } from "@/components/dashboard/TopNavbar";
 import { SectorSearch } from "@/components/dashboard/SectorSearch";
 import { StatsCard } from "@/components/ui/Card";
 import { MagicCard } from "@/components/animations/AnimatedCard";

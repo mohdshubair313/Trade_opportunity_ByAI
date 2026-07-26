@@ -12,8 +12,6 @@ import {
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 import { useFavorites } from "@/hooks/useFavorites";
-import { Sidebar } from "@/components/dashboard/Sidebar";
-import { TopNavbar } from "@/components/dashboard/TopNavbar";
 
 export default function FavoritesPage() {
     const router = useRouter();

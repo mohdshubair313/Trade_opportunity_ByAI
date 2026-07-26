@@ -26,8 +26,6 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate } from "@/lib/utils";
-import { Sidebar } from "@/components/dashboard/Sidebar";
-import { TopNavbar } from "@/components/dashboard/TopNavbar";
 
 export default function AlertsPage() {
     const router = useRouter();

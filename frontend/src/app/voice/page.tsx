@@ -1,11 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { ArrowLeft, BookOpen, Cpu, Layers, Mic, Sparkles, Waves, Zap } from "lucide-react";
 import Link from "next/link";
-import { Suspense } from "react";
 
-import { Sidebar } from "@/components/dashboard/Sidebar";
 import { VoiceAgentClient } from "@/components/voice/VoiceAgentClient";
 import { Badge } from "@/components/ui/Badge";
 
@@ -41,8 +38,6 @@ const PILLARS = [
       "Latency is sampled per provider every turn. The fastest healthy one wins; degraded ones go on cooldown.",
   },
 ] as const;
-
-import { TopNavbar } from "@/components/dashboard/TopNavbar";
 
 export default function VoicePage() {
   return (

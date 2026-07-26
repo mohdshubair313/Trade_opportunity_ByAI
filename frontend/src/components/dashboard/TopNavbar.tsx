@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { TrendingUp, User, LogOut, Bell, Sparkles } from "lucide-react";
+import { TrendingUp, User, LogOut } from "lucide-react";
 import { ExpandToggle } from "@/components/ui/ExpandToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";

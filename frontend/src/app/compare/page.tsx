@@ -18,8 +18,6 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { compareSectors, CompareResponse, POPULAR_SECTORS } from "@/lib/api";
 import { GradientText } from "@/components/animations/AnimatedText";
-import { Sidebar } from "@/components/dashboard/Sidebar";
-import { TopNavbar } from "@/components/dashboard/TopNavbar";
 
 const DEFAULT_SECTORS = ["Technology", "Pharmaceuticals", "Banking"];
 
