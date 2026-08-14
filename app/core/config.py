@@ -3,9 +3,13 @@ Application configuration using Pydantic Settings.
 Loads configuration from environment variables and .env file.
 """
 import os
+import logging
 from pydantic_settings import BaseSettings
+from pydantic import validator
 from functools import lru_cache
 from typing import List
+
+_config_logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -25,6 +29,27 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
+
+    @validator("secret_key", always=True)
+    def _require_real_secret(cls, v, values):
+        """Fail fast if the JWT secret is missing, empty, or a known placeholder."""
+        env = (values.get("environment") or "development").lower()
+        # In production the secret MUST be a strong random value.
+        _placeholder_markers = (
+            "change_this", "your_super_secure", "changeme", "secret_key_here",
+        )
+        is_placeholder = any(m in (v or "").lower() for m in _placeholder_markers)
+        if env == "production" and (not v or len(v) < 32 or is_placeholder):
+            raise ValueError(
+                "SECRET_KEY must be a cryptographically random string >= 32 characters "
+                "in production. Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        if not v:
+            _config_logger.warning(
+                "SECRET_KEY is empty — using an insecure fallback. "
+                "This is acceptable ONLY for local development."
+            )
+        return v
     
     # ==================== Rate Limiting ====================
     rate_limit_per_minute: int = 10
@@ -34,7 +59,7 @@ class Settings(BaseSettings):
     app_name: str = "Trade Opportunities API"
     version: str = "2.0.0"
     environment: str = "development"  # development, staging, production
-    debug: bool = True
+    debug: bool = False
     public_app_url: str = "http://localhost:3000"
     
     # ==================== CORS ====================
@@ -161,17 +186,19 @@ class Settings(BaseSettings):
                 entry = entry[:-1]
             normalised.append(entry)
 
-        # Always allow local dev — makes debugging the live backend trivial.
-        for dev_origin in (
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-            "http://localhost:3001",
-            "http://127.0.0.1:3001",
-            "http://localhost:8000",
-            "http://127.0.0.1:8000",
-        ):
-            if dev_origin not in normalised:
-                normalised.append(dev_origin)
+        # Only include localhost origins in non-production environments.
+        # In production, the frontend runs on Vercel and never needs localhost.
+        if self.environment.lower() != "production":
+            for dev_origin in (
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+                "http://localhost:3001",
+                "http://127.0.0.1:3001",
+                "http://localhost:8000",
+                "http://127.0.0.1:8000",
+            ):
+                if dev_origin not in normalised:
+                    normalised.append(dev_origin)
 
         return normalised
     

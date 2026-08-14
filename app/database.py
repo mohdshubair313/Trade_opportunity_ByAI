@@ -393,12 +393,24 @@ class UserCRUD:
         user.last_login = datetime.now(timezone.utc)
         db.commit()
     
+    # Allowlist of fields safe to update via the profile endpoint.
+    # Privileged fields (tier, is_premium, is_active, hashed_password)
+    # require ``_allow_privileged=True`` from internal callers.
+    SAFE_UPDATE_FIELDS = frozenset({
+        "full_name", "email", "persona", "capital_range",
+        "region", "risk_appetite",
+    })
+
     @staticmethod
-    def update_user(db: Session, user: User, **kwargs):
-        """Update user fields."""
+    def update_user(db: Session, user: User, _allow_privileged: bool = False, **kwargs):
+        """Update user fields with field-level access control."""
         for key, value in kwargs.items():
-            if hasattr(user, key):
-                setattr(user, key, value)
+            if not hasattr(user, key):
+                continue
+            if not _allow_privileged and key not in UserCRUD.SAFE_UPDATE_FIELDS:
+                logger.warning("Blocked update of protected field '%s' on user %s", key, user.id)
+                raise ValueError(f"Cannot update protected field: {key}")
+            setattr(user, key, value)
         user.updated_at = datetime.now(timezone.utc)
         db.commit()
         db.refresh(user)

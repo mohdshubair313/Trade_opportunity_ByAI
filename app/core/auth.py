@@ -84,7 +84,7 @@ def create_token_pair(user: User, db: Session) -> dict:
     """Create both access and refresh tokens."""
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
-        data={"sub": user.username, "user_id": user.id},
+        data={"sub": user.username},
         expires_delta=access_token_expires
     )
     
@@ -105,23 +105,22 @@ def authenticate_user(db: Session, username: str, password: str) -> Optional[Use
     Authenticate a user with username/email and password.
     Supports login with either username or email.
     """
-    # Try to find user by username first
+    # Try to find user by username first, then email.
+    # Use identical timing + log messages to prevent user enumeration.
     user = UserCRUD.get_user_by_username(db, username.lower())
-    
-    # If not found, try by email
     if not user:
         user = UserCRUD.get_user_by_email(db, username.lower())
     
     if not user:
-        logger.info(f"Login attempt for non-existent user: {username}")
+        logger.info("Failed login attempt (unknown identifier)")
         return None
     
     if not user.is_active:
-        logger.info(f"Login attempt for inactive user: {username}")
+        logger.info("Failed login attempt (inactive account)")
         return None
     
     if not verify_password(password, user.hashed_password):
-        logger.info(f"Failed login attempt for user: {username}")
+        logger.info("Failed login attempt (bad credentials)")
         return None
     
     # Update last login
@@ -237,6 +236,13 @@ def register_user(db: Session, username: str, email: str, password: str, full_na
         hashed_password=hashed_password,
         full_name=full_name
     )
+
+    # Mark all OTPs for this email as consumed so they can't be reused.
+    from app.database import OTPVerification
+    db.query(OTPVerification).filter(
+        OTPVerification.email == clean_email
+    ).delete(synchronize_session=False)
+    db.commit()
     
     logger.info(f"New user registered: {clean_username} ({clean_email})")
     return user
@@ -288,7 +294,7 @@ def change_password(db: Session, user: User, current_password: str, new_password
         )
     
     new_hashed = get_password_hash(new_password)
-    UserCRUD.update_user(db, user, hashed_password=new_hashed)
+    UserCRUD.update_user(db, user, _allow_privileged=True, hashed_password=new_hashed)
     
     # Revoke all existing refresh tokens for security
     RefreshTokenCRUD.revoke_all_user_tokens(db, user.id)
@@ -379,7 +385,11 @@ async def get_premium_user(
 # ==================== Seed Demo User ====================
 
 def seed_demo_user(db: Session):
-    """Create demo user if not exists."""
+    """Create demo user if not exists — ONLY in development."""
+    if settings.is_production:
+        logger.info("Skipping demo user seed in production environment")
+        return
+
     demo_username = "demo_user"
     demo_email = "demo@tradeinsight.ai"
     demo_password = "Demo@123"
@@ -393,4 +403,4 @@ def seed_demo_user(db: Session):
             hashed_password=hashed_password,
             full_name="Demo User"
         )
-        logger.info("Demo user created successfully")
+        logger.info("Demo user created (development only)")

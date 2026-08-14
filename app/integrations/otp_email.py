@@ -50,13 +50,21 @@ def send_otp_email(to_email: str, otp_code: str, expires_minutes: int = 5) -> bo
     )
 
     clean_to_email = to_email.lower().strip()
-    logger.info(f"🔑 [DEV OTP LOGGER] Target Email: {clean_to_email} | Code: {otp_code} (Expires in {expires_minutes}m)")
+
+    # Only log OTP codes in development — never in production logs.
+    if settings.environment.lower() in ("development", "test"):
+        logger.info(f"[DEV OTP] Target: {clean_to_email} | Code: {otp_code} (Expires {expires_minutes}m)")
+    else:
+        logger.info(f"Sending OTP to {clean_to_email}")
 
     if not resend_key:
-        logger.warning(f"[RESEND] RESEND_API_KEY not configured. Mocking OTP send to {clean_to_email}. Code: {otp_code}")
+        if settings.environment.lower() == "production":
+            logger.error("[RESEND] RESEND_API_KEY not configured in production! OTP cannot be delivered.")
+            return False
+        logger.warning(f"[RESEND] RESEND_API_KEY not configured. Mocking OTP send (dev only).")
         return True
 
-    subject = f"{otp_code} is your TradeInsight AI verification code"
+    subject = "Your TradeInsight AI verification code"
     html_content = render_otp_email_html(otp_code=otp_code, expires_minutes=expires_minutes)
 
     try:

@@ -19,11 +19,11 @@ if _redis_url:
         logger.warning("REDIS_URL is set but redis-py is not installed. Using in-memory rate limiter.")
         _redis_url = None
 
-# Initialize limiter
+# Initialize limiter (uses Redis when REDIS_URL is present, in-memory otherwise)
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["100/hour"],
-    # storage_uri=_redis_url,  # Uncomment after: pip install redis
+    storage_uri=_redis_url if _redis_url else None,
 )
 
 

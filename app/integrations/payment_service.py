@@ -611,11 +611,20 @@ class PaymentService:
         """Write failed webhook deliveries to a local JSONL file for replay."""
         target = Path(settings.webhook_dead_letter_path)
         target.parent.mkdir(parents=True, exist_ok=True)
+        # Redact sensitive headers before persisting
+        sensitive_headers = {"authorization", "cookie", "proxy-authorization", "x-api-key"}
+        safe_headers = {
+            k: ("[REDACTED]" if k.lower() in sensitive_headers else v)
+            for k, v in headers.items()
+        }
         record = {
             "captured_at": _utcnow().isoformat(),
-            "headers": headers,
+            "headers": safe_headers,
             "error_message": error_message,
             "payload": raw_payload.decode("utf-8", errors="replace"),
         }
-        with target.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(record, ensure_ascii=True) + "\n")
+        try:
+            with target.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(record, ensure_ascii=True) + "\n")
+        except OSError as exc:
+            logger.warning("Failed to write webhook dead letter to disk (%s)", exc)

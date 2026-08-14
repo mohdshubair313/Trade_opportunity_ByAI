@@ -148,7 +148,7 @@ for Indian sectors, powered by agentic AI.
 - 🚦 **Rate Limiting**: Fair usage policies
 
 ### Quick Start
-1. Register or use demo credentials: `demo_user` / `Demo@123`
+1. Register via `/api/v1/auth/register`
 2. Get your access token via `/api/v1/auth/login`
 3. Analyze sectors via `/api/v1/analyze/{sector}`
     """,
@@ -177,10 +177,23 @@ app.add_middleware(
     allow_origins=_allowed_origins,
     allow_origin_regex=settings.cors_origin_regex or None,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
+    expose_headers=["X-AI-Provider", "X-AI-Model", "X-Cache-Hit", "X-Latency-Ms", "X-Char-Count"],
 )
+
+
+# Security headers middleware — adds HSTS, X-Content-Type-Options, etc.
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    if settings.is_production:
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+    return response
 
 # Rate limiter
 app.state.limiter = limiter
@@ -232,13 +245,13 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    """General exception handler."""
+    """General exception handler — never leak internal details to clients."""
     logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
     return JSONResponse(
         status_code=500,
         content={
             "error": "Internal server error",
-            "message": "An unexpected error occurred" if settings.is_production else str(exc),
+            "message": "An unexpected error occurred",
             "code": "INTERNAL_ERROR"
         }
     )
@@ -820,7 +833,7 @@ async def analyze_sector(
         logger.error(f"Error analyzing sector {sector}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Analysis failed: {str(e)}"
+            detail="Analysis failed. Please try again later."
         )
 
 
@@ -1308,6 +1321,7 @@ async def analyze_image_with_ai(
     image: UploadFile = File(...),
     task: str = Form("trade_chart"),
     question: Optional[str] = Form(None),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Analyze a trade chart, receipt, or generic image with structured output."""
     if task not in {"trade_chart", "receipt", "generic"}:
@@ -1324,6 +1338,12 @@ async def analyze_image_with_ai(
 
     try:
         image_bytes = await image.read()
+        max_image_bytes = 10 * 1024 * 1024  # 10 MB limit
+        if len(image_bytes) > max_image_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="Image file too large. Maximum allowed size is 10 MB.",
+            )
         result = await multimodal_ai_service.analyze_image(
             image_bytes=image_bytes,
             mime_type=mime_type,
@@ -1344,6 +1364,7 @@ async def analyze_image_with_ai(
 async def synthesize_speech(
     request: Request,
     payload: TTSRequest,
+    current_user: User = Depends(get_current_active_user),
 ):
     """Synthesize speech with disk-backed cache + regional arbitrage.
 
@@ -1399,6 +1420,7 @@ async def transcribe_audio(
     request: Request,
     audio: UploadFile = File(...),
     language: Optional[str] = Form(None),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Transcribe an uploaded audio clip after VAD silence-trimming.
 
@@ -1409,6 +1431,13 @@ async def transcribe_audio(
     audio_bytes = await audio.read()
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="Empty audio payload")
+    # Guard against oversized uploads (default 20 MB from settings.stt_max_bytes)
+    max_audio_bytes = getattr(settings, 'stt_max_bytes', 20 * 1024 * 1024)
+    if len(audio_bytes) > max_audio_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Audio file too large. Max {max_audio_bytes // (1024*1024)} MB.",
+        )
     mime_type = (audio.content_type or "").lower()
     try:
         transcript, debug = await voice_agent_service.transcribe(
@@ -1446,6 +1475,7 @@ async def transcribe_audio(
 async def voice_query(
     request: Request,
     payload: VoiceQueryRequest,
+    current_user: User = Depends(get_current_active_user),
 ):
     """Text-driven voice agent turn: prompt → cached LLM reply → cached TTS.
 
@@ -1510,6 +1540,7 @@ async def voice_agent_turn(
     speed: Optional[float] = Form(None),
     history_json: Optional[str] = Form(None),
     language: Optional[str] = Form(None),
+    current_user: User = Depends(get_current_active_user),
 ):
     """Full conversational pipeline: STT → cached LLM → cached TTS.
 
@@ -1523,6 +1554,12 @@ async def voice_agent_turn(
     audio_bytes = await audio.read()
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="Empty audio payload")
+    max_audio_bytes = getattr(settings, "stt_max_bytes", 20 * 1024 * 1024)
+    if len(audio_bytes) > max_audio_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Audio file too large. Maximum allowed size is {max_audio_bytes // (1024 * 1024)} MB.",
+        )
 
     mime_type = (audio.content_type or "").lower()
     try:
@@ -1803,7 +1840,12 @@ async def submit_contact(
 async def get_cache_stats(
     current_user: User = Depends(get_current_active_user)
 ):
-    """Get cache statistics (requires authentication)."""
+    """Get cache statistics (requires enterprise tier)."""
+    if (current_user.tier or "free").lower() not in ("enterprise",):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin endpoints require enterprise tier.",
+        )
     cache = get_cache()
     return cache.get_stats()
 
@@ -1812,7 +1854,12 @@ async def get_cache_stats(
 async def clear_cache(
     current_user: User = Depends(get_current_active_user)
 ):
-    """Clear analysis cache (requires authentication)."""
+    """Clear analysis cache (requires enterprise tier)."""
+    if (current_user.tier or "free").lower() not in ("enterprise",):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin endpoints require enterprise tier.",
+        )
     AnalysisCache.invalidate_all()
     return {"message": "Cache cleared successfully"}
 
