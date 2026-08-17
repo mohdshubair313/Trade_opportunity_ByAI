@@ -14,7 +14,7 @@ import {
   clearTokens,
 } from "@/lib/api";
 import { useStore } from "@/store/useStore";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 export interface AuthState {
   isLoading: boolean;

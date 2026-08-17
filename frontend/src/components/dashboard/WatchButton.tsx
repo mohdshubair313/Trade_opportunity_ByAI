@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { Bell, BellOff, Loader2, Mail, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import {

@@ -19,7 +19,7 @@ import { POPULAR_SECTORS, getAvailableSectors, SectorInfo, getCurrentUser, isAut
 import { useFavorites } from "@/hooks/useFavorites";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { formatDate } from "@/lib/utils";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 function DashboardContent() {
   const searchParams = useSearchParams();

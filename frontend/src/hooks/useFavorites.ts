@@ -8,7 +8,7 @@ import {
     isAuthenticated,
 } from "@/lib/api";
 import { useStore } from "@/store/useStore";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 export function useFavorites() {
     const [isLoading, setIsLoading] = useState(false);

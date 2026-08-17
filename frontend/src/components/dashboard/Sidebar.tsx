@@ -216,36 +216,6 @@ export function Sidebar() {
         )}
       </nav>
 
-      {/* User */}
-      <div className="p-4 border-t border-hairline">
-        <div className={cn("flex items-center", isCollapsed ? "justify-center" : "gap-3")}>
-          <div className="w-8 h-8 rounded-xs bg-canvas-soft border border-hairline flex items-center justify-center flex-shrink-0">
-            <User className="h-4 w-4 text-primary" />
-          </div>
-          {!isCollapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-body-sm-strong text-ink truncate leading-tight">
-                {user?.username || "Guest"}
-              </p>
-              <p className="text-caption font-mono text-mute">
-                {!user?.username || user.username === "guest" ? "Guest Mode" : "PRO USER"}
-              </p>
-            </div>
-          )}
-          {!isCollapsed && (
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={logout}
-                title="Log out"
-                className="p-1.5 rounded-xs hover:bg-canvas-soft text-mute hover:text-ink transition-colors"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
     </motion.aside>
   );
 }

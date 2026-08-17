@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/Badge";
 import { cn, formatDate } from "@/lib/utils";
 import { AnalysisResponse, AnalysisSource, exportAnalysis, ExportFormat } from "@/lib/api";
 import { useFavorites } from "@/hooks/useFavorites";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 interface AnalysisReportProps {
   analysis: AnalysisResponse;

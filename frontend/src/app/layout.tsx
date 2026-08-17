@@ -1,21 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google";
-import { Toaster } from "react-hot-toast";
+import { Instrument_Serif } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
+import { Toaster } from "sonner";
 import { SmoothScroll } from "@/components/animations/SmoothScroll";
 import { ScrollProgress } from "@/components/animations/ScrollProgress";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next"
-
-// Inter at a focused weight range keeps the body text crisp without bloating
-// the font payload. Instrument Serif is the display face used for hero
-// headlines — a subtle serif accent that separates this site from the
-// generic "all Inter" tailwind starter look.
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-  weight: ["400", "500", "600", "700", "800"],
-});
 
 const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
@@ -23,12 +14,6 @@ const instrumentSerif = Instrument_Serif({
   display: "swap",
   weight: ["400"],
   style: ["normal", "italic"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains",
-  display: "swap",
 });
 
 // metadataBase is REQUIRED for production. Without it, the OG/Twitter image
@@ -110,29 +95,13 @@ export default function RootLayout({
 }) {
   return (
     <>
-      <html lang="en" className={`dark ${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}>
+      <html lang="en" className={`dark ${GeistSans.variable} ${instrumentSerif.variable} ${GeistMono.variable}`}>
         <body className="min-h-screen bg-background font-sans antialiased text-foreground">
           <ThemeProvider>
             <SmoothScroll />
             <ScrollProgress />
             {children}
-            <Toaster
-              position="bottom-right"
-              toastOptions={{
-                style: {
-                  background: "var(--card)",
-                  color: "var(--foreground)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
-                },
-                success: {
-                  iconTheme: {
-                    primary: "var(--primary)",
-                    secondary: "var(--background)",
-                  },
-                },
-              }}
-            />
+            <Toaster richColors theme="system" />
             <Analytics />
           </ThemeProvider>
         </body>

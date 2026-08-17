@@ -28,95 +28,57 @@ export function TopNavbar({ title }: { title?: string }) {
   const pageTitle = title || PAGE_TITLES[pathname] || "TradeInsight AI";
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-hairline bg-canvas px-4 lg:px-8 h-[56px] flex flex-col justify-center">
-      <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto h-8">
-        {/* Left: Brand & Page Title Breadcrumb */}
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-sm bg-canvas-soft border border-hairline flex items-center justify-center group-hover:bg-canvas transition-colors">
-              <TrendingUp className="h-4 w-4 text-primary" strokeWidth={2.5} />
-            </div>
-            <span className="font-bold tracking-tight text-body-md-strong text-ink hidden sm:block leading-none mt-0.5">
-              TradeInsight<span className="text-primary">.AI</span>
-            </span>
-          </Link>
-          <span className="text-hairline-soft text-body-sm hidden sm:inline leading-none mt-0.5">/</span>
-          <span className="text-body-sm-strong text-mute flex items-center leading-none mt-0.5">
-            {pageTitle}
-          </span>
+    <header className="sticky top-0 z-40 w-full border-b border-hairline bg-canvas/80 backdrop-blur-md px-4 lg:px-8 h-16 flex flex-col justify-center">
+      <div className="flex items-center justify-between gap-4 max-w-7xl w-full mx-auto">
+        {/* Left: Page Context */}
+        <div className="flex items-center">
+          <h1 className="text-body-lg-strong text-ink tracking-tight">{pageTitle}</h1>
         </div>
 
         {/* Right: Actions & Profile */}
         <div className="flex items-center gap-4">
-          {/* Quick links pill */}
-          <div className="hidden md:flex items-center gap-3 text-eyebrow-mono text-mute mr-2">
-            <Link
-              href="/dashboard"
-              className={cn(
-                "transition-colors hover:text-ink",
-                pathname === "/dashboard" && "text-primary"
-              )}
-            >
-              DASHBOARD
-            </Link>
-            <Link
-              href="/compare"
-              className={cn(
-                "transition-colors hover:text-ink",
-                pathname === "/compare" && "text-primary"
-              )}
-            >
-              COMPARE
-            </Link>
-            <Link
-              href="/pricing"
-              className={cn(
-                "transition-colors hover:text-ink",
-                pathname === "/pricing" && "text-primary"
-              )}
-            >
-              PRICING
-            </Link>
-          </div>
+
 
           {/* User profile & Logout */}
           {user ? (
-            <div className="flex items-center gap-3 pl-4 border-l border-hairline h-6">
+            <div className="flex items-center gap-2 bg-canvas-soft border border-hairline rounded-full p-1 shadow-sm">
               <button
                 onClick={toggleTheme}
-                className="w-6 h-6 flex items-center justify-center rounded-xs bg-canvas-soft border border-hairline text-mute hover:text-ink transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-canvas border border-transparent text-mute hover:text-ink hover:border-hairline transition-all"
                 title="Toggle Theme"
               >
-                {theme === "dark" ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>
-              <div className="flex items-center gap-2 ml-1">
-                <div className="w-6 h-6 rounded-xs bg-canvas-soft border border-hairline flex items-center justify-center">
-                  <User className="h-3 w-3 text-primary" />
+              
+              <div className="flex items-center gap-2 pl-2 pr-4 border-l border-hairline/50 ml-1">
+                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="h-3.5 w-3.5 text-primary" />
                 </div>
-                <span className="text-code-strong text-ink hidden sm:inline max-w-[100px] truncate leading-none mt-0.5">
+                <span className="text-body-sm-strong text-ink hidden sm:inline max-w-[100px] truncate">
                   {user.username}
                 </span>
               </div>
+              
               <button
                 type="button"
                 onClick={logout}
                 title="Sign out"
-                className="text-mute hover:text-ink transition-colors flex items-center justify-center"
+                className="w-8 h-8 flex items-center justify-center rounded-full text-mute hover:text-destructive hover:bg-destructive/10 transition-colors mr-1"
               >
                 <LogOut className="h-4 w-4" />
               </button>
             </div>
           ) : (
-            <div className="pl-4 border-l border-hairline h-6 flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-canvas-soft border border-hairline rounded-full p-1 shadow-sm">
               <button
                 onClick={toggleTheme}
-                className="w-6 h-6 flex items-center justify-center rounded-xs bg-canvas-soft border border-hairline text-mute hover:text-ink transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-canvas border border-transparent text-mute hover:text-ink hover:border-hairline transition-all"
                 title="Toggle Theme"
               >
-                {theme === "dark" ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>
-              <Link href="/login" className="flex items-center">
-                <span className="text-button-md px-md py-xs rounded-xs bg-primary text-on-primary hover:bg-primary-soft transition-colors leading-none">
+              <Link href="/login" className="flex items-center pr-1 pl-1">
+                <span className="text-button-md px-5 py-2 rounded-full bg-primary text-on-primary hover:bg-primary-soft active:scale-[0.97] transition-all duration-150 ease-out-strong shadow-sm leading-none flex items-center justify-center">
                   Sign In
                 </span>
               </Link>

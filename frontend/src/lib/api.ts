@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+
 // API base URL — configurable via NEXT_PUBLIC_API_URL. We strip any trailing
 // slash defensively so that `https://api.example.com/` and `https://api.example.com`
 // both produce correct URLs when the route path starts with `/api/v1/…`.
@@ -46,6 +48,10 @@ class ApiFetchError extends Error {
     this.name = "ApiFetchError";
     this.status = status;
     this.body = body;
+  }
+
+  toString() {
+    return this.message;
   }
 }
 
@@ -172,6 +178,9 @@ async function request<T>(
 
     if (!response.ok) {
       const message = await parseErrorBody(response);
+      if (typeof window !== "undefined") {
+        toast.error(message, { id: `api-error-${response.status}` });
+      }
       throw new ApiFetchError(message, response.status);
     }
 
