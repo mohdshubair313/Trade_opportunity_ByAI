@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
 import {

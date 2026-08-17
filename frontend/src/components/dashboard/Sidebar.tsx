@@ -15,14 +15,11 @@ import {
   ChevronRight,
   Sparkles,
   CreditCard,
-  LogOut,
-  User,
   Bell,
   GitCompareArrows,
   Mic,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth";
 import { useFavorites } from "@/hooks/useFavorites";
 import { listAlerts, getAnalysisHistory } from "@/lib/api";
 import { isAuthenticated as checkAuth } from "@/lib/api";
@@ -52,7 +49,6 @@ export function Sidebar() {
   const [search, setSearch] = useState("");
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const [analysisCount, setAnalysisCount] = useState(0);
-  const { user, logout } = useAuth();
   const { favorites } = useFavorites();
 
   useEffect(() => {

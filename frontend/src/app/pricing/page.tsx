@@ -12,12 +12,9 @@ import {
   Waves,
 } from "lucide-react";
 
-import { GridBackground } from "@/components/animations/AnimatedBackground";
-import { GradientText } from "@/components/animations/AnimatedText";
 import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
 import { PricingCheckoutGrid } from "@/components/payments/PricingCheckoutGrid";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 

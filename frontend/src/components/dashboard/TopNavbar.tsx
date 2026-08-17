@@ -3,10 +3,9 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { TrendingUp, User, LogOut, Sun, Moon } from "lucide-react";
+import { User, LogOut, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/components/ui/ThemeProvider";
-import { cn } from "@/lib/utils";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
