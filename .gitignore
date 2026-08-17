@@ -64,8 +64,6 @@ reports/local-test-logs/
 reports/voice_cache/
 reports/failed_webhooks/
 
-# opencode
+# Dev tooling configs
 opencode.json
-D:\Projects\Trade_opportunity_ByAI\qa_report.md
 qa_report.md
-check_db.py

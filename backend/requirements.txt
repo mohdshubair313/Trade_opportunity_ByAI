@@ -1,0 +1,65 @@
+# Trade Opportunities API - Python Requirements
+
+# Web Framework
+fastapi
+uvicorn[standard]
+
+# Database
+sqlalchemy
+aiosqlite
+psycopg[binary]
+
+# Authentication & Security
+python-jose[cryptography]
+bcrypt
+passlib
+
+# Validation
+pydantic
+pydantic-settings
+email-validator
+
+# HTTP Client
+httpx
+
+# Rate Limiting
+slowapi
+
+# Environment Variables
+python-dotenv
+
+# Data Collection
+ddgs
+
+# Google Gemini AI
+google-genai
+
+# Utilities
+python-multipart
+tenacity
+Pillow
+
+# Market data + sentiment
+yfinance
+curl_cffi
+vaderSentiment
+
+# Watchlist scheduler
+APScheduler
+
+# Agentic LLM routing
+openrouter
+
+# Cloud storage for report files (uploads to Supabase Storage bucket).
+# Optional — the app falls back to local disk when SUPABASE_* env vars
+# aren't set, so dev machines and docker-compose work without creds.
+supabase
+
+# Export formats
+reportlab
+markdown
+openpyxl
+python-pptx
+
+# Voice Agent (Twilio + Deepgram)
+websockets

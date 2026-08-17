@@ -12,30 +12,18 @@ Design Goals (readability-first for open-source contributors):
 Directory Layout::
 
     tests/
-    ├── conftest.py              # pytest fixtures (DB, client, auth, factories)
-    ├── factories.py             # model factories using factory_boy
-    ├── utils.py                 # helper functions for assertions & setup
+    ├── conftest.py              # pytest fixtures (DB, client, auth, tokens)
+    ├── pytest.ini               # pytest configuration
     ├── unit/                    # isolated unit tests (no DB / no HTTP)
     │   ├── test_schemas.py
     │   ├── test_auth.py
-    │   ├── test_cache.py
-    │   ├── test_rate_limiter.py
-    │   └── test_services.py
-    ├── integration/             # tests that hit the real FastAPI app + SQLite
-    │   ├── test_info_endpoints.py
-    │   ├── test_auth_endpoints.py
-    │   ├── test_user_endpoints.py
-    │   ├── test_analysis_endpoints.py
-    │   ├── test_favorites_endpoints.py
-    │   ├── test_compare_endpoints.py
-    │   ├── test_market_data_endpoints.py
-    │   ├── test_payments_endpoints.py
-    │   ├── test_voice_endpoints.py
-    │   ├── test_watchlist_endpoints.py
-    │   ├── test_alert_endpoints.py
-    │   └── test_contact_endpoints.py
-    └── e2e/                     # full-stack tests (frontend + backend)
-        └── test_full_user_journey.py
+    │   └── test_models_and_crud.py
+    └── integration/             # tests that hit the real FastAPI app + SQLite
+        ├── test_auth_endpoints.py
+        ├── test_user_endpoints.py
+        ├── test_info_endpoints.py
+        ├── test_favorites_endpoints.py
+        └── test_watchlist_alert_endpoints.py
 
 Quick Start::
 
@@ -65,13 +53,13 @@ from datetime import datetime, timezone
 import os
 import sys
 
-# Ensure app/ is in path
+# Ensure backend/ and root are in path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.main import app
-from app.database import Base, get_db_session
+from app.database import Base, User, UserCRUD, get_db_session
 from app.core.auth import get_password_hash
-from app.database import User, UserCRUD, get_db_session
 
 # ── Configuration ──────────────────────────────────────────────────────────
 

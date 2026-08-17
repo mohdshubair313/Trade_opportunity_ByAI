@@ -1,4 +1,4 @@
-<![CDATA[<div align="center">
+<div align="center">
 
 # 🧠 **TradeInsight AI**
 
@@ -47,15 +47,16 @@ TradeInsight AI is an **end-to-end market intelligence SaaS** for Indian equity 
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| **Framework** | **FastAPI 0.115** (Python 3.14) | Async-first REST API with auto OpenAPI docs |
+| **Framework** | **FastAPI 0.115** (Python 3.11/3.14) | Async-first REST API with auto OpenAPI docs |
 | **Validation** | **Pydantic v2** + `pydantic-settings` | Schema-driven request/response + env config |
-| **ORM** | **SQLAlchemy 2** | Declarative models with async session support |
+| **ORM** | **SQLAlchemy 2** | Declarative models with separated CRUD & async session support |
 | **Database** | **SQLite** (dev) / **PostgreSQL via Neon** (prod) | Dual-mode with automatic dialect switching |
-| **Auth** | **python-jose** + **bcrypt** + **passlib** | JWT access/refresh tokens with HMAC-SHA256 |
+| **Auth** | **python-jose** + **bcrypt** + **passlib** | JWT access/refresh tokens with HMAC-SHA256 & email OTP |
 | **Rate Limiting** | **SlowAPI** | IP-scoped rate limiting across all endpoints |
 | **Background Jobs** | **APScheduler** (BlockingScheduler) | Watchlist re-analysis worker with configurable cadence |
 | **HTTP Client** | **httpx** | Async HTTP for all outbound API calls |
 | **Retry Logic** | **tenacity** | Exponential backoff for transient failures |
+| **Testing** | **pytest** + `pytest-asyncio` + `httpx` | Full unit & integration test coverage |
 
 ### AI & LLM Layer — _The Intelligence_
 
@@ -99,48 +100,145 @@ TradeInsight AI is an **end-to-end market intelligence SaaS** for Indian equity 
 
 ---
 
-## 🏛️ Architecture — A Bird's-Eye View
+## 🏛️ Architecture & Clean Monorepo Structure
 
 ```
-                    ┌─────────────────────────────────────────────────┐
-                    │              INTERNET / CLIENT                   │
-                    └────────────────────┬────────────────────────────┘
-                                        │
-                        ┌───────────────┼───────────────┐
-                        ▼                               ▼
-              ┌──────────────────┐            ┌──────────────────┐
-              │   Next.js 14     │            │   Nginx (prod)   │
-              │   (Vercel Edge)  │            │   SSL + Proxy    │
-              │   Port 3000      │            │   Port 80/443    │
-              └────────┬─────────┘            └────────┬─────────┘
-                       │                               │
-                       └───────────────┬───────────────┘
-                                       ▼
-                            ┌──────────────────────┐
-                            │   FastAPI Backend     │
-                            │   (Uvicorn + asyncio) │
-                            │   Port 8000           │
-                            │                       │
-                            │  ┌─────────────────┐  │
-                            │  │  41 REST APIs   │  │
-                            │  │  + WebSocket    │  │
-                            │  └─────────────────┘  │
-                            └──────────┬───────────┘
-                                       │
-                   ┌───────────────────┼───────────────────┐
-                   ▼                   ▼                   ▼
-          ┌─────────────┐    ┌─────────────────┐    ┌────────────┐
-          │  SQLAlchemy  │    │   LLM Router    │    │  Worker    │
-          │  ORM Layer   │    │   (7 Models)    │    │ APScheduler│
-          │              │    │                 │    │            │
-          │  SQLite/     │    │  Gemini Flash   │    │ Watchlist  │
-          │  PostgreSQL  │    │  Gemma 4 31B    │    │ Scan Loop  │
-          │  (Neon)      │    │  Qwen3 Next     │    │ Diff Agent │
-          └──────────────┘    │  Llama 3.3 70B  │    │ Alerting   │
-                              │  Nemotron 30B   │    └────────────┘
-                              │  Hermes 405B    │
-                              └─────────────────┘
+Trade_opportunity_ByAI/
+│
+├── 📁 backend/                       # Backend Application (FastAPI + Python)
+│   ├── 📁 app/
+│   │   ├── 📁 api/                   # Modular API route controllers (APIRouter)
+│   │   │   ├── auth_routes.py        # OTP, Register, Login, Refresh, Logout
+│   │   │   ├── user_routes.py        # User Profile, Password, Usage Stats
+│   │   │   ├── analysis_routes.py    # AI Sector Analysis, History, Delete
+│   │   │   ├── favorites_routes.py   # User Favorites (Add, List, Remove)
+│   │   │   ├── compare_routes.py     # Multi-sector 2-5 Comparison
+│   │   │   ├── export_routes.py      # PDF, XLSX, PPTX, MD export
+│   │   │   ├── market_data_routes.py # Live NSE indices, Correlations, News
+│   │   │   ├── payment_routes.py     # Razorpay Checkout, Webhook, Orders
+│   │   │   ├── ai_routes.py          # Vision Analysis & TTS Speech
+│   │   │   ├── voice_routes.py       # STT & Real-time Conversational Voice Agent
+│   │   │   ├── watchlist_routes.py   # Scheduled Watchlists
+│   │   │   ├── alert_routes.py       # Market Change Triggered Alerts
+│   │   │   ├── contact_routes.py     # Sales & Support Inquiry
+│   │   │   ├── admin_routes.py       # Cache management & stats
+│   │   │   └── info_routes.py        # Root API info, Health, Sectors catalogue
+│   │   │
+│   │   ├── 📁 models/                # SQLAlchemy ORM database models
+│   │   │   ├── base.py               # Shared declarative Base
+│   │   │   ├── user.py               # User model & persona fields
+│   │   │   ├── analysis.py           # Analysis history model
+│   │   │   ├── favorite.py           # User favorites model
+│   │   │   ├── watchlist.py          # Watchlist sector subscription model
+│   │   │   ├── alert.py              # Alert events model
+│   │   │   ├── contact.py            # Sales/support messages model
+│   │   │   ├── auth.py               # RefreshToken & OTP models
+│   │   │   ├── inventory.py          # Subscription SKU pricing model
+│   │   │   ├── order.py              # Order & OrderItem models
+│   │   │   └── payment.py            # Payment transaction audit model
+│   │   │
+│   │   ├── 📁 crud/                  # Dedicated CRUD operations per entity
+│   │   │   ├── user_crud.py          # User CRUD with safe update fields
+│   │   │   ├── analysis_crud.py      # History queries & pagination
+│   │   │   ├── favorite_crud.py      # Favorite sectors management
+│   │   │   ├── watchlist_crud.py     # Watchlist schedule & cadence queries
+│   │   │   ├── alert_crud.py         # Alert trigger & acknowledgment
+│   │   │   ├── contact_crud.py       # Inbound lead persistence
+│   │   │   ├── auth_crud.py          # Token & OTP CRUD
+│   │   │   ├── inventory_crud.py     # Active SKU catalog lookup
+│   │   │   ├── order_crud.py         # Order creation & retrieval
+│   │   │   └── payment_crud.py       # Webhook idempotency records
+│   │   │
+│   │   ├── 📁 core/                  # Core infrastructure (Config, Auth, Schemas, Cache)
+│   │   │   ├── config.py             # Pydantic BaseSettings (auto-loads .env)
+│   │   │   ├── auth.py               # Password hashing, JWT creation & verification
+│   │   │   ├── schemas.py            # Complete request/response Pydantic models
+│   │   │   ├── cache.py              # In-memory per-user report cache
+│   │   │   └── rate_limiter.py       # SlowAPI IP rate limiter
+│   │   │
+│   │   ├── 📁 services/              # Pure business logic (no HTTP concerns)
+│   │   │   ├── research_agent.py     # Gemini grounded research + citation extraction
+│   │   │   ├── ai_analyzer.py        # Sector analysis orchestration
+│   │   │   ├── data_collector.py     # DuckDuckGo search + news scraper
+│   │   │   ├── sentiment.py          # VADER sentiment scoring
+│   │   │   ├── market_data.py        # yfinance NSE data + relative strength
+│   │   │   ├── compare_service.py    # Multi-sector ranking via LLM router
+│   │   │   ├── diff_engine.py        # Material-change detection between reports
+│   │   │   ├── export_service.py     # PDF/Excel/PPTX/Markdown generator
+│   │   │   └── report_generator.py   # Report metadata & formatting
+│   │   │
+│   │   ├── 📁 integrations/          # External service adapters
+│   │   │   ├── payment_service.py    # Razorpay orders, verification, webhooks
+│   │   │   ├── notifications.py      # Resend email delivery
+│   │   │   ├── storage.py            # Supabase / Cloud file storage facade
+│   │   │   ├── multimodal_ai.py      # Vision analysis + TTS synthesis
+│   │   │   ├── voice_agent.py        # Full STT→LLM→TTS pipeline + cost optimization
+│   │   │   ├── voice_agent_config.py # Voice agent configuration
+│   │   │   ├── voice_agent_server.py # Real-time voice agent server
+│   │   │   └── trade_functions.py    # Trading utility functions
+│   │   │
+│   │   ├── 📁 llm/                   # AI model orchestration
+│   │   │   ├── llm_router.py         # Agentic multi-model router with failover
+│   │   │   └── ai_harness/           # Model registry, telemetry, validators, context
+│   │   │
+│   │   ├── 📁 templates/             # HTML email templates (OTP, alerts)
+│   │   ├── main.py                   # Slim FastAPI app initialization & middleware
+│   │   ├── database.py               # Slim DB engine, session & backward compatibility
+│   │   └── worker.py                 # Standalone APScheduler watchlist worker
+│   │
+│   ├── 📄 Dockerfile                 # Backend container definition
+│   ├── 📄 requirements.txt           # Python dependencies
+│   └── 📄 .env.example               # Backend environment template
+│
+├── 📁 frontend/                      # Frontend Application (Next.js 14 + TypeScript)
+│   ├── 📁 src/
+│   │   ├── 📁 app/                   # App Router pages (18 static/dynamic routes)
+│   │   ├── 📁 components/            # Reusable UI components (landing, dashboard, voice, etc.)
+│   │   ├── 📁 hooks/                 # Custom React hooks (useAuth, useAnalysis, useFavorites)
+│   │   ├── 📁 lib/                   # API client (api.ts), voice-client.ts, utils.ts
+│   │   ├── 📁 store/                 # Zustand global store (useStore.ts)
+│   │   └── 📁 types/                 # TypeScript interfaces
+│   ├── 📁 public/                    # Frontend static assets
+│   ├── 📄 Dockerfile                 # Frontend container definition
+│   └── 📄 package.json               # Node.js dependencies
+│
+├── 📁 tests/                         # Automated Pytest Test Suite
+│   ├── 📁 unit/                      # Unit tests (schemas, auth, models, CRUD)
+│   ├── 📁 integration/               # API route integration tests with SQLite
+│   ├── conftest.py                   # Pytest fixtures & isolated in-memory DB session
+│   └── pytest.ini                    # Pytest configuration
+│
+├── 📁 docs/                          # Comprehensive Documentation
+│   ├── endpoints.md                  # Complete API endpoint reference
+│   ├── architecture.md               # Architecture & folder structure guide
+│   └── info.md                       # Comprehensive project deep-dive (this file)
+│
+├── 📁 scripts/                       # Developer utility scripts (e.g. check_db.py)
+├── 📁 reports/                       # Local development cache/reports (gitignored)
+├── 📄 docker-compose.yml             # Orchestration for Backend, Frontend, Worker, Nginx
+└── 📄 README.md                      # Project root documentation
 ```
+
+---
+
+## 💾 Storage & Reports Architecture (Cloud vs Local vs Database)
+
+### 1. `reports/` Directory
+- **Local Fallback Only**: In production (Docker, Render, Railway, Vercel), local container disks are **ephemeral** and get wiped on every redeploy.
+- The `reports/` folder is strictly used as a local fallback during development when cloud credentials are not supplied.
+
+### 2. Cloud Storage (Supabase Storage / Cloudinary / AWS S3)
+- When cloud storage is configured via `app/integrations/storage.py`, generated report files are uploaded to cloud storage buckets.
+- The user receives a secure download URL to download the raw markdown or exported documents (PDF, DOCX, PPTX).
+
+### 3. Database (`analyses` table) vs Cloud Storage
+- **Why keep `report` text in the Database?**
+  - **Instant Rendering**: When a user opens their History or Dashboard, the report text is loaded instantly in **1 query (10ms)** from the database.
+  - **Zero External Latency / Failure Risk**: If the report text were only in cloud storage, every history click would require a slow HTTP roundtrip to Cloudinary/Supabase (1-2s delay) and would fail if the storage provider experiences rate-limiting or network hiccup.
+  - **Minimal DB Size**: 1,000 markdown reports consume only **~10 MB** of database storage (less than 2% of free 500MB PostgreSQL tier on Neon/Supabase).
+- **Best Practice Standard**:
+  - Store the report markdown text in the database for instant UI rendering.
+  - Store the static file in Cloud storage for shareable download links and offline export.
 
 ---
 
@@ -320,54 +418,7 @@ TradeInsight AI doesn't do everything alone. Here's every external service it re
 
 ## 🧱 System Design — Deep Dive
 
-### 1. Modular Backend Architecture
-
-The backend follows a **layered architecture** with strict separation of concerns:
-
-```
-app/
-├── core/               ← Cross-cutting concerns
-│   ├── config.py       ← Pydantic BaseSettings (auto-loads .env)
-│   ├── auth.py         ← JWT auth, registration, password management
-│   ├── cache.py        ← In-memory cache keyed by (sector, user_id)
-│   ├── rate_limiter.py ← SlowAPI IP-scoped rate limiting
-│   └── schemas.py      ← ALL Pydantic request/response models
-│
-├── services/           ← Business logic (pure, no HTTP concerns)
-│   ├── research_agent.py   ← Gemini grounded research + citation extraction
-│   ├── ai_analyzer.py      ← Sector analysis orchestration
-│   ├── data_collector.py    ← DuckDuckGo search + formatting
-│   ├── sentiment.py         ← VADER sentiment scoring
-│   ├── market_data.py       ← yfinance NSE data + caching
-│   ├── compare_service.py   ← Multi-sector ranking via LLM router
-│   ├── diff_engine.py       ← Material-change detection between reports
-│   ├── export_service.py    ← PDF/Excel/PPTX/Markdown generation
-│   └── report_generator.py  ← Report metadata + formatting
-│
-├── llm/                ← AI model orchestration
-│   ├── llm_router.py       ← Agentic multi-model router with failover
-│   └── ai_harness/         ← Model registry, telemetry, validators, context
-│       ├── registry.py      ← Model profile registry
-│       ├── telemetry.py     ← Structured event logging + observability
-│       ├── validators.py    ← Output validation utilities
-│       └── context.py       ← Conversation context management
-│
-├── integrations/       ← External service adapters
-│   ├── payment_service.py       ← Razorpay orders, verification, webhooks
-│   ├── notifications.py         ← Resend email delivery
-│   ├── storage.py               ← Supabase/local file storage facade
-│   ├── multimodal_ai.py         ← Vision analysis + TTS synthesis
-│   ├── voice_agent.py           ← Full STT→LLM→TTS pipeline + cost optimization
-│   ├── voice_agent_config.py    ← Voice agent configuration
-│   ├── voice_agent_server.py    ← WebSocket server for real-time voice
-│   └── trade_functions.py       ← Trading utility functions
-│
-├── main.py             ← FastAPI app factory + all 41 route definitions
-├── database.py         ← SQLAlchemy models + CRUD classes
-└── worker.py           ← APScheduler watchlist background worker
-```
-
-### 2. The LLM Router — _The Smart Brain Switcher_
+### 1. The LLM Router — _The Smart Brain Switcher_
 
 The LLM router is the most sophisticated piece of the system. Instead of hardcoding one model, it uses **task profiles** that map different workloads to different model chains:
 
@@ -399,9 +450,9 @@ TaskProfile(
 - **Hermes 405B** → Agentic capabilities
 - **Gemini Flash** → 1M token context, native grounding (backstop)
 
-### 3. Database Design
+### 2. Database Design & Entity Relationships
 
-The system uses a **single-database, multi-table** design with SQLAlchemy declarative models:
+The system uses a **single-database, multi-table** design with SQLAlchemy declarative models located in `backend/app/models/`:
 
 ```
 ┌──────────────┐     ┌──────────────────┐     ┌───────────────┐
@@ -414,7 +465,7 @@ The system uses a **single-database, multi-table** design with SQLAlchemy declar
 │ is_premium   │     │ sources_analyzed │     ┌───────────────┐
 │ tier         │     │ timestamp        │     │   Watchlist    │
 │ persona      │     └──────────────────┘     │               │
-│ capital_range│                               │ user_id (FK)  │
+│ capital_range│                              │ user_id (FK)  │
 │ region       │     ┌──────────────────┐     │ sector        │
 │ risk_appetite│     │   Contact        │     │ cadence       │
 └──────────────┘     │                  │     │ channels      │
@@ -447,9 +498,9 @@ The system uses a **single-database, multi-table** design with SQLAlchemy declar
 - **Development:** SQLite (zero setup, `trade_opportunities_v2.db` file)
 - **Production:** PostgreSQL via Neon (serverless, PgBouncer pooling, 5-min idle drop, `psycopg` v3)
 
-### 4. The Worker — _The Night Watch_
+### 3. The Worker — _The Night Watch_
 
-A standalone APScheduler process runs alongside the API. Every configurable interval (default: 60s):
+A standalone APScheduler process (`backend/app/worker.py`) runs alongside the API. Every configurable interval (default: 60s):
 
 ```
   TICK                                          TICK
@@ -470,71 +521,34 @@ A standalone APScheduler process runs alongside the API. Every configurable inte
 
 The DiffAgent uses the LLM router's `diff` task profile to compare reports. If all models fail, a **deterministic heuristic** (text similarity ratio) ensures the tick never stalls.
 
-### 5. Authentication & Authorization
+### 4. Authentication & Authorization Flow
 
 ```
   ┌─────────────────────────────────────────────────────┐
-  │  JWT Token Flow                                      │
-  │                                                      │
-  │  Register/Login → access_token (30min)               │
-  │                 + refresh_token (7 days)              │
-  │                                                      │
-  │  Every request → Bearer token in Authorization header│
-  │  Expired? → /auth/refresh with refresh_token         │
-  │  Logout? → All refresh tokens revoked                │
+  │  JWT Token & OTP Flow                               │
+  │                                                     │
+  │  1. /auth/send-otp → 6-digit email verification code│
+  │  2. /auth/verify-otp → Validates OTP within 5 mins  │
+  │  3. /auth/register → Creates user & issues tokens   │
+  │  4. /auth/login → access_token (30m) + refresh (7d) │
+  │  5. /auth/refresh → Issues fresh access token       │
+  │  6. /auth/logout → Revokes all active refresh tokens│
   └─────────────────────────────────────────────────────┘
 
   ┌─────────────────────────────────────────────────────┐
   │  Tier-Based Access Control                           │
   │                                                      │
   │  Guest  → Only Technology + Pharmaceuticals sectors  │
-  │  Free   → 5 analyses/month, 1 watchlist slot         │
+  │  Free   → 50 analyses/month, 1 watchlist slot        │
   │  Pro    → 100 analyses/month, 20 watchlist slots,    │
   │           PPTX export                                │
   │  Enterprise → Unlimited everything                   │
   └─────────────────────────────────────────────────────┘
 ```
 
-### 6. Frontend Architecture
-
-```
-frontend/src/
-├── app/                        ← Next.js 14 App Router
-│   ├── page.tsx                ← Landing page (Hero, Features, CTA)
-│   ├── layout.tsx              ← Root layout (fonts, Toaster, Analytics)
-│   ├── dashboard/              ← Main dashboard (sector grid)
-│   ├── results/                ← Analysis report display
-│   ├── compare/                ← Multi-sector comparison
-│   ├── voice/                  ← Voice agent interface
-│   ├── pricing/                ← Razorpay checkout grid
-│   ├── settings/               ← User profile + preferences
-│   ├── login/                  ← Authentication
-│   ├── favorites/              ← Saved sectors
-│   ├── history/                ← Past analyses
-│   ├── alerts/                 ← Watchlist notifications
-│   └── contact/                ← Contact form
-│
-├── components/
-│   ├── landing/    ← Hero, Features, CTA, Footer, Header, HowItWorks,
-│   │                 Testimonials, LiveVisitors
-│   ├── dashboard/  ← Sidebar, AnalysisReport, WatchButton, SectorCard
-│   ├── voice/      ← VoiceOrb, VoiceAgentClient, VoiceAgentStream,
-│   │                 LiveWaveform, ConversationPanel, CostSavingsBadge
-│   ├── results/    ← ResultsComponents, AIOperatorStudio
-│   ├── payments/   ← PricingCheckoutGrid
-│   ├── ui/         ← Button, Card, Input, Badge, Skeleton (shared primitives)
-│   └── animations/ ← BorderBeam, AnimatedText, Marquee, SmoothScroll,
-│                     ScrollProgress
-│
-├── hooks/          ← useAuth, useFavorites, useAnalysis
-├── lib/            ← api.ts (centralized client), utils.ts, voice-client.ts
-├── store/          ← useStore.ts (Zustand global state)
-└── types/          ← razorpay.d.ts (TypeScript type declarations)
-```
-
 ---
 
-## 🐳 Deployment Architecture
+## 🐳 Deployment & Container Topology
 
 ```
 docker-compose.yml orchestrates 4 services:
@@ -544,12 +558,12 @@ docker-compose.yml orchestrates 4 services:
   │              (tradeinsight-network, bridge)             │
   │                                                        │
   │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │
-  │  │   Backend     │  │   Worker     │  │  Frontend    │ │
-  │  │   :8000       │  │  APScheduler │  │   :3000      │ │
-  │  │  FastAPI      │  │  Watchlists  │  │  Next.js     │ │
-  │  │  + Uvicorn    │  │  + Alerting  │  │  + SSR       │ │
+  │  │   Backend    │  │   Worker     │  │  Frontend    │ │
+  │  │   :8000      │  │  APScheduler │  │   :3000      │ │
+  │  │  ./backend   │  │  Watchlists  │  │  ./frontend  │ │
+  │  │  + Uvicorn   │  │  + Alerting  │  │  + Next.js   │ │
   │  │              ◄┼──┤ depends_on   │  │              │ │
-  │  │  healthcheck  │  │  (healthy)   │  │              │ │
+  │  │  healthcheck │  │  (healthy)   │  │              │ │
   │  └──────────────┘  └──────────────┘  └──────────────┘ │
   │                                                        │
   │  ┌──────────────────────────────────────────────────┐  │
@@ -560,15 +574,9 @@ docker-compose.yml orchestrates 4 services:
   └───────────────────────────────────────────────────────┘
 ```
 
-**Security hardening:**
-- Non-root user (`appuser`) in backend container
-- Health checks with 30s interval + 3 retries
-- `PYTHONDONTWRITEBYTECODE=1` + `PYTHONUNBUFFERED=1` for clean container logs
-- CORS regex for Vercel preview URLs
-
 ---
 
-## 📦 Export Pipeline
+## 📦 Multi-Format Export Pipeline
 
 Reports can be downloaded in 4 formats — all generated server-side with **pure Python** (no system dependencies):
 
@@ -581,36 +589,30 @@ Reports can be downloaded in 4 formats — all generated server-side with **pure
 
 ---
 
-## 🔮 What We're Expecting Next — _The Roadmap_
+## 🧪 Testing Suite Architecture
 
-The architecture is deliberately designed to support these upcoming features without major rewrites:
+The project maintains an automated **Pytest test suite** with 100% pass rate:
 
-### Near-Term (Designed For)
-| Feature | How It Fits |
-|---|---|
-| **WhatsApp Alerts** | `notifications.py` already has a `Notifier` protocol — drop in a Gupshup/Twilio adapter |
-| **WebSocket Voice Streaming** | `voice_agent_server.py` is already built; `voice-client.ts` has the WebSocket client ready |
-| **Persona-Tuned Reports** | `research_agent.py` already has `_PERSONA_FRAMES` — user profile drives report framing |
-| **Magazine-Quality PDFs** | `export_service.py` can swap `reportlab` → `weasyprint` when deployed on fuller containers |
-| **Gemini Batch Sentiment** | `sentiment.py` is pluggable — swap VADER for batch Gemini scoring without changing call sites |
+```
+tests/
+├── conftest.py              # In-memory SQLite DB fixtures, mock client & auth tokens
+├── pytest.ini               # Global test configuration and marker definitions
+├── unit/                    # Isolated tests (no DB / no HTTP)
+│   ├── test_schemas.py      # Pydantic schema validation tests
+│   ├── test_auth.py         # Password hashing & JWT token unit tests
+│   └── test_models_and_crud.py # ORM models & CRUD operations tests
+└── integration/             # FastAPI endpoint tests with SQLite rollback
+    ├── test_auth_endpoints.py            # OTP -> Register -> Login -> Refresh flow
+    ├── test_user_endpoints.py            # Profile, stats, and settings tests
+    ├── test_info_endpoints.py            # Root, health, and sectors list tests
+    ├── test_favorites_endpoints.py       # Favorites CRUD & contact form tests
+    └── test_watchlist_alert_endpoints.py # Watchlist scheduling & alerts tests
+```
 
-### Medium-Term (Architecture Supports)
-| Feature | Why It's Easy |
-|---|---|
-| **Real-time WebSocket Push** | FastAPI natively supports WebSocket; alerts can push instead of poll |
-| **Multi-language Reports** | LLM router can add a translation chain; voice agent already supports language param |
-| **Portfolio Tracking** | Database schema is extensible; watchlists + market data provide the data layer |
-| **Custom AI Models** | LLM router's `CATALOGUE` dict is hot-swappable; add any OpenRouter or Gemini model |
-| **Team/Organization Accounts** | User model has tier scaffolding; add org-level scoping to cache + watchlists |
-
-### Long-Term (Vision)
-| Feature | The Dream |
-|---|---|
-| **Real-time Streaming Analysis** | SSE/WebSocket stream reports as they're generated token-by-token |
-| **Mobile App** | React Native frontend consuming the same API |
-| **Algorithmic Signal Generation** | Market data + sentiment + AI analysis → automated buy/sell signals |
-| **Regulatory Compliance Engine** | Track SEBI/RBI regulatory changes affecting sectors |
-| **Community Intelligence** | Aggregate anonymized user watchlist data for crowd sentiment |
+To run all tests:
+```bash
+pytest -v
+```
 
 ---
 
@@ -618,13 +620,13 @@ The architecture is deliberately designed to support these upcoming features wit
 
 | Metric | Value |
 |---|---|
-| **Total API Endpoints** | 41 (including legacy) |
+| **Total API Endpoints** | 41 (modularized via `app/api/`) |
 | **Supported Sectors** | 20+ Indian equity sectors |
 | **AI Models Available** | 7 (across 2 providers) |
 | **Export Formats** | 4 (PDF, XLSX, PPTX, MD) |
 | **Container Services** | 4 (backend, worker, frontend, nginx) |
 | **External Services** | 8 (Gemini, OpenRouter, Deepgram, Razorpay, Resend, Supabase, Neon, Yahoo Finance) |
-| **Frontend Components** | 25+ (across 7 component groups) |
+| **Automated Tests** | 23 unit & integration tests (100% passing) |
 | **Analysis Fallback Layers** | 4 (grounded → DDG → OpenRouter → mock) |
 | **Auth Token Expiry** | 30min access / 7-day refresh |
 | **Report Generation Time** | ~15s (cached: ~2s) |
@@ -642,4 +644,3 @@ The architecture is deliberately designed to support these upcoming features wit
 **TradeInsight AI** · Made in India 🇮🇳 · Powered by Agentic AI
 
 </div>
-]]>
