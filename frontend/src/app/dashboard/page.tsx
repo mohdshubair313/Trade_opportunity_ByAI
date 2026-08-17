@@ -14,8 +14,7 @@ import {
 } from "lucide-react";
 import { SectorSearch } from "@/components/dashboard/SectorSearch";
 import { StatsCard } from "@/components/ui/Card";
-import { MagicCard } from "@/components/animations/AnimatedCard";
-import { GradientText, NumberTicker } from "@/components/animations/AnimatedText";
+import { NumberTicker } from "@/components/animations/AnimatedText";
 import { POPULAR_SECTORS, getAvailableSectors, SectorInfo, getCurrentUser, isAuthenticated, getAnalysisHistory, AnalysisHistoryItem } from "@/lib/api";
 import { useFavorites } from "@/hooks/useFavorites";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
@@ -117,40 +116,40 @@ function DashboardContent() {
             animate={{ opacity: 1, y: 0 }}
             className="mb-8 relative"
           >
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-2">
               <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-xs font-mono font-medium mb-3">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span>Indian Equity & Trade Feeds • Active</span>
+                <div className="inline-flex items-center gap-2 px-sm py-xxs rounded-xs border border-hairline bg-canvas-soft text-primary text-eyebrow-mono mb-3">
+                  <span className="w-2 h-2 rounded-xs bg-primary animate-ping" />
+                  <span>Trade Feeds • Active</span>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-                  Market <GradientText>Intelligence Studio</GradientText>
+                <h1 className="text-display-lg text-ink-strong tracking-tight">
+                  Market Intelligence Studio
                 </h1>
+                <p className="text-body-md text-mute mt-3 max-w-2xl">
+                  AI-powered fundamental & regulatory analysis tailored for your portfolio. Type any sector name below to generate an executive briefing.
+                </p>
               </div>
 
-              <div className="flex items-center gap-2 bg-card/80 backdrop-blur-md border border-border/80 rounded-2xl px-4 py-2 text-xs font-medium shadow-sm">
-                <Activity className="h-4 w-4 text-emerald-500 animate-pulse" />
+              <div className="flex items-center gap-2 bg-canvas-soft border border-hairline rounded-xs px-md py-sm text-code-strong text-ink shadow-none">
+                <Activity className="h-4 w-4 text-primary animate-pulse" />
                 <span>NSE / BSE Realtime AI Engine</span>
               </div>
             </div>
-            <p className="text-muted-foreground text-sm max-w-2xl">
-              AI-powered fundamental & regulatory analysis tailored for your portfolio. Type any sector name below to generate an executive briefing.
-            </p>
           </motion.div>
 
           {needsPersona && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 flex items-center justify-between gap-4 p-4 rounded-xl border border-primary/40 bg-primary/5"
+              className="mb-6 flex items-center justify-between gap-4 p-xl rounded-md border border-hairline bg-canvas-soft"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-sm bg-canvas border border-hairline flex items-center justify-center flex-shrink-0">
                   <Sparkles className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Tell us who you are — reports will be written for you.</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-body-sm-strong text-ink">Tell us who you are — reports will be written for you.</p>
+                  <p className="text-body-sm text-mute mt-0.5">
                     An investor sees entry/exit zones; an exporter sees HS codes and tariffs. 30 seconds.
                   </p>
                 </div>
@@ -158,13 +157,13 @@ function DashboardContent() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setNeedsPersona(false)}
-                  className="text-xs text-muted-foreground hover:text-foreground px-2"
+                  className="text-body-sm text-mute hover:text-ink px-2"
                 >
                   Later
                 </button>
                 <button
                   onClick={() => router.push("/settings")}
-                  className="text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors"
+                  className="text-button-md bg-primary text-on-primary px-lg py-sm rounded-sm hover:bg-primary-soft transition-colors"
                 >
                   Set up
                 </button>
@@ -220,14 +219,14 @@ function DashboardContent() {
               dashboard when both signed in on the same browser. */}
           {remoteHistory.length > 0 && (
             <div className="mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold flex items-center gap-2">
+              <div className="flex items-center justify-between mb-4 border-b border-hairline pb-3">
+                <h2 className="text-display-sm text-ink-strong flex items-center gap-2">
                   <Clock className="h-5 w-5 text-primary" />
                   Recent Analyses
                 </h2>
                 <button
                   onClick={() => router.push("/history")}
-                  className="text-xs text-primary hover:underline font-medium"
+                  className="text-body-sm-strong text-primary hover:underline"
                 >
                   View all →
                 </button>
@@ -240,44 +239,43 @@ function DashboardContent() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <MagicCard
-                      className="cursor-pointer"
+                    <div
+                      className="cursor-pointer border border-hairline rounded-md bg-canvas p-xl hover:bg-canvas-soft transition-colors shadow-none"
                       onClick={() => openStored(item.id, item.sector)}
                     >
                       <div className="flex items-start justify-between mb-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-sm bg-canvas-soft border border-hairline flex items-center justify-center">
                           <FileText className="h-5 w-5 text-primary" />
                         </div>
                         {isFavorite(item.sector) && (
-                          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                          <Star className="h-4 w-4 text-primary fill-primary" />
                         )}
                       </div>
-                      <h3 className="font-semibold capitalize mb-1">
+                      <h3 className="text-display-sm capitalize mb-1 text-ink-strong">
                         {item.sector}
                       </h3>
-                      <p className="text-sm text-muted-foreground mb-3">
+                      <p className="text-body-sm text-body mb-3">
                         {item.sources_analyzed} sources analyzed
                       </p>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between text-caption font-mono text-mute">
                         <span>{formatDate(item.created_at)}</span>
-                        <ArrowRight className="h-3 w-3" />
+                        <ArrowRight className="h-3 w-3 text-primary" />
                       </div>
-                    </MagicCard>
+                    </div>
                   </motion.div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Popular Sectors */}
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
+            <div className="flex items-center justify-between mb-4 border-b border-hairline pb-3">
+              <h2 className="text-display-sm text-ink-strong flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" />
                 Popular Sectors
               </h2>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {sectors.slice(0, 10).map((sector, index) => (
                 <motion.button
                   key={sector.name}
@@ -285,19 +283,19 @@ function DashboardContent() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3 + index * 0.05 }}
                   whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => handleAnalyze(sector.name)}
-                  className="p-4 rounded-xl border border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition-all text-left group"
+                  className="p-xl rounded-md border border-hairline bg-canvas hover:bg-canvas-soft transition-all text-left group"
                   title={sector.description || undefined}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2 group-hover:bg-primary/20 transition-colors">
+                  <div className="w-8 h-8 rounded-sm bg-canvas-soft border border-hairline flex items-center justify-center mb-2 group-hover:bg-canvas transition-colors">
                     {sector.icon && sector.icon !== "✨" ? (
-                      <span className="text-base leading-none">{sector.icon}</span>
+                      <span className="text-body-md leading-none">{sector.icon}</span>
                     ) : (
                       <Sparkles className="h-4 w-4 text-primary" />
                     )}
                   </div>
-                  <span className="text-sm font-medium">{sector.name}</span>
+                  <span className="text-body-sm-strong text-ink">{sector.name}</span>
                 </motion.button>
               ))}
             </div>

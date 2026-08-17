@@ -152,12 +152,14 @@ export function PricingCheckoutGrid({
   const { isAuthenticated, userProfile, refreshUserProfile } = useAuth();
   const [catalog, setCatalog] = useState<Record<string, PaymentCatalogItem>>({});
   const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const [activePlan, setActivePlan] = useState<string | null>(null);
   const [liveStatus, setLiveStatus] = useState<string>("Orders reconcile on the backend after signature verification.");
 
   useEffect(() => {
     let cancelled = false;
     setCatalogLoading(true);
+    setCatalogError(null);
     listPaymentCatalog()
       .then((items) => {
         if (cancelled) return;
@@ -166,7 +168,9 @@ export function PricingCheckoutGrid({
       })
       .catch((error) => {
         if (cancelled) return;
-        toast.error(error instanceof Error ? error.message : "Unable to load plans");
+        const msg = error instanceof Error ? error.message : "Unable to load plans";
+        setCatalogError(msg);
+        toast.error(msg);
       })
       .finally(() => {
         if (!cancelled) {
@@ -331,37 +335,36 @@ export function PricingCheckoutGrid({
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-[2rem] border border-emerald-500/20 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),transparent_38%),linear-gradient(160deg,rgba(8,12,16,0.96),rgba(9,18,24,0.94))] p-6 md:p-8"
+        className="relative overflow-hidden rounded-sm border border-hairline bg-canvas-soft p-xl"
       >
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.05),transparent)] opacity-40" />
-        <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <div className="relative flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
           <div className="max-w-2xl">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Badge variant="glow">
-                <ShieldCheck className="mr-1 h-3 w-3" />
-                Razorpay-secured checkout
-              </Badge>
-              <Badge variant="outline">
-                <Waves className="mr-1 h-3 w-3" />
-                Webhook-backed reconciliation
-              </Badge>
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <div className="inline-flex items-center gap-2 px-sm py-xxs rounded-xs border border-hairline bg-canvas text-primary text-eyebrow-mono">
+                <ShieldCheck className="h-3 w-3" />
+                <span>Razorpay-Secured Checkout</span>
+              </div>
+              <div className="inline-flex items-center gap-2 px-sm py-xxs rounded-xs border border-hairline bg-canvas text-primary text-eyebrow-mono">
+                <Waves className="h-3 w-3" />
+                <span>Webhook Reconciliation</span>
+              </div>
             </div>
-            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl [font-family:var(--font-display)]">
+            <h2 className="text-display-sm text-ink-strong tracking-tight">
               Upgrade in one flow. Activate on server truth.
             </h2>
-            <p className="mt-3 max-w-xl text-sm text-slate-300 md:text-base">
+            <p className="mt-3 max-w-xl text-body text-mute">
               Every upgrade creates a backend order first, verifies the Razorpay signature,
               and only flips your account after settlement is confirmed.
             </p>
           </div>
 
-          <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200 backdrop-blur">
+          <div className="grid gap-3 rounded-sm border border-hairline bg-canvas p-md text-body-sm text-ink font-mono">
             <div className="flex items-center gap-2">
-              <CircleDollarSign className="h-4 w-4 text-emerald-400" />
-              <span>Current tier: <strong className="text-white">{currentTier}</strong></span>
+              <CircleDollarSign className="h-4 w-4 text-primary" />
+              <span>Current tier: <strong className="text-ink-strong">{currentTier}</strong></span>
             </div>
             <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-emerald-400" />
+              <ShieldCheck className="h-4 w-4 text-primary" />
               <span>{liveStatus}</span>
             </div>
           </div>
@@ -374,8 +377,12 @@ export function PricingCheckoutGrid({
           const sku = billingPeriod === "annual" ? plan.annualSku : plan.monthlySku;
           const item = sku ? catalog[sku] : null;
           const isCurrent = PLAN_RANK[currentTier] === PLAN_RANK[plan.key];
-          const isLocked = plan.key !== "free" && catalogLoading;
-          const priceLabel = item ? formatINR(item.price_paise) : plan.key === "free" ? "Free" : "Loading";
+          const isLocked = plan.key !== "free" && (catalogLoading || !!catalogError || !item);
+          let priceLabel = "Loading";
+          if (!catalogLoading) {
+            if (plan.key === "free") priceLabel = "Free";
+            else priceLabel = item ? formatINR(item.price_paise) : "Unavailable";
+          }
           const subLabel =
             plan.key === "free"
               ? "For individual exploration"
@@ -393,52 +400,50 @@ export function PricingCheckoutGrid({
             >
               <div
                 className={cn(
-                  "group relative h-full overflow-hidden rounded-[2rem] border border-white/10 bg-[#070b10] p-8 shadow-[0_24px_80px_rgba(0,0,0,0.32)] transition-all hover:border-primary/40",
-                  plan.key === "pro" && "border-emerald-400/35 shadow-[0_24px_80px_rgba(16,185,129,0.18)]"
+                  "group relative h-full overflow-hidden rounded-sm border bg-canvas p-2xl transition-all",
+                  plan.key === "pro" ? "border-primary" : "border-hairline hover:bg-canvas-soft"
                 )}
               >
-                <div className={cn("absolute inset-0 bg-gradient-to-br opacity-100", plan.accent)} />
-                <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
                 <div className="relative flex h-full flex-col">
                   <div className="mb-6 flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-xs uppercase tracking-[0.22em] text-emerald-300/80">
+                      <p className="text-eyebrow-mono text-primary mb-2">
                         {plan.eyebrow}
                       </p>
-                      <h3 className="mt-2 text-2xl font-semibold">{plan.name}</h3>
+                      <h3 className="text-display-sm text-ink-strong">{plan.name}</h3>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/8 p-3 backdrop-blur">
-                      <Icon className="h-5 w-5 text-white" />
+                    <div className="rounded-sm border border-hairline bg-canvas-soft p-sm">
+                      <Icon className="h-5 w-5 text-primary" />
                     </div>
                   </div>
 
-                  <p className="mb-6 text-sm leading-6 text-slate-300">{plan.description}</p>
+                  <p className="mb-8 text-body text-mute h-12">{plan.description}</p>
 
-                  <div className="mb-6 rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur">
+                  <div className="mb-8 rounded-sm border border-hairline bg-canvas-soft p-xl">
                     <div className="flex items-end gap-2">
-                      <span className="text-4xl font-semibold tracking-tight">{priceLabel}</span>
+                      <span className="text-display-md text-ink-strong">{priceLabel}</span>
                       {plan.key !== "free" && (
-                        <span className="pb-1 text-sm text-slate-400">/{billingPeriod === "annual" ? "year" : "month"}</span>
+                        <span className="pb-1 text-body-sm text-mute font-mono">/{billingPeriod === "annual" ? "yr" : "mo"}</span>
                       )}
                     </div>
-                    <p className="mt-2 text-xs text-slate-400">{subLabel}</p>
+                    <p className="mt-2 text-caption font-mono text-mute">{subLabel}</p>
                   </div>
 
-                  <ul className="mb-8 space-y-3 text-sm text-slate-200">
+                  <ul className="mb-10 space-y-4 text-body text-ink">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
-                        <span className="mt-0.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 p-1">
-                          <Check className="h-3 w-3 text-emerald-300" />
+                        <span className="mt-0.5 shrink-0 rounded-xs bg-canvas-soft border border-hairline p-0.5">
+                          <Check className="h-3 w-3 text-primary" />
                         </span>
                         <span>{feature}</span>
                       </li>
                     ))}
                   </ul>
 
-                  <div className="mt-auto space-y-3">
+                  <div className="mt-auto space-y-4">
                     {isCurrent && (
-                      <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
-                        This is your current active tier.
+                      <div className="rounded-xs border border-primary bg-primary-soft px-md py-sm text-body-sm-strong text-primary text-center">
+                        Active Tier
                       </div>
                     )}
                     <Button
@@ -462,9 +467,9 @@ export function PricingCheckoutGrid({
                       <button
                         type="button"
                         onClick={() => router.push("/contact")}
-                        className="w-full text-sm text-slate-400 transition-colors hover:text-white"
+                        className="w-full text-caption font-mono text-mute transition-colors hover:text-ink pt-2"
                       >
-                        Prefer invoices or procurement review? Talk to sales.
+                        Prefer invoices? Talk to sales.
                       </button>
                     )}
                   </div>

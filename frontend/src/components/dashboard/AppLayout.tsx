@@ -15,17 +15,17 @@ interface AppLayoutProps {
  */
 export function AppLayout({ children, title }: AppLayoutProps) {
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground transition-colors duration-300 antialiased selection:bg-primary/20 selection:text-primary">
-      {/* Top Navigation Bar with Expand Theme Toggle & Route Title */}
+    <div className="flex flex-col min-h-screen bg-canvas text-ink antialiased">
+      {/* Top Navigation Bar with Route Title */}
       <TopNavbar title={title} />
 
       {/* Main Container with Sidebar + Content */}
-      <div className="flex flex-1 relative w-full overflow-hidden">
+      <div className="flex flex-1 w-full relative">
         {/* Left Navigation Sidebar */}
         <Sidebar />
 
         {/* Page Content Container */}
-        <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto overflow-y-auto">
+        <main className="flex-1 w-full p-lg sm:p-2xl max-w-7xl mx-auto">
           {children}
         </main>
       </div>

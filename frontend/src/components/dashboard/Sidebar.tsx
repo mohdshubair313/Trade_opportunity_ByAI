@@ -20,13 +20,10 @@ import {
   Bell,
   GitCompareArrows,
   Mic,
-  Sun,
-  Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useFavorites } from "@/hooks/useFavorites";
-import { useTheme } from "@/components/ui/ThemeProvider";
 import { listAlerts, getAnalysisHistory } from "@/lib/api";
 import { isAuthenticated as checkAuth } from "@/lib/api";
 
@@ -57,7 +54,6 @@ export function Sidebar() {
   const [analysisCount, setAnalysisCount] = useState(0);
   const { user, logout } = useAuth();
   const { favorites } = useFavorites();
-  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     setSearch(window.location.search);
@@ -105,15 +101,15 @@ export function Sidebar() {
       initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       className={cn(
-        "sticky top-0 h-screen bg-card border-r border-border flex flex-col transition-all duration-300",
+        "sticky top-[56px] h-[calc(100vh-56px)] bg-canvas border-r border-hairline flex flex-col transition-all duration-300 z-30",
         isCollapsed ? "w-[72px]" : "w-64"
       )}
     >
       {/* Logo */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-border">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/20">
-            <TrendingUp className="h-5 w-5 text-white" />
+      <div className="h-16 flex items-center justify-between px-4 border-b border-hairline">
+        <Link href="/" className="flex items-center gap-2 group">
+          <div className="w-8 h-8 rounded-sm bg-canvas-soft border border-hairline flex items-center justify-center flex-shrink-0 group-hover:bg-canvas transition-colors">
+            <TrendingUp className="h-4 w-4 text-primary" strokeWidth={2.5} />
           </div>
           <AnimatePresence>
             {!isCollapsed && (
@@ -121,16 +117,16 @@ export function Sidebar() {
                 initial={{ opacity: 0, width: 0 }}
                 animate={{ opacity: 1, width: "auto" }}
                 exit={{ opacity: 0, width: 0 }}
-                className="font-bold text-lg overflow-hidden whitespace-nowrap"
+                className="font-bold tracking-tight text-body-md-strong text-ink overflow-hidden whitespace-nowrap mt-0.5 leading-none"
               >
-                Trade<span className="text-primary">Insight</span>
+                TradeInsight<span className="text-primary">.AI</span>
               </motion.span>
             )}
           </AnimatePresence>
         </Link>
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+          className="p-1.5 rounded-xs hover:bg-canvas-soft text-mute hover:text-ink transition-colors"
         >
           {isCollapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -152,10 +148,10 @@ export function Sidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    "relative flex items-center gap-3 px-4 py-2.5 rounded-full transition-all duration-300",
+                    "relative flex items-center gap-3 px-md py-sm rounded-sm transition-all duration-300",
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      ? "bg-canvas-soft text-primary border border-hairline"
+                      : "text-mute hover:bg-canvas-soft hover:text-ink border border-transparent"
                   )}
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -172,14 +168,14 @@ export function Sidebar() {
                     )}
                   </AnimatePresence>
                   {!isCollapsed && item.label === "Upgrade" && (
-                    <span className="ml-auto px-2 py-0.5 rounded-full bg-primary/20 text-primary text-xs">
-                      Pro
+                    <span className="ml-auto px-xs py-xxs rounded-xs bg-canvas text-primary text-caption-strong border border-hairline">
+                      PRO
                     </span>
                   )}
                   {item.badgeKey === "alerts" && unreadAlerts > 0 && (
                     <span
                       className={cn(
-                        "ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold flex items-center justify-center",
+                        "ml-auto min-w-[20px] h-5 px-1.5 rounded-sm bg-primary text-on-primary text-caption-strong flex items-center justify-center",
                         isCollapsed && "absolute top-1 right-1 ml-0"
                       )}
                     >
@@ -197,23 +193,23 @@ export function Sidebar() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="group relative mt-6 mx-3 p-5 rounded-[1.5rem] bg-muted/30 border border-border/60 hover:border-primary/40 transition-all"
+            className="group relative mt-6 mx-3 p-xl rounded-sm bg-canvas-soft border border-hairline transition-all"
           >
-            <div className="absolute top-4 right-5 text-[9px] font-mono font-bold text-muted-foreground/30 group-hover:text-primary/40 transition-colors">
+            <div className="absolute top-3 right-3 text-[10px] font-mono font-bold text-mute group-hover:text-primary transition-colors">
               § STATS
             </div>
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Quick Stats</span>
+              <span className="text-body-sm-strong text-ink">Quick Stats</span>
             </div>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-body-sm font-mono text-mute">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Analyses</span>
-                <span className="font-medium">{analysisCount}</span>
+                <span>Analyses</span>
+                <span className="text-ink">{analysisCount}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Favorites</span>
-                <span className="font-medium">{favorites.length}</span>
+                <span>Favorites</span>
+                <span className="text-ink">{favorites.length}</span>
               </div>
             </div>
           </motion.div>
@@ -221,18 +217,18 @@ export function Sidebar() {
       </nav>
 
       {/* User */}
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-hairline">
         <div className={cn("flex items-center", isCollapsed ? "justify-center" : "gap-3")}>
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-            <User className="h-5 w-5 text-primary" />
+          <div className="w-8 h-8 rounded-xs bg-canvas-soft border border-hairline flex items-center justify-center flex-shrink-0">
+            <User className="h-4 w-4 text-primary" />
           </div>
           {!isCollapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">
+              <p className="text-body-sm-strong text-ink truncate leading-tight">
                 {user?.username || "Guest"}
               </p>
-              <p className="text-xs text-muted-foreground">
-                {!user?.username || user.username === "guest" ? "Guest Mode" : "Pro User"}
+              <p className="text-caption font-mono text-mute">
+                {!user?.username || user.username === "guest" ? "Guest Mode" : "PRO USER"}
               </p>
             </div>
           )}
@@ -240,21 +236,9 @@ export function Sidebar() {
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={toggleTheme}
-                title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-                className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-              >
-                {theme === "dark" ? (
-                  <Sun className="h-4 w-4 text-amber-400" />
-                ) : (
-                  <Moon className="h-4 w-4 text-slate-700" />
-                )}
-              </button>
-              <button
-                type="button"
                 onClick={logout}
                 title="Log out"
-                className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                className="p-1.5 rounded-xs hover:bg-canvas-soft text-mute hover:text-ink transition-colors"
               >
                 <LogOut className="h-4 w-4" />
               </button>

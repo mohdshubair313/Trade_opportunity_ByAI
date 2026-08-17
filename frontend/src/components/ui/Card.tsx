@@ -9,12 +9,12 @@ const Card = forwardRef<HTMLDivElement, HTMLMotionProps<"div">>(
     <motion.div
       ref={ref}
       className={cn(
-        "rounded-xl border border-border bg-card text-card-foreground shadow-sm",
+        "rounded-md border border-hairline bg-canvas text-ink shadow-none",
         className
       )}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      initial={{ opacity: 0, transform: "translateY(20px)" }}
+      animate={{ opacity: 1, transform: "translateY(0px)" }}
+      transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
       {...props}
     />
   )
@@ -25,7 +25,7 @@ const CardHeader = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("flex flex-col space-y-1.5 p-6", className)}
+      className={cn("flex flex-col space-y-1.5 p-2xl", className)}
       {...props}
     />
   )
@@ -36,7 +36,7 @@ const CardTitle = forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHead
   ({ className, ...props }, ref) => (
     <h3
       ref={ref}
-      className={cn("text-2xl font-semibold leading-none tracking-tight", className)}
+      className={cn("text-display-md text-ink-strong", className)}
       {...props}
     />
   )
@@ -47,7 +47,7 @@ const CardDescription = forwardRef<HTMLParagraphElement, React.HTMLAttributes<HT
   ({ className, ...props }, ref) => (
     <p
       ref={ref}
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-body-sm text-mute", className)}
       {...props}
     />
   )
@@ -56,7 +56,7 @@ CardDescription.displayName = "CardDescription";
 
 const CardContent = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+    <div ref={ref} className={cn("p-2xl pt-0", className)} {...props} />
   )
 );
 CardContent.displayName = "CardContent";
@@ -65,26 +65,25 @@ const CardFooter = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("flex items-center p-6 pt-0", className)}
+      className={cn("flex items-center p-2xl pt-0", className)}
       {...props}
     />
   )
 );
 CardFooter.displayName = "CardFooter";
 
-// Glass Card variant
+// Glass Card variant (deprecated in Voltagent design, now maps to standard Card)
 const GlassCard = forwardRef<HTMLDivElement, HTMLMotionProps<"div">>(
   ({ className, ...props }, ref) => (
     <motion.div
       ref={ref}
       className={cn(
-        "rounded-xl glass-card text-card-foreground",
+        "rounded-md border border-hairline bg-canvas text-ink",
         className
       )}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.3 }}
+      initial={{ opacity: 0, transform: "translateY(20px)" }}
+      animate={{ opacity: 1, transform: "translateY(0px)" }}
+      transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
       {...props}
     />
   )
@@ -106,29 +105,25 @@ const StatsCard = forwardRef<HTMLDivElement, StatsCardProps>(
     <motion.div
       ref={ref}
       className={cn(
-        "rounded-2xl border border-border/70 bg-card/60 backdrop-blur-xl p-5 relative overflow-hidden group shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/40",
+        "rounded-md border border-hairline bg-canvas p-xl relative overflow-hidden group shadow-none transition-all duration-300",
         className
       )}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -3 }}
-      transition={{ duration: 0.2 }}
+      initial={{ opacity: 0, transform: "translateY(20px)" }}
+      animate={{ opacity: 1, transform: "translateY(0px)" }}
+      transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
       {...props}
     >
-      {/* Background glow on hover */}
-      <div className="pointer-events-none absolute -right-10 -top-10 w-28 h-28 rounded-full bg-primary/10 blur-2xl group-hover:bg-primary/20 transition-all duration-500" />
-
       <div className="flex items-start justify-between relative z-10">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
-          <p className="mt-2 text-2xl md:text-3xl font-extrabold tracking-tight">{value}</p>
+          <p className="text-eyebrow-mono text-mute">{title}</p>
+          <div className="mt-2 font-mono text-display-lg text-ink-strong tracking-tight">{value}</div>
           {change && (
             <p
               className={cn(
-                "mt-1.5 text-xs font-medium flex items-center gap-1",
-                changeType === "positive" && "text-emerald-500 dark:text-emerald-400",
-                changeType === "negative" && "text-red-500 dark:text-red-400",
-                changeType === "neutral" && "text-muted-foreground"
+                "mt-2 font-mono text-code flex items-center gap-1",
+                changeType === "positive" && "text-primary",
+                changeType === "negative" && "text-destructive",
+                changeType === "neutral" && "text-mute"
               )}
             >
               {changeType === "positive" && "↑ "}
@@ -138,7 +133,7 @@ const StatsCard = forwardRef<HTMLDivElement, StatsCardProps>(
           )}
         </div>
         {icon && (
-          <div className="rounded-xl bg-primary/10 p-3 text-primary group-hover:scale-110 transition-transform duration-300 shadow-inner">
+          <div className="rounded-sm border border-hairline bg-canvas-soft p-3 text-primary">
             {icon}
           </div>
         )}
@@ -146,14 +141,14 @@ const StatsCard = forwardRef<HTMLDivElement, StatsCardProps>(
 
       {/* Decorative Sparkline SVG */}
       {sparkline && (
-        <div className="mt-3 h-6 w-full opacity-40 group-hover:opacity-80 transition-opacity duration-300">
+        <div className="mt-3 h-6 w-full opacity-40">
           <svg className="w-full h-full" viewBox="0 0 100 24" preserveAspectRatio="none">
             <path
               d={changeType === "negative" ? "M 0 4 Q 25 18 50 10 T 100 22" : "M 0 20 Q 25 15 50 8 T 100 2"}
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              className={changeType === "negative" ? "text-red-500/70" : "text-emerald-500/70"}
+              className={changeType === "negative" ? "text-destructive" : "text-primary"}
             />
           </svg>
         </div>

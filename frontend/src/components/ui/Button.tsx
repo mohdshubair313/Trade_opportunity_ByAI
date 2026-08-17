@@ -1,31 +1,28 @@
 "use client";
 
 import { forwardRef } from "react";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Loader2 } from "lucide-react";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-sm text-sm font-semibold transition-all duration-[160ms] ease-out-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97]",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/25",
+          "bg-primary text-on-primary hover:bg-primary-soft shadow-none",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
-          "border border-border bg-transparent hover:bg-accent hover:text-accent-foreground",
+          "border border-hairline bg-canvas hover:bg-canvas-soft text-ink",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-        glow: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/50 hover:shadow-primary/75",
-        gradient:
-          "bg-gradient-to-r from-primary via-emerald-500 to-teal-500 text-white hover:opacity-90",
-        shimmer:
-          "bg-[linear-gradient(110deg,hsl(var(--primary)),45%,hsl(var(--primary)/0.8),55%,hsl(var(--primary)))] bg-[length:200%_100%] animate-shimmer text-primary-foreground",
+          "bg-canvas-soft text-ink hover:bg-canvas",
+        ghost: "bg-canvas text-primary-soft hover:bg-canvas-soft",
+        link: "text-primary-deep underline-offset-4 hover:underline active:scale-100", // No scale for links usually
+        glow: "bg-primary text-on-primary hover:bg-primary-soft shadow-none",
+        gradient: "bg-primary text-on-primary hover:bg-primary-soft shadow-none",
+        shimmer: "bg-primary text-on-primary hover:bg-primary-soft shadow-none",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -43,26 +40,25 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "children">,
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
   VariantProps<typeof buttonVariants> {
   isLoading?: boolean;
-  children?: React.ReactNode;
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, isLoading, children, ...props }, ref) => {
     return (
-      <motion.button
+      <button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        disabled={isLoading}
-        {...(props as React.ComponentProps<typeof motion.button>)}
+        disabled={isLoading || props.disabled}
+        {...props}
       >
         {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-        {children}
-      </motion.button>
+        <span className={cn("inline-flex items-center gap-2", isLoading && "opacity-70")}>
+          {children}
+        </span>
+      </button>
     );
   }
 );

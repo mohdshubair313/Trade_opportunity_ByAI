@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Instrument_Serif } from "next/font/google";
+import { Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { SmoothScroll } from "@/components/animations/SmoothScroll";
 import { ScrollProgress } from "@/components/animations/ScrollProgress";
@@ -23,6 +23,12 @@ const instrumentSerif = Instrument_Serif({
   display: "swap",
   weight: ["400"],
   style: ["normal", "italic"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
+  display: "swap",
 });
 
 // metadataBase is REQUIRED for production. Without it, the OG/Twitter image
@@ -104,8 +110,8 @@ export default function RootLayout({
 }) {
   return (
     <>
-      <html lang="en" className={`dark ${inter.variable} ${instrumentSerif.variable}`}>
-        <body className="min-h-screen bg-background font-sans antialiased">
+      <html lang="en" className={`dark ${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}>
+        <body className="min-h-screen bg-background font-sans antialiased text-foreground">
           <ThemeProvider>
             <SmoothScroll />
             <ScrollProgress />
@@ -114,14 +120,15 @@ export default function RootLayout({
               position="bottom-right"
               toastOptions={{
                 style: {
-                  background: "hsl(var(--card))",
-                  color: "hsl(var(--foreground))",
-                  border: "1px solid hsl(var(--border))",
+                  background: "var(--card)",
+                  color: "var(--foreground)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "8px",
                 },
                 success: {
                   iconTheme: {
-                    primary: "hsl(var(--primary))",
-                    secondary: "white",
+                    primary: "var(--primary)",
+                    secondary: "var(--background)",
                   },
                 },
               }}

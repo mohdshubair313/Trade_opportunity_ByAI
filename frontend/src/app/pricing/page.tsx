@@ -48,46 +48,43 @@ export default function PricingPage() {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("annual");
 
   return (
-    <div className="min-h-screen bg-background main-container">
+    <div className="min-h-screen bg-canvas text-ink main-container pb-20">
       <Header />
 
       <section className="relative overflow-hidden pt-32 pb-12">
-        <GridBackground className="opacity-25" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.16),transparent_32%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_28%)]" />
-
         <div className="container relative z-10 mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             className="mx-auto max-w-4xl text-center"
           >
-            <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
-              <Badge variant="glow">
-                <Shield className="mr-1 h-3 w-3" />
-                Razorpay-secured plans
-              </Badge>
-              <Badge variant="info">
-                <Waves className="mr-1 h-3 w-3" />
-                Voice + vision ready
-              </Badge>
+            <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
+              <div className="inline-flex items-center gap-2 px-sm py-xxs rounded-xs border border-hairline bg-canvas-soft text-primary text-eyebrow-mono">
+                <Shield className="h-3 w-3" />
+                <span>Razorpay-Secured</span>
+              </div>
+              <div className="inline-flex items-center gap-2 px-sm py-xxs rounded-xs border border-hairline bg-canvas-soft text-primary text-eyebrow-mono">
+                <Waves className="h-3 w-3" />
+                <span>Multimodal Ready</span>
+              </div>
             </div>
 
-            <h1 className="text-4xl font-display font-semibold tracking-tight md:text-7xl leading-[1.05]">
+            <h1 className="text-display-xl text-ink-strong tracking-tight leading-[1.05]">
               Buy like a product company. <br />
-              <GradientText>Operate like a fintech stack.</GradientText>
+              <span className="text-primary">Operate like a fintech stack.</span>
             </h1>
-            <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-muted-foreground">
+            <p className="mx-auto mt-6 max-w-3xl text-body-lg text-mute">
               Choose a plan, open Razorpay Checkout, and let the backend reconcile the entire flow before your account upgrades. No fake buttons. No manual refresh roulette.
             </p>
 
-            <div className="mt-8 inline-flex items-center gap-4 rounded-full border border-white/10 bg-white/5 p-1.5 backdrop-blur">
+            <div className="mt-8 inline-flex items-center gap-2 p-1 border border-hairline bg-canvas-soft rounded-sm">
               <button
                 onClick={() => setBillingPeriod("monthly")}
                 className={cn(
-                  "rounded-full px-6 py-2 text-sm font-medium transition-all",
+                  "px-lg py-sm text-button-md transition-colors rounded-xs",
                   billingPeriod === "monthly"
-                    ? "bg-background text-foreground shadow-lg"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-canvas text-ink border border-hairline"
+                    : "text-mute hover:text-ink border border-transparent"
                 )}
               >
                 Monthly
@@ -95,15 +92,15 @@ export default function PricingPage() {
               <button
                 onClick={() => setBillingPeriod("annual")}
                 className={cn(
-                  "flex items-center gap-2 rounded-full px-6 py-2 text-sm font-medium transition-all",
+                  "flex items-center gap-2 px-lg py-sm text-button-md transition-colors rounded-xs",
                   billingPeriod === "annual"
-                    ? "bg-background text-foreground shadow-lg"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-canvas text-ink border border-hairline"
+                    : "text-mute hover:text-ink border border-transparent"
                 )}
               >
                 Annual
-                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] text-primary">
-                  Save more
+                <span className="bg-primary-soft text-primary px-xs py-xxs rounded-xs text-caption-strong">
+                  SAVE
                 </span>
               </button>
             </div>
@@ -142,24 +139,24 @@ export default function PricingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.08 }}
-              className="group relative rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.04))] p-8 hover:border-primary/40 transition-all hover:shadow-2xl hover:shadow-primary/5"
+              className="group relative rounded-sm border border-hairline bg-canvas-soft p-xl transition-all hover:bg-canvas"
             >
-              <div className="absolute top-6 right-8 text-[10px] font-mono font-bold text-muted-foreground/30 group-hover:text-primary/40 transition-colors">
+              <div className="absolute top-4 right-4 text-[10px] font-mono font-bold text-mute group-hover:text-primary transition-colors">
                 § 0{index + 1}
               </div>
-              <div className="mb-6 inline-flex rounded-2xl border border-white/10 bg-white/5 p-3 group-hover:scale-110 transition-transform">
+              <div className="mb-6 inline-flex border border-hairline bg-canvas p-md rounded-sm">
                 <item.icon className="h-6 w-6 text-primary" />
               </div>
-              <div className="pl-6 border-l-2 border-primary/10 group-hover:border-primary/40 transition-colors space-y-3">
-                <h2 className="text-2xl font-display font-semibold tracking-tight">{item.title}</h2>
-                <p className="text-sm leading-relaxed text-muted-foreground">{item.body}</p>
+              <div className="space-y-3">
+                <h2 className="text-display-sm text-ink-strong">{item.title}</h2>
+                <p className="text-body-sm text-mute">{item.body}</p>
               </div>
             </motion.div>
           ))}
         </div>
       </section>
 
-      <section className="bg-muted/20 px-4 py-16">
+      <section className="px-4 py-16 border-t border-hairline mt-10">
         <div className="container mx-auto max-w-4xl">
           <motion.div
             initial={{ opacity: 0 }}
@@ -167,8 +164,8 @@ export default function PricingPage() {
             viewport={{ once: true }}
             className="mb-12 text-center"
           >
-            <h2 className="text-3xl font-semibold">
-              Frequently Asked <GradientText>Questions</GradientText>
+            <h2 className="text-display-md text-ink-strong">
+              Frequently Asked <span className="text-primary">Questions</span>
             </h2>
           </motion.div>
 
@@ -180,14 +177,14 @@ export default function PricingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.05 }}
-                className="group relative rounded-[1.5rem] border border-white/10 bg-card p-8 hover:border-primary/40 transition-all"
+                className="group relative rounded-sm border border-hairline bg-canvas p-xl hover:bg-canvas-soft transition-colors"
               >
-                <div className="absolute top-6 right-8 text-[10px] font-mono font-bold text-muted-foreground/30 group-hover:text-primary/40 transition-colors">
+                <div className="absolute top-4 right-4 text-[10px] font-mono font-bold text-mute group-hover:text-primary transition-colors">
                   Q {index + 1}
                 </div>
-                <div className="pl-6 border-l-2 border-primary/10 group-hover:border-primary/40 transition-colors space-y-2">
-                  <h3 className="text-lg font-display font-semibold tracking-tight">{faq.question}</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{faq.answer}</p>
+                <div className="space-y-2">
+                  <h3 className="text-body-lg-strong text-ink-strong">{faq.question}</h3>
+                  <p className="text-body text-mute">{faq.answer}</p>
                 </div>
               </motion.div>
             ))}
@@ -201,19 +198,19 @@ export default function PricingPage() {
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="mx-auto max-w-3xl rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.16),transparent_35%),linear-gradient(180deg,rgba(7,10,14,0.98),rgba(9,15,22,0.95))] px-6 py-10 text-center md:px-10"
+            className="mx-auto max-w-3xl rounded-sm border border-hairline bg-canvas-soft px-8 py-12 text-center"
           >
-            <h2 className="text-3xl font-semibold [font-family:var(--font-display)]">
+            <h2 className="text-display-md text-ink-strong">
               Ready to hear your analysis out loud and inspect your charts like a pro?
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-300">
+            <p className="mx-auto mt-4 max-w-2xl text-body text-mute">
               Upgrade, run a sector report, and use the new multimodal studio to generate voice briefings and structured chart analysis directly from the results page.
             </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link href="/dashboard">
-                <Button size="xl" variant="glow">
+                <Button size="xl">
                   Open Dashboard
-                  <ArrowRight className="h-5 w-5" />
+                  <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
               </Link>
               <Link href="/contact">

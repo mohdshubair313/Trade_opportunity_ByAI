@@ -22,11 +22,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       <div className="relative w-full">
         <div
           className={cn(
-            "relative flex items-center rounded-lg border bg-background transition-all duration-200",
+            "relative flex items-center rounded-sm border bg-canvas-soft transition-all duration-200",
             isFocused
-              ? "border-primary ring-2 ring-primary/20"
-              : "border-border",
-            error && "border-destructive ring-2 ring-destructive/20"
+              ? "border-primary ring-1 ring-primary"
+              : "border-hairline",
+            error && "border-destructive ring-1 ring-destructive"
           )}
         >
           {icon && (
@@ -36,7 +36,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             type={inputType}
             className={cn(
-              "flex h-11 w-full rounded-lg bg-transparent px-4 py-2 text-sm placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+              "flex h-11 w-full rounded-sm bg-transparent px-md py-sm text-body-sm text-ink placeholder:text-mute focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
               icon && "pl-10",
               type === "password" && "pr-10",
               className
@@ -98,10 +98,10 @@ export function SearchInput({
     <form onSubmit={handleSubmit} className={cn("relative", className)}>
       <motion.div
         className={cn(
-          "relative flex items-center rounded-full border bg-card transition-all duration-300",
+          "relative flex items-center rounded-md border bg-canvas-soft transition-all duration-200",
           isFocused
-            ? "border-primary shadow-lg shadow-primary/20"
-            : "border-border"
+            ? "border-primary shadow-none"
+            : "border-hairline"
         )}
         animate={{ width: isFocused ? "100%" : "100%" }}
       >
@@ -110,7 +110,7 @@ export function SearchInput({
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          className="flex h-12 w-full rounded-full bg-transparent px-12 py-2 text-sm placeholder:text-muted-foreground focus:outline-none"
+          className="flex h-12 w-full rounded-md bg-transparent px-12 py-2 text-body-sm text-ink placeholder:text-mute focus:outline-none"
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           {...props}
@@ -122,7 +122,7 @@ export function SearchInput({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               type="submit"
-              className="absolute right-2 rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="absolute right-2 rounded-sm bg-primary px-sm py-xs text-button-md text-on-primary hover:bg-primary-soft transition-colors"
             >
               Search
             </motion.button>
