@@ -81,6 +81,8 @@ async def analyze_sector(
                 sources=cached_result.get("sources", []),
                 timestamp=cached_result["timestamp"],
                 cached=True,
+                is_mock=cached_result.get("is_mock", False),
+                layer_used=cached_result.get("layer_used", "cached"),
             )
 
     try:
@@ -128,11 +130,14 @@ async def analyze_sector(
         analysis_report = ""
         search_results: list = []
         grounded_sources: list = []
+        layer_used = "unknown"
+        is_mock = False
 
         try:
             logger.info(f"[research] grounded agent → {validated_sector}")
             grounded = research_sector(validated_sector, persona=persona_context)
             analysis_report = grounded.report
+            layer_used = "grounded"
             for s in grounded.sources:
                 grounded_sources.append({
                     "n": s.n, "title": s.title or s.url,
@@ -154,6 +159,7 @@ async def analyze_sector(
                     analysis_report = ai_analyzer.analyze_sector(
                         validated_sector, formatted_data, persona=persona_context,
                     )
+                    layer_used = "ddg_gemini"
                 else:
                     logger.warning("[research] DDG returned 0 results")
                     search_results = []
@@ -169,6 +175,7 @@ async def analyze_sector(
                             {"n": i + 1, "title": s.get("title", ""), "url": s.get("url", ""), "snippet": s.get("body", "")}
                             for i, s in enumerate(search_results)
                         ]
+                        layer_used = "ddg_openrouter"
                         logger.info("[research] DDG + OpenRouter succeeded")
                     except ResearchUnavailable as or_exc:
                         logger.warning(f"[research] DDG + OpenRouter also failed ({or_exc})")
@@ -182,6 +189,7 @@ async def analyze_sector(
             try:
                 offline = research_sector_offline(validated_sector, persona=persona_context)
                 analysis_report = offline.report
+                layer_used = "openrouter"
                 search_results = []
                 grounded_sources = []
             except ResearchUnavailable as exc:
@@ -190,8 +198,11 @@ async def analyze_sector(
         # Last resort: mock report
         if not analysis_report:
             analysis_report = ai_analyzer._generate_mock_report(validated_sector)
+            layer_used = "mock"
+            is_mock = True
             search_results = []
             grounded_sources = []
+            logger.warning(f"[research] serving MOCK report for {validated_sector}")
 
         # Add metadata
         final_report = report_generator.add_metadata(analysis_report, validated_sector, len(search_results))
@@ -229,12 +240,14 @@ async def analyze_sector(
                 for i, r in enumerate(search_results) if r.get("url")
             ]
 
-        # Cache the result
+        # Cache the result (include is_mock + layer_used so cache hits preserve context)
         AnalysisCache.set_analysis(validated_sector, {
             "report": final_report,
             "sources_analyzed": len(search_results),
             "sources": [s.model_dump() for s in source_list],
             "timestamp": timestamp,
+            "is_mock": is_mock,
+            "layer_used": layer_used,
         }, user_id=cache_user_id)
 
         # Save to database if authenticated
@@ -249,12 +262,16 @@ async def analyze_sector(
             current_user.analysis_count_month += 1
             db.commit()
 
-        logger.info(f"Analysis completed for sector: {validated_sector}")
+        logger.info(
+            "Analysis completed for sector: %s (layer=%s, is_mock=%s)",
+            validated_sector, layer_used, is_mock,
+        )
         return AnalysisResponse(
             id=analysis_id, sector=validated_sector, report=final_report,
             sources_analyzed=len(search_results), sources=source_list,
             saved_to=saved_path, saved_url=saved_url,
             timestamp=timestamp, cached=False,
+            is_mock=is_mock, layer_used=layer_used,
         )
 
     except HTTPException:
@@ -314,10 +331,13 @@ async def get_analysis_by_id(
     if not analysis:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
 
+    is_mock_saved = "(Demo Mode)" in analysis.report or "(Mock Data)" in analysis.report
     return AnalysisResponse(
         id=analysis.id, sector=analysis.sector, report=analysis.report,
         sources_analyzed=analysis.sources_analyzed, saved_to=analysis.saved_path,
         timestamp=analysis.created_at.isoformat(), cached=False,
+        is_mock=is_mock_saved,
+        layer_used="mock" if is_mock_saved else "stored",
     )
 
 

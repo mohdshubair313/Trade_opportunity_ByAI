@@ -54,6 +54,24 @@ function slugify(text: string): string {
     .slice(0, 80);
 }
 
+function formatLayerLabel(layer?: string, isMock?: boolean): string {
+  if (isMock || layer === "mock") return "Demo Mode";
+  switch (layer) {
+    case "grounded":
+      return "Live Grounded AI";
+    case "ddg_gemini":
+      return "Web Search + Gemini";
+    case "ddg_openrouter":
+      return "Web Search + OpenRouter";
+    case "openrouter":
+      return "Offline Knowledge";
+    case "cached":
+      return "Cached Response";
+    default:
+      return layer || "AI Generated";
+  }
+}
+
 // Lift every h2 out of the markdown to build a sticky ToC without round-tripping
 // through the DOM after render.
 function extractHeadings(markdown: string): { text: string; slug: string; kind: SectionKind }[] {
@@ -122,6 +140,17 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
       .filter((l) => l && !l.startsWith("#") && !l.startsWith("|") && l.length > 40);
     return lines[0]?.replace(/\[(\d+)\]/g, "").slice(0, 240) || "";
   }, [analysis.report]);
+
+  const isMockReport = useMemo(() => {
+    return Boolean(
+      analysis.is_mock ||
+      analysis.layer_used === "mock" ||
+      analysis.report.includes("(Demo Mode)") ||
+      analysis.report.includes("(Mock Data)")
+    );
+  }, [analysis.is_mock, analysis.layer_used, analysis.report]);
+
+  const [mockBannerDismissed, setMockBannerDismissed] = useState(false);
 
   // Track which section is currently in view for ToC highlighting.
   useEffect(() => {
@@ -437,6 +466,38 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
 
         {/* Reading column */}
         <div ref={bodyRef} className="px-6 md:px-10 py-8 md:py-12">
+          {/* Mock / Demo Mode Warning Banner */}
+          {isMockReport && !mockBannerDismissed && (
+            <div className="mb-8 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-5 text-amber-200 shadow-sm relative">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3.5">
+                  <div className="rounded-xl bg-amber-500/20 p-2 text-amber-400 mt-0.5 flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-semibold text-amber-300 text-[15px]">Demo Report Mode</h4>
+                      <Badge variant="outline" className="border-amber-500/40 text-amber-300 text-[10px] uppercase tracking-wider font-mono">
+                        Mock Data
+                      </Badge>
+                    </div>
+                    <p className="mt-1.5 text-xs md:text-sm text-amber-200/80 leading-relaxed max-w-[65ch]">
+                      Live search and external AI grounding feeds were temporarily unavailable. This report was assembled using pre-defined sector heuristics rather than real-time web intelligence.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMockBannerDismissed(true)}
+                  className="rounded-lg p-1 text-amber-400/70 hover:text-amber-300 hover:bg-amber-500/10 transition-colors"
+                  aria-label="Dismiss warning"
+                >
+                  <span className="text-sm font-semibold">✕</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Executive summary hero — the first thing the reader's eye lands on */}
           {heroTakeaway && (
             <div className="mb-12 rounded-[2rem] border border-primary/20 bg-gradient-to-br from-primary/[0.08] to-transparent p-8 md:p-10 shadow-inner">
@@ -656,6 +717,26 @@ function ReportHeader({
                   <span className="inline-flex items-center gap-1.5 text-primary">
                     <Sparkles className="h-3 w-3" />
                     Cached
+                  </span>
+                )}
+                {(analysis.layer_used || analysis.is_mock) && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase",
+                      (analysis.is_mock || analysis.layer_used === "mock" || analysis.report.includes("(Demo Mode)"))
+                        ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                        : analysis.layer_used === "grounded"
+                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                        : "bg-primary/10 text-primary border border-primary/20"
+                    )}
+                  >
+                    {(analysis.is_mock || analysis.layer_used === "mock" || analysis.report.includes("(Demo Mode)")) && (
+                      <AlertTriangle className="h-2.5 w-2.5 text-amber-400" />
+                    )}
+                    {formatLayerLabel(
+                      analysis.layer_used,
+                      Boolean(analysis.is_mock || analysis.report.includes("(Demo Mode)"))
+                    )}
                   </span>
                 )}
               </div>

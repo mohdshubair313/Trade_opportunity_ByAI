@@ -41,7 +41,13 @@ export function useAnalysis() {
         });
 
         const cacheMessage = result.cached ? " (from cache)" : "";
-        toast.success(`Analysis complete for ${sector}!${cacheMessage}`);
+        if (result.is_mock) {
+          toast.warning("This is a demo report. Live data sources are temporarily unavailable.", {
+            duration: 8000,
+          });
+        } else {
+          toast.success(`Analysis complete for ${sector}!${cacheMessage}`);
+        }
         return result;
       } catch (err) {
         let errorMessage = "Failed to analyze sector";

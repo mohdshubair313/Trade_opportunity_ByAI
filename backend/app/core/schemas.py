@@ -192,6 +192,8 @@ class AnalysisResponse(BaseModel):
     saved_url: Optional[str] = None       # public download URL when the cloud backend accepted the upload
     timestamp: str
     cached: bool = False
+    is_mock: bool = False
+    layer_used: str = "unknown"  # "grounded" | "ddg_gemini" | "ddg_openrouter" | "openrouter" | "mock" | "cached"
 
     class Config:
         from_attributes = True

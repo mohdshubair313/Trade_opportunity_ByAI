@@ -291,6 +291,8 @@ export interface AnalysisResponse {
   saved_url?: string | null;
   timestamp: string;
   cached: boolean;
+  is_mock?: boolean;
+  layer_used?: string;
 }
 
 export interface AnalysisHistoryItem {
