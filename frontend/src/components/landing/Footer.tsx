@@ -38,20 +38,23 @@ const socialLinks = [
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-card/50">
+    <footer className="border-t border-white/[0.08] bg-[#07070d]/90 backdrop-blur-xl relative z-10 text-white">
       <div className="container mx-auto px-4 py-16">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-white" />
+            <Link href="/" className="flex items-center gap-2.5 mb-4 group">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.35)]">
+                  <TrendingUp className="h-5 w-5 text-white" />
+                </div>
+                <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-violet-500/40 to-cyan-400/40 blur-md -z-10" />
               </div>
-              <span className="font-bold text-xl">
-                Trade<span className="text-primary">Insight</span>
+              <span className="font-bold text-xl text-white">
+                Trade<span className="bg-gradient-to-r from-violet-300 to-fuchsia-300 bg-clip-text text-transparent">Insight</span>
               </span>
             </Link>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-white/60 mb-5 leading-relaxed">
               AI-powered market intelligence for discovering trade opportunities
               in Indian markets.
             </p>
@@ -62,7 +65,7 @@ export function Footer() {
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                  className="w-9 h-9 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/55 hover:text-white hover:border-violet-400/40 hover:bg-violet-500/15 hover:shadow-[0_0_16px_rgba(139,92,246,0.25)] transition-all"
                   aria-label={social.label}
                 >
                   <social.icon className="h-4 w-4" />
@@ -73,13 +76,13 @@ export function Footer() {
 
           {/* Links */}
           <div>
-            <h4 className="font-semibold mb-4">Product</h4>
-            <ul className="space-y-2">
+            <h4 className="font-semibold mb-4 text-white">Product</h4>
+            <ul className="space-y-2.5">
               {footerLinks.product.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-sm text-white/60 hover:text-violet-300 transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -89,13 +92,13 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Sectors</h4>
-            <ul className="space-y-2">
+            <h4 className="font-semibold mb-4 text-white">Sectors</h4>
+            <ul className="space-y-2.5">
               {footerLinks.sectors.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-sm text-white/60 hover:text-violet-300 transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -105,13 +108,13 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Company</h4>
-            <ul className="space-y-2">
+            <h4 className="font-semibold mb-4 text-white">Company</h4>
+            <ul className="space-y-2.5">
               {footerLinks.company.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-sm text-white/60 hover:text-violet-300 transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -121,13 +124,13 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Legal</h4>
-            <ul className="space-y-2">
+            <h4 className="font-semibold mb-4 text-white">Legal</h4>
+            <ul className="space-y-2.5">
               {footerLinks.legal.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-sm text-white/60 hover:text-violet-300 transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -138,10 +141,14 @@ export function Footer() {
         </div>
 
         {/* Bottom */}
-        <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
+        <div className="mt-12 pt-8 border-t border-white/[0.08] flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-white/55">
             &copy; {new Date().getFullYear()} TradeInsight AI. All rights
             reserved.
+          </p>
+          <p className="text-xs text-white/40 flex items-center gap-1.5">
+            <span className="h-1 w-1 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-400" />
+            Crafted with agentic AI
           </p>
         </div>
       </div>

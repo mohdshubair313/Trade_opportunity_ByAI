@@ -28,3 +28,6 @@ export {
   NeonCard,
 } from "./AnimatedCard";
 
+// Web Backgrounds
+export { default as WebThreads } from "./WebThreads";
+

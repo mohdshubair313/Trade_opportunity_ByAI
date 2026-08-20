@@ -131,10 +131,10 @@ export function OtpInput({
           onKeyDown={(e) => handleKeyDown(e, index)}
           disabled={disabled}
           className={cn(
-            "h-12 w-11 sm:h-14 sm:w-12 text-center text-xl font-bold font-mono rounded-xl border bg-black/40 text-white outline-none transition-all duration-200 shadow-inner",
+            "h-12 w-11 sm:h-14 sm:w-12 text-center text-xl font-bold font-mono rounded-xl border bg-white/[0.03] text-white outline-none transition-all duration-200 shadow-inner",
             digits[index]
-              ? "border-emerald-500/70 bg-emerald-500/10 shadow-[0_0_12px_rgba(34,197,94,0.2)]"
-              : "border-white/10 hover:border-white/20 focus:border-emerald-500/50 focus:shadow-[0_0_16px_rgba(34,197,94,0.15)]",
+              ? "border-violet-400/70 bg-violet-500/10 shadow-[0_0_14px_rgba(167,139,250,0.25)]"
+              : "border-white/10 hover:border-white/25 focus:border-violet-400/60 focus:shadow-[0_0_18px_rgba(167,139,250,0.2)]",
             disabled && "opacity-50 cursor-not-allowed"
           )}
         />

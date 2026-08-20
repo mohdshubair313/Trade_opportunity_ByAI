@@ -3,11 +3,11 @@
 import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 import Link from "next/link";
 import { useRef } from "react";
-import { ArrowRight, Sparkles, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowRight, Sparkles, TrendingUp, TrendingDown, Zap } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { BorderBeam } from "@/components/animations/BorderBeam";
 import { Marquee } from "@/components/animations/Marquee";
-import { TextReveal } from "@/components/animations/TextReveal";
+import { BlurIn } from "@/components/animations";
 
 // Mock sector vitals — frozen so the hero is stable across server / client.
 const PREVIEW_SECTORS = [
@@ -51,25 +51,23 @@ export function Hero() {
             ref={sectionRef}
             className="relative min-h-[95vh] flex items-center justify-center overflow-hidden pt-20 pb-28"
         >
-            {/* Single calm backdrop */}
+            {/* Calm violet backdrop above the threads */}
             <div className="absolute inset-0 pointer-events-none">
                 <div
-                    className="absolute left-1/2 top-0 -translate-x-1/2 w-[1100px] h-[700px] opacity-60"
+                    className="absolute left-1/2 top-0 -translate-x-1/2 w-[1100px] h-[700px]"
                     style={{
                         background:
-                            "radial-gradient(60% 60% at 50% 0%, hsl(var(--primary) / 0.18) 0%, transparent 70%)",
+                            "radial-gradient(60% 60% at 50% 0%, rgba(139, 92, 246, 0.22) 0%, transparent 70%)",
                     }}
                 />
                 <div
-                    className="absolute inset-0 opacity-[0.04]"
+                    className="absolute left-1/3 bottom-0 w-[600px] h-[400px]"
                     style={{
-                        backgroundImage:
-                            "linear-gradient(hsl(var(--foreground) / 1) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground) / 1) 1px, transparent 1px)",
-                        backgroundSize: "72px 72px",
-                        maskImage: "radial-gradient(ellipse 80% 60% at 50% 40%, black 0%, transparent 70%)",
-                        WebkitMaskImage: "radial-gradient(ellipse 80% 60% at 50% 40%, black 0%, transparent 70%)",
+                        background:
+                            "radial-gradient(50% 50% at 50% 100%, rgba(217, 70, 239, 0.12) 0%, transparent 70%)",
                     }}
                 />
+                <div className="landing-grid absolute inset-0" />
             </div>
 
             <motion.div
@@ -85,30 +83,34 @@ export function Hero() {
                 >
                     <Link
                         href="/pricing"
-                        className="group inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3.5 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                        className="group inline-flex items-center gap-2 rounded-full border border-violet-400/25 bg-[#12101f]/70 backdrop-blur-xl px-4 py-1.5 text-xs font-medium text-violet-200 transition-all hover:border-violet-400/50 hover:text-white hover:shadow-[0_0_24px_rgba(139,92,246,0.25)]"
                     >
-                        <span className="flex h-1.5 w-1.5 rounded-full bg-primary" />
+                        <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-auth-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-gradient-to-r from-violet-400 to-fuchsia-400" />
+                        </span>
                         Now with agentic AI + live grounding
-                        <ArrowRight className="h-3 w-3 opacity-50 transition-transform group-hover:translate-x-0.5" />
+                        <ArrowRight className="h-3 w-3 opacity-70 transition-transform group-hover:translate-x-0.5" />
                     </Link>
                 </motion.div>
 
-                {/* Headline — word-by-word reveal */}
-                <TextReveal
-                    as="h1"
-                    className="mx-auto max-w-4xl text-center text-5xl md:text-7xl lg:text-[5.5rem] leading-[1.02] tracking-tight text-foreground block"
-                    stagger={0.06}
+                {/* Headline — blur-in reveal */}
+                <BlurIn
+                    duration={0.8}
+                    className="mx-auto max-w-4xl text-center text-5xl md:text-7xl lg:text-[6rem] leading-[1.05] tracking-tight text-white block mb-6 font-extrabold [text-shadow:0_2px_30px_rgba(0,0,0,0.6)]"
                 >
-                    <span className="font-semibold">Market intelligence,</span>{" "}
-                    <span className="font-display italic text-primary/95">written for you.</span>
-                </TextReveal>
+                    Market intelligence,{" "}
+                    <span className="italic bg-gradient-to-r from-violet-300 via-fuchsia-300 to-cyan-300 bg-clip-text text-transparent font-display block mt-2 [text-shadow:none]">
+                        written for you.
+                    </span>
+                </BlurIn>
 
                 {/* Sub-copy */}
                 <motion.p
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.35 }}
-                    className="mx-auto mt-7 max-w-2xl text-center text-base md:text-lg text-muted-foreground leading-relaxed"
+                    className="mx-auto mt-7 max-w-2xl text-center text-base md:text-lg text-white/80 leading-relaxed [text-shadow:0_1px_16px_rgba(0,0,0,0.7)]"
                 >
                     TradeInsight reads the news, the filings and the tape — then writes a
                     sector report tailored to your persona, capital and risk appetite. In
@@ -123,13 +125,19 @@ export function Hero() {
                     className="mt-12 flex flex-col sm:flex-row gap-4 items-center justify-center"
                 >
                     <Link href="/dashboard">
-                        <Button variant="glow" size="lg" className="group h-12 px-8 text-sm font-semibold tracking-wide">
+                        <Button
+                            size="lg"
+                            className="group relative h-12 px-8 text-sm font-bold tracking-wide bg-gradient-to-r from-violet-600 via-fuchsia-600 to-indigo-500 text-white border-none overflow-hidden hover:shadow-[0_0_40px_rgba(168,85,247,0.5)] transition-all"
+                        >
+                            <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
+                                <span className="animate-auth-shine absolute top-0 bottom-0 w-1/3 bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+                            </span>
                             Start analyzing
                             <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                         </Button>
                     </Link>
                     <Link href="/pricing">
-                        <Button size="lg" variant="outline" className="h-12 px-8 text-sm font-semibold tracking-wide backdrop-blur-sm bg-background/30 hover:bg-background/50 transition-all border-border/80">
+                        <Button size="lg" variant="outline" className="h-12 px-8 text-sm font-semibold tracking-wide backdrop-blur-xl bg-white/[0.06] hover:bg-white/[0.12] transition-all border-white/15 text-white hover:border-white/30">
                             See pricing
                         </Button>
                     </Link>
@@ -140,12 +148,12 @@ export function Hero() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5, delay: 0.55 }}
-                    className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground"
+                    className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-white/60"
                 >
                     <span>Free tier · No card required</span>
-                    <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                    <span className="h-1 w-1 rounded-full bg-white/40" />
                     <span>20+ NSE sectors</span>
-                    <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                    <span className="h-1 w-1 rounded-full bg-white/40" />
                     <span>Cited sources on every claim</span>
                 </motion.div>
 
@@ -167,16 +175,16 @@ export function Hero() {
                     transition={{ duration: 0.6, delay: 0.9 }}
                     className="mt-16 md:mt-20"
                 >
-                    <p className="text-center text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground mb-5">
+                    <p className="text-center text-[11px] font-medium uppercase tracking-[0.22em] text-white/55 mb-5">
                         Covering the sectors that move the Nifty
                     </p>
                     <Marquee speed={55}>
                         {MARQUEE_SECTORS.map((s) => (
                             <div
                                 key={s}
-                                className="flex items-center gap-2 text-sm font-medium text-muted-foreground/70 hover:text-foreground transition-colors"
+                                className="flex items-center gap-2 text-sm font-medium text-white/65 hover:text-white transition-colors"
                             >
-                                <span className="h-1 w-1 rounded-full bg-primary/60" />
+                                <span className="h-1 w-1 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-400" />
                                 {s}
                             </div>
                         ))}
@@ -225,34 +233,34 @@ function HeroPreview() {
             className="relative"
             style={{ perspective: 1200 }}
         >
-            {/* Emerald halo beneath the card */}
+            {/* Violet halo beneath the card */}
             <div
-                className="absolute -inset-x-10 -bottom-10 h-40 opacity-70 blur-3xl pointer-events-none"
+                className="absolute -inset-x-10 -bottom-10 h-40 blur-3xl pointer-events-none"
                 style={{
                     background:
-                        "radial-gradient(50% 100% at 50% 100%, hsl(var(--primary) / 0.25) 0%, transparent 70%)",
+                        "radial-gradient(50% 100% at 50% 100%, rgba(139, 92, 246, 0.3) 0%, transparent 70%)",
                 }}
             />
 
             <motion.div
                 style={{ rotateY, rotateX, transformStyle: "preserve-3d" }}
-                className="relative rounded-2xl border border-border bg-card/80 shadow-2xl shadow-black/40 overflow-hidden"
+                className="relative rounded-3xl border border-white/12 bg-[#0c0c16]/80 backdrop-blur-2xl shadow-2xl shadow-black/60 overflow-hidden"
             >
                 {/* The beam sits above the card's content, below interactive areas. */}
-                <BorderBeam size={260} duration={9} colorFrom="hsl(var(--primary))" colorTo="transparent" />
-                <BorderBeam size={220} duration={11} delay={4} colorFrom="#34d399" colorTo="transparent" />
+                <BorderBeam size={260} duration={9} colorFrom="#a78bfa" colorTo="transparent" />
+                <BorderBeam size={220} duration={11} delay={4} colorFrom="#e879f9" colorTo="transparent" />
 
                 {/* Window chrome */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-border/80">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
                     <div className="flex items-center gap-1.5">
-                        <span className="h-2.5 w-2.5 rounded-full bg-red-500/60" />
-                        <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/60" />
-                        <span className="h-2.5 w-2.5 rounded-full bg-green-500/60" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/70" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-green-500/70" />
                     </div>
-                    <div className="text-[11px] font-mono text-muted-foreground">
+                    <div className="text-[11px] font-mono text-white/45">
                         tradeinsight.ai/results
                     </div>
-                    <div className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] font-medium text-primary">
+                    <div className="inline-flex items-center gap-1.5 rounded-md bg-violet-500/15 border border-violet-400/30 px-2 py-0.5 text-[10px] font-medium text-violet-200">
                         <Sparkles className="h-3 w-3" />
                         Live
                     </div>
@@ -265,13 +273,13 @@ function HeroPreview() {
                         {PREVIEW_SECTORS.map((s) => (
                             <div
                                 key={s.name}
-                                className="flex items-center gap-4 p-4 rounded-xl border border-border/80 bg-background/40"
+                                className="flex items-center gap-4 p-4 rounded-2xl border border-white/[0.08] bg-white/[0.04] hover:border-violet-400/25 hover:bg-white/[0.06] transition-colors"
                             >
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between mb-1.5">
-                                        <span className="text-sm font-medium text-foreground">{s.name}</span>
+                                        <span className="text-sm font-medium text-white">{s.name}</span>
                                         <span
-                                            className={`inline-flex items-center gap-1 text-xs font-medium ${s.change >= 0 ? "text-primary" : "text-red-400"
+                                            className={`inline-flex items-center gap-1 text-xs font-semibold ${s.change >= 0 ? "text-emerald-300" : "text-rose-300"
                                                 }`}
                                         >
                                             {s.change >= 0 ? (
@@ -287,7 +295,9 @@ function HeroPreview() {
                                         {s.bars.map((h, i) => (
                                             <div
                                                 key={i}
-                                                className={`flex-1 rounded-sm ${s.change >= 0 ? "bg-primary/60" : "bg-red-400/40"
+                                                className={`flex-1 rounded-sm ${s.change >= 0
+                                                    ? "bg-gradient-to-t from-violet-500/40 to-fuchsia-400/60"
+                                                    : "bg-rose-400/40"
                                                     }`}
                                                 style={{ height: `${h}%` }}
                                             />
@@ -300,15 +310,15 @@ function HeroPreview() {
 
                     {/* Right: report excerpt */}
                     <div className="space-y-3">
-                        <div className="p-4 rounded-xl border border-border/80 bg-background/40">
-                            <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2">
+                        <div className="p-4 rounded-2xl border border-white/[0.08] bg-white/[0.04]">
+                            <div className="text-[10px] font-medium uppercase tracking-wider text-violet-300/80 mb-2">
                                 Top Opportunity
                             </div>
-                            <p className="text-[13px] leading-relaxed text-foreground/90">
+                            <p className="text-[13px] leading-relaxed text-white/80">
                                 Pharma CDMOs continue to benefit from US supply-chain reshoring
                                 <a
                                     href="#"
-                                    className="inline-block align-super text-[10px] font-medium text-primary bg-primary/10 rounded px-1 mx-0.5 no-underline"
+                                    className="inline-block align-super text-[10px] font-medium text-violet-200 bg-violet-500/20 border border-violet-400/25 rounded px-1 mx-0.5 no-underline"
                                     onClick={(e) => e.preventDefault()}
                                 >
                                     [3]
@@ -316,14 +326,20 @@ function HeroPreview() {
                                 , with Q1 order books up 18% YoY.
                             </p>
                         </div>
-                        <div className="p-4 rounded-xl border border-border/80 bg-background/40">
-                            <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2">
+                        <div className="p-4 rounded-2xl border border-white/[0.08] bg-white/[0.04]">
+                            <div className="text-[10px] font-medium uppercase tracking-wider text-rose-300/80 mb-2">
                                 Primary Risk
                             </div>
-                            <p className="text-[13px] leading-relaxed text-foreground/90">
+                            <p className="text-[13px] leading-relaxed text-white/80">
                                 USD weakness offsets margin expansion for exporters — hedge
                                 window is narrowing.
                             </p>
+                        </div>
+                        <div className="flex items-center gap-2 px-4 py-3 rounded-2xl border border-white/[0.08] bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10">
+                            <Zap className="h-3.5 w-3.5 text-fuchsia-300" />
+                            <span className="text-[11px] font-medium text-white/70">
+                                Generated in 12.4s · 3 cited sources
+                            </span>
                         </div>
                     </div>
                 </div>

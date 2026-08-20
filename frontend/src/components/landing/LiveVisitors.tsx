@@ -156,7 +156,7 @@ export function LiveVisitors() {
         className="absolute -inset-4 rounded-full opacity-40 blur-2xl pointer-events-none"
         style={{
           background:
-            "radial-gradient(circle, hsl(142 76% 36% / 0.35) 0%, transparent 70%)",
+            "radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 70%)",
         }}
       />
 
@@ -164,8 +164,8 @@ export function LiveVisitors() {
       <div className="viewer-pill relative flex items-center gap-3 rounded-full px-4 py-2.5 pointer-events-auto">
         {/* Pulsing live dot */}
         <div className="relative flex items-center justify-center">
-          <span className="absolute h-3 w-3 rounded-full bg-emerald-400/40 viewer-pulse-ring" />
-          <span className="relative h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_2px_rgba(52,211,153,0.5)]" />
+          <span className="absolute h-3 w-3 rounded-full bg-violet-400/40 viewer-pulse-ring" />
+          <span className="relative h-2 w-2 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-400 shadow-[0_0_8px_2px_rgba(168,85,247,0.5)]" />
         </div>
 
         {/* Avatar stack */}
@@ -192,13 +192,13 @@ export function LiveVisitors() {
         {/* Count + label */}
         <div className="flex items-center gap-1.5 text-sm">
           <AnimatedNumber value={totalCount} />
-          <span className="viewer-shimmer-text text-muted-foreground text-xs font-medium whitespace-nowrap">
+          <span className="viewer-shimmer-text text-white/65 text-xs font-medium whitespace-nowrap">
             viewing now
           </span>
         </div>
 
         {/* Eye icon */}
-        <Eye className="h-3.5 w-3.5 text-emerald-400/70" />
+        <Eye className="h-3.5 w-3.5 text-violet-400/70" />
       </div>
     </motion.div>
   );

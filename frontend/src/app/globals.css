@@ -173,3 +173,162 @@
 .prose-custom pre {
   @apply bg-canvas-soft border border-hairline p-xl rounded-md overflow-x-auto my-4 text-code;
 }
+
+/* ==================== Auth / Web3 Aesthetic ==================== */
+
+/* Web3 grid pattern overlay */
+.auth-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 40%, black 10%, transparent 72%);
+  mask-image: radial-gradient(ellipse at 50% 40%, black 10%, transparent 72%);
+}
+
+/* Soft floating motion for decorative elements */
+@keyframes auth-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-14px) rotate(2deg); }
+}
+.animate-auth-float {
+  animation: auth-float 6s ease-in-out infinite;
+}
+.animation-delay-2000 { animation-delay: 2s; }
+.animation-delay-4000 { animation-delay: 4s; }
+
+/* Gradient border helper (wrap a solid inner card) */
+.auth-gradient-border {
+  background: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(139, 92, 246, 0.25) 30%,
+    rgba(6, 182, 212, 0.12) 60%,
+    rgba(255, 255, 255, 0.06)
+  );
+}
+
+/* Shine sweep used on primary CTA */
+@keyframes auth-shine {
+  0% { transform: translateX(-120%) skewX(-12deg); }
+  60%, 100% { transform: translateX(220%) skewX(-12deg); }
+}
+.animate-auth-shine {
+  animation: auth-shine 3.2s ease-in-out infinite;
+}
+
+/* Slow pulse for live indicators */
+@keyframes auth-ping-slow {
+  0% { transform: scale(1); opacity: 0.8; }
+  70%, 100% { transform: scale(2.4); opacity: 0; }
+}
+.animate-auth-ping {
+  animation: auth-ping-slow 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Prevent autofill from ruining the dark glass inputs */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f5f5f7;
+  -webkit-box-shadow: 0 0 0px 1000px #14141f inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* ==================== Landing animation keyframes ==================== */
+
+/* Infinite marquee (used by Marquee component) */
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* Shiny sweep for ShinyText */
+@keyframes shine {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.animate-shine {
+  animation: shine 6s linear infinite;
+}
+
+/* Border beam orbiting arc (used by BorderBeam) */
+@keyframes border-beam {
+  0% { offset-distance: 0%; }
+  100% { offset-distance: 100%; }
+}
+.animate-border-beam {
+  animation: border-beam var(--duration, 8s) linear infinite;
+}
+
+/* Meteor streaks */
+@keyframes meteor {
+  0% { transform: rotate(215deg) translateX(0); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: rotate(215deg) translateX(-500px); opacity: 0; }
+}
+.animate-meteor {
+  animation: meteor var(--duration, 5s) linear infinite;
+}
+
+/* Gentle float for decorative orbs */
+@keyframes float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(20px, -24px); }
+}
+.animate-float {
+  animation: float var(--duration, 8s) ease-in-out infinite;
+}
+
+/* Gradient shift for GradientText */
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Aurora drift for AuroraBackground */
+@keyframes aurora {
+  0% { background-position: 50% 50%, 50% 50%; }
+  50% { background-position: 80% 50%, 30% 60%; }
+  100% { background-position: 50% 50%, 50% 50%; }
+}
+.animate-aurora {
+  animation: aurora 60s linear infinite;
+}
+
+/* Web3 grid pattern overlay for hero/CTA accents */
+.landing-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 30%, black 10%, transparent 70%);
+  mask-image: radial-gradient(ellipse at 50% 30%, black 10%, transparent 70%);
+}
+
+/* LiveVisitors floating pill */
+.viewer-pill {
+  background: rgba(13, 12, 23, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 24px rgba(139, 92, 246, 0.12);
+}
+
+@keyframes viewer-pulse {
+  0% { transform: scale(1); opacity: 0.9; }
+  70%, 100% { transform: scale(2.6); opacity: 0; }
+}
+.viewer-pulse-ring {
+  animation: viewer-pulse 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.viewer-shimmer-text {
+  background: linear-gradient(110deg, rgba(255,255,255,0.6) 30%, #ffffff 50%, rgba(255,255,255,0.6) 70%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shine 5s linear infinite;
+}
