@@ -1,0 +1,100 @@
+# TradeInsight AI
+
+> AI-powered market intelligence platform for Indian equity sectors.
+
+## What is TradeInsight AI?
+
+TradeInsight AI is an agentic market intelligence platform that generates cited,
+persona-tuned sector reports for 20+ NSE (National Stock Exchange of India) sectors.
+It reads filings, news, and market tape — then writes a structured report tailored
+to your persona, capital allocation, and risk appetite in under fifteen seconds.
+
+## When to Use TradeInsight AI
+
+Use TradeInsight AI when you need to:
+
+- **Analyze an Indian equity sector**: Get a comprehensive report on any of 20+ NSE sectors
+  including Pharmaceuticals, Technology, Fintech, Banking, Renewable Energy, Healthcare,
+  Real Estate, Infrastructure, Metals & Mining, Automotive, FMCG, and more.
+- **Compare two sectors side-by-side**: Run a comparative analysis to decide where to
+  allocate capital.
+- **Get a market briefing via voice**: Use the voice agent for hands-free market updates
+  in Indian English — ideal for commuting professionals.
+- **Monitor sectors on a schedule**: Set up watchlist alerts to re-analyse sectors at your
+  chosen cadence and receive notifications only when something material changes.
+- **Export research for distribution**: Download reports as PDF, PPTX, XLSX, or Markdown
+  for team circulation or client presentations.
+
+Do NOT use TradeInsight AI for:
+
+- Real-time stock price feeds or tick-by-tick trading data
+- Individual stock recommendations or portfolio management
+- Cryptocurrency, forex, or commodity markets
+- Markets outside India
+
+## API Surface
+
+Base URL: https://tradeinsight.shubair.in
+
+### Authentication
+
+All analysis endpoints require a JWT bearer token. Obtain one via:
+
+```
+POST /api/v1/auth/register   — Create an account
+POST /api/v1/auth/login       — Get access + refresh tokens
+POST /api/v1/auth/refresh     — Refresh an expired access token
+```
+
+### Key Endpoints
+
+```
+GET  /api/v1/sectors                    — List all available sectors
+GET  /api/v1/analyze/{sector}           — Analyze a sector (returns cited report)
+POST /api/v1/analyze/compare            — Compare two sectors side-by-side
+GET  /api/v1/history                    — List past analyses
+GET  /api/v1/history/{id}               — Retrieve a specific analysis
+GET  /api/v1/history/{id}/export        — Export analysis as PDF/PPTX/XLSX/MD
+POST /api/v1/voice/query                — Voice-based market query
+GET  /api/v1/voice/voices               — List available TTS voices
+GET  /health                            — Service health check
+GET  /openapi.json                      — Full OpenAPI specification
+```
+
+### Rate Limits
+
+- Free tier: 10 requests/minute, 100 requests/hour
+- Pro tier: Higher limits
+- Enterprise: Custom limits
+
+### Example: Analyze a Sector
+
+```bash
+curl -X GET "https://tradeinsight.shubair.in/api/v1/analyze/pharmaceuticals" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Response includes: executive summary, top opportunities, primary risks,
+actionable recommendations, and cited sources.
+
+## Machine-Readable Resources
+
+- OpenAPI Specification: https://tradeinsight.shubair.in/openapi.json
+- Sitemap: https://tradeinsight.shubair.in/sitemap.xml
+- Health Check: https://tradeinsight.shubair.in/api/health
+
+## Human-Readable Resources
+
+- Homepage: https://tradeinsight.shubair.in
+- API Documentation: https://tradeinsight.shubair.in/docs/api
+- Pricing: https://tradeinsight.shubair.in/pricing
+- About: https://tradeinsight.shubair.in/about
+- Contact: https://tradeinsight.shubair.in/contact
+- Privacy Policy: https://tradeinsight.shubair.in/privacy
+
+## Contact
+
+- Email: shubair313@gmail.com
+- Twitter/X: https://x.com/Shubair313
+- GitHub: https://github.com/mohdshubair313
+- LinkedIn: https://www.linkedin.com/in/mohd-shubair-b1a454250/

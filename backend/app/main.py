@@ -77,6 +77,9 @@ for Indian sectors, powered by agentic AI.
 - 🚦 **Rate Limiting**: Fair usage policies
     """,
     lifespan=lifespan,
+    # Always expose the OpenAPI JSON spec so agents can discover endpoints.
+    # Interactive docs UI is gated behind debug mode for security.
+    openapi_url="/openapi.json",
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
 )

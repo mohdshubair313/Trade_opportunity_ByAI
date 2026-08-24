@@ -11,7 +11,12 @@ settings = get_settings()
 router = APIRouter(tags=["Info"])
 
 
-@router.get("/", response_model=APIInfoResponse)
+@router.get(
+    "/",
+    response_model=APIInfoResponse,
+    operation_id="getApiInfo",
+    summary="Get API information and available endpoints",
+)
 async def root():
     """Root endpoint - API information."""
     return APIInfoResponse(
@@ -21,6 +26,7 @@ async def root():
         endpoints={
             "docs": "/docs",
             "health": "/health",
+            "openapi": "/openapi.json",
             "auth": {"register": "/api/v1/auth/register", "login": "/api/v1/auth/login", "refresh": "/api/v1/auth/refresh"},
             "analysis": {"analyze": "/api/v1/analyze/{sector}", "history": "/api/v1/history", "favorites": "/api/v1/favorites"},
             "payments": {"create_order": "/api/v1/payments/create-order", "verify": "/api/v1/payments/verify", "webhook": "/api/v1/payments/razorpay-webhook"},
@@ -31,7 +37,12 @@ async def root():
     )
 
 
-@router.get("/health", response_model=HealthResponse)
+@router.get(
+    "/health",
+    response_model=HealthResponse,
+    operation_id="healthCheck",
+    summary="Health check with system status",
+)
 async def health_check():
     """Health check endpoint with system status."""
     cache = get_cache()
@@ -45,7 +56,11 @@ async def health_check():
     )
 
 
-@router.get("/api/v1/sectors")
+@router.get(
+    "/api/v1/sectors",
+    operation_id="listAvailableSectors",
+    summary="List all sectors available for analysis",
+)
 async def get_available_sectors():
     """Get list of popular sectors available for analysis."""
     sectors = [
