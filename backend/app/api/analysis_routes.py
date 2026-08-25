@@ -31,7 +31,12 @@ report_generator = ReportGenerator()
 router = APIRouter(tags=["Analysis"])
 
 
-@router.get("/api/v1/analyze/{sector}", response_model=AnalysisResponse)
+@router.get(
+    "/api/v1/analyze/{sector}",
+    response_model=AnalysisResponse,
+    operation_id="analyzeSector",
+    summary="Analyze an Indian equity sector and generate trade opportunity report",
+)
 @limiter.limit(f"{settings.rate_limit_per_minute}/minute")
 async def analyze_sector(
     request: Request,
@@ -298,7 +303,12 @@ async def analyze_sector_legacy(
     return await analyze_sector(request, sector, save_report, True, current_user, db)
 
 
-@router.get("/api/v1/history", response_model=AnalysisHistoryResponse)
+@router.get(
+    "/api/v1/history",
+    response_model=AnalysisHistoryResponse,
+    operation_id="listAnalysisHistory",
+    summary="Get user's analysis history with pagination",
+)
 async def get_analysis_history(
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(20, ge=1, le=100, description="Items per page"),
@@ -320,7 +330,12 @@ async def get_analysis_history(
     )
 
 
-@router.get("/api/v1/history/{analysis_id}", response_model=AnalysisResponse)
+@router.get(
+    "/api/v1/history/{analysis_id}",
+    response_model=AnalysisResponse,
+    operation_id="getAnalysisById",
+    summary="Get a specific saved analysis by ID",
+)
 async def get_analysis_by_id(
     analysis_id: int,
     current_user: User = Depends(get_current_active_user),
@@ -341,7 +356,11 @@ async def get_analysis_by_id(
     )
 
 
-@router.delete("/api/v1/history/{analysis_id}")
+@router.delete(
+    "/api/v1/history/{analysis_id}",
+    operation_id="deleteAnalysisById",
+    summary="Delete an analysis report from history",
+)
 async def delete_analysis(
     analysis_id: int,
     current_user: User = Depends(get_current_active_user),
@@ -353,3 +372,4 @@ async def delete_analysis(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
     AnalysisCRUD.delete_analysis(db, analysis)
     return {"message": "Analysis deleted successfully"}
+

@@ -21,7 +21,12 @@ ai_analyzer = AIAnalyzer()
 router = APIRouter(tags=["Analysis"])
 
 
-@router.post("/api/v1/analyze/compare", response_model=CompareResponse)
+@router.post(
+    "/api/v1/analyze/compare",
+    response_model=CompareResponse,
+    operation_id="compareSectors",
+    summary="Rank 2-5 sectors on opportunity, risk, capital, and time-to-ROI",
+)
 @limiter.limit("10/minute")
 async def compare_sectors_endpoint(
     request: Request,

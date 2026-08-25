@@ -8,7 +8,11 @@ from app.core.cache import get_cache, AnalysisCache
 router = APIRouter(prefix="/api/v1/cache", tags=["Admin"])
 
 
-@router.get("/stats")
+@router.get(
+    "/stats",
+    operation_id="getCacheStats",
+    summary="Get server analysis cache statistics",
+)
 async def get_cache_stats(current_user: User = Depends(get_current_active_user)):
     """Get cache statistics (requires enterprise tier)."""
     if (current_user.tier or "free").lower() not in ("enterprise",):
@@ -20,7 +24,11 @@ async def get_cache_stats(current_user: User = Depends(get_current_active_user))
     return cache.get_stats()
 
 
-@router.delete("/clear")
+@router.delete(
+    "/clear",
+    operation_id="clearCache",
+    summary="Clear all server analysis cache entries",
+)
 async def clear_cache(current_user: User = Depends(get_current_active_user)):
     """Clear analysis cache (requires enterprise tier)."""
     if (current_user.tier or "free").lower() not in ("enterprise",):
@@ -30,3 +38,4 @@ async def clear_cache(current_user: User = Depends(get_current_active_user)):
         )
     AnalysisCache.invalidate_all()
     return {"message": "Cache cleared successfully"}
+

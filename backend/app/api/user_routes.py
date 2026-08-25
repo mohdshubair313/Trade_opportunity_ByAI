@@ -9,7 +9,12 @@ from app.core.schemas import UserResponse, UserUpdate, PasswordChange, UserStats
 router = APIRouter(prefix="/api/v1/users", tags=["Users"])
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    operation_id="getCurrentUser",
+    summary="Get current user's profile information",
+)
 async def get_current_user_profile(
     current_user: User = Depends(get_current_active_user),
 ):
@@ -17,7 +22,12 @@ async def get_current_user_profile(
     return UserResponse.model_validate(current_user)
 
 
-@router.put("/me", response_model=UserResponse)
+@router.put(
+    "/me",
+    response_model=UserResponse,
+    operation_id="updateCurrentUser",
+    summary="Update current user's profile information",
+)
 async def update_current_user(
     user_data: UserUpdate,
     current_user: User = Depends(get_current_active_user),
@@ -38,7 +48,11 @@ async def update_current_user(
     return UserResponse.model_validate(current_user)
 
 
-@router.post("/me/change-password")
+@router.post(
+    "/me/change-password",
+    operation_id="changePassword",
+    summary="Change current user's password",
+)
 async def change_user_password(
     password_data: PasswordChange,
     current_user: User = Depends(get_current_active_user),
@@ -49,7 +63,12 @@ async def change_user_password(
     return {"message": "Password changed successfully"}
 
 
-@router.get("/me/stats", response_model=UserStats)
+@router.get(
+    "/me/stats",
+    response_model=UserStats,
+    operation_id="getUserStats",
+    summary="Get current user's usage statistics and analysis counts",
+)
 async def get_user_stats(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db_session),

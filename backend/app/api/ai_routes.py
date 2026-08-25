@@ -25,7 +25,12 @@ multimodal_ai_service = MultimodalAIService()
 router = APIRouter(prefix="/api/v1/ai", tags=["AI"])
 
 
-@router.post("/vision/analyze", response_model=VisionAnalysisResponse)
+@router.post(
+    "/vision/analyze",
+    response_model=VisionAnalysisResponse,
+    operation_id="analyzeImage",
+    summary="Analyze trade chart, receipt, or image with AI vision",
+)
 @limiter.limit("10/minute")
 async def analyze_image_with_ai(
     request: Request,
@@ -57,7 +62,11 @@ async def analyze_image_with_ai(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
-@router.post("/tts")
+@router.post(
+    "/tts",
+    operation_id="synthesizeSpeech",
+    summary="Synthesize speech audio from text using AI voice models",
+)
 @limiter.limit("20/minute")
 async def synthesize_speech(
     request: Request,

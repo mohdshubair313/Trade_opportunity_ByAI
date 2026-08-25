@@ -92,31 +92,63 @@ export default function ApiDocsPage() {
         <div className="flex items-center gap-3 mb-2">
           <BookOpen className="h-6 w-6 text-violet-400" />
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-violet-300/70">
-            Developer Docs
+            Shubair Developer Portal
           </span>
         </div>
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
-          API Documentation
+          API &amp; Developer Documentation
         </h1>
         <p className="text-lg text-white/60 leading-relaxed mb-4 max-w-2xl">
-          Integrate TradeInsight AI programmatically. Analyse sectors, export reports, and
-          build on top of our agentic market intelligence engine.
+          Integrate TradeInsight AI programmatically. Built by Mohd Shubair for AI agents, quant developers,
+          and automated algorithmic pipelines analyzing 20+ NSE Indian equity sectors.
         </p>
         <div className="flex flex-wrap gap-3 mb-12">
           <a
             href="/openapi.json"
             className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:border-violet-400/30 transition-all"
           >
-            <FileJson className="h-4 w-4" />
-            OpenAPI Spec
+            <FileJson className="h-4 w-4 text-violet-400" />
+            OpenAPI Spec (JSON)
+          </a>
+          <a
+            href="/openapi.yaml"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:border-violet-400/30 transition-all"
+          >
+            <FileJson className="h-4 w-4 text-cyan-400" />
+            OpenAPI Spec (YAML)
           </a>
           <a
             href="/llms.txt"
             className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:border-violet-400/30 transition-all"
           >
-            📄 llms.txt
+            📄 llms.txt (Agent Guide)
           </a>
+          <Link
+            href="/docs/deprecation-policy"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:border-violet-400/30 transition-all"
+          >
+            ⏱️ Deprecation Policy
+          </Link>
         </div>
+
+        {/* CLI Tool */}
+        <section className="mb-12 rounded-2xl border border-violet-400/20 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/05 p-6">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-violet-300 mb-2">
+            💻 Official CLI Tool
+          </div>
+          <h2 className="text-2xl font-bold mb-3 text-white">
+            Command Line Interface (CLI)
+          </h2>
+          <p className="text-sm text-white/70 mb-4 leading-relaxed">
+            Interact with TradeInsight AI directly from your terminal or automation scripts without writing custom HTTP integrations:
+          </p>
+          <div className="space-y-3">
+            <CodeBlock title="Run instantly via npx (Node.js)">{`npx tradeinsight analyze pharmaceuticals`}</CodeBlock>
+            <CodeBlock title="Install via Python PyPI">{`pip install tradeinsight-cli
+tradeinsight sectors
+tradeinsight analyze technology --format json`}</CodeBlock>
+          </div>
+        </section>
 
         {/* Base URL */}
         <section className="mb-12">
@@ -263,7 +295,7 @@ export default function ApiDocsPage() {
 
         {/* Rate Limits */}
         <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-4">Rate Limits</h2>
+          <h2 className="text-2xl font-bold mb-4">Rate Limits &amp; Response Headers</h2>
           <div className="rounded-xl border border-white/10 bg-white/[0.04] overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -291,11 +323,37 @@ export default function ApiDocsPage() {
               </tbody>
             </table>
           </div>
-          <p className="text-sm text-white/50 mt-3">
-            Rate limit exceeded responses return HTTP 429 with a JSON body including a{" "}
-            <code className="text-violet-300 bg-violet-500/10 px-1 rounded">Retry-After</code>{" "}
-            header.
+
+          <div className="mt-6 space-y-3">
+            <h3 className="text-base font-semibold text-white/90">Standard RFC RateLimit Response Headers</h3>
+            <p className="text-sm text-white/70 leading-relaxed">
+              Every API response includes IETF/RFC standard rate limit headers enabling AI agents to self-throttle dynamically:
+            </p>
+            <div className="rounded-xl border border-white/10 bg-[#0c0c16] p-4 text-xs font-mono space-y-1.5 text-white/80">
+              <div><span className="text-violet-300 font-semibold">RateLimit-Limit:</span> 100 <span className="text-white/40">// Maximum allowed requests in window</span></div>
+              <div><span className="text-violet-300 font-semibold">RateLimit-Remaining:</span> 98 <span className="text-white/40">// Requests remaining in current window</span></div>
+              <div><span className="text-violet-300 font-semibold">RateLimit-Reset:</span> 42 <span className="text-white/40">// Seconds until quota window resets</span></div>
+              <div><span className="text-violet-300 font-semibold">RateLimit-Policy:</span> 100;w=60 <span className="text-white/40">// 100 requests per 60-second window</span></div>
+              <div><span className="text-amber-300 font-semibold">Retry-After:</span> 60 <span className="text-white/40">// Present when HTTP 429 occurs (seconds to wait)</span></div>
+            </div>
+          </div>
+        </section>
+
+        {/* Deprecation Policy */}
+        <section className="mb-12 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+          <h2 className="text-2xl font-bold mb-3 text-white">
+            API Versioning &amp; Deprecation Policy
+          </h2>
+          <p className="text-sm text-white/70 leading-relaxed mb-4">
+            We follow strict semantic URL versioning (<code className="text-xs text-violet-300 bg-violet-500/10 px-1 py-0.5 rounded">/api/v1/...</code>).
+            Deprecated endpoints are guaranteed a minimum 6-month operational grace period and return RFC 8594 <code className="text-xs text-amber-300 bg-amber-500/10 px-1 py-0.5 rounded">Deprecation</code> and <code className="text-xs text-amber-300 bg-amber-500/10 px-1 py-0.5 rounded">Sunset</code> headers.
           </p>
+          <Link
+            href="/docs/deprecation-policy"
+            className="inline-flex items-center text-sm font-semibold text-violet-300 hover:text-violet-200 underline gap-1"
+          >
+            Read the full Deprecation &amp; Stability Policy →
+          </Link>
         </section>
 
         {/* Error Responses */}

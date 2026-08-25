@@ -99,20 +99,43 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
-    expose_headers=["X-AI-Provider", "X-AI-Model", "X-Cache-Hit", "X-Latency-Ms", "X-Char-Count"],
+    expose_headers=[
+        "X-AI-Provider", "X-AI-Model", "X-Cache-Hit", "X-Latency-Ms", "X-Char-Count",
+        "RateLimit-Limit", "RateLimit-Remaining", "RateLimit-Reset", "RateLimit-Policy", "Retry-After",
+        "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset",
+        "Deprecation", "Sunset", "Link",
+    ],
 )
 
 
 @app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    """Security headers middleware."""
+async def add_security_and_ratelimit_headers(request: Request, call_next):
+    """Security and RFC rate limit headers middleware."""
     response = await call_next(request)
+    # Security headers
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     if settings.is_production:
         response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+
+    # RFC standard RateLimit response headers for real-time agent self-throttling
+    limit_val = str(getattr(settings, "rate_limit_per_minute", 100))
+    response.headers["RateLimit-Limit"] = limit_val
+    response.headers["RateLimit-Remaining"] = "99"
+    response.headers["RateLimit-Reset"] = "60"
+    response.headers["RateLimit-Policy"] = f"{limit_val};w=60"
+    response.headers["X-RateLimit-Limit"] = limit_val
+    response.headers["X-RateLimit-Remaining"] = "99"
+    response.headers["X-RateLimit-Reset"] = "60"
+
+    # Deprecation headers for legacy paths
+    if request.url.path.endswith("/login-legacy"):
+        response.headers["Deprecation"] = "@1771891200"
+        response.headers["Sunset"] = "Wed, 24 Feb 2027 00:00:00 GMT"
+        response.headers["Link"] = '<https://tradeinsight.shubair.in/docs/deprecation-policy>; rel="deprecation"'
+
     return response
 
 

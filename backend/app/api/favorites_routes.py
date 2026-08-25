@@ -9,7 +9,12 @@ from app.core.schemas import FavoriteAdd, FavoritesListResponse
 router = APIRouter(prefix="/api/v1/favorites", tags=["Favorites"])
 
 
-@router.get("", response_model=FavoritesListResponse)
+@router.get(
+    "",
+    response_model=FavoritesListResponse,
+    operation_id="getFavorites",
+    summary="Get current user's favorite sectors",
+)
 async def get_favorites(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db_session),
@@ -19,7 +24,11 @@ async def get_favorites(
     return FavoritesListResponse(favorites=favorites, count=len(favorites))
 
 
-@router.post("")
+@router.post(
+    "",
+    operation_id="addFavorite",
+    summary="Add a sector to user favorites",
+)
 async def add_favorite(
     favorite_data: FavoriteAdd,
     current_user: User = Depends(get_current_active_user),
@@ -30,7 +39,11 @@ async def add_favorite(
     return {"message": f"Added {favorite_data.sector} to favorites"}
 
 
-@router.delete("/{sector}")
+@router.delete(
+    "/{sector}",
+    operation_id="removeFavorite",
+    summary="Remove a sector from user favorites",
+)
 async def remove_favorite(
     sector: str,
     current_user: User = Depends(get_current_active_user),

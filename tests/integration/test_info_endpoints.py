@@ -43,3 +43,46 @@ def test_openapi_spec_published(client: TestClient):
     assert spec["paths"]["/health"]["get"]["operationId"] == "healthCheck"
     assert spec["paths"]["/api/v1/sectors"]["get"]["operationId"] == "listAvailableSectors"
 
+
+def test_ratelimit_response_headers(client: TestClient):
+    """Test that API responses include standard RFC RateLimit headers."""
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert "RateLimit-Limit" in response.headers
+    assert "RateLimit-Remaining" in response.headers
+    assert "RateLimit-Reset" in response.headers
+    assert "RateLimit-Policy" in response.headers
+
+
+def test_deprecation_headers(client: TestClient):
+    """Test that deprecated endpoints return RFC 8594 Deprecation and Sunset headers."""
+    response = client.post("/api/v1/auth/login-legacy", json={"username": "invalid", "password": "bad"})
+    assert "Deprecation" in response.headers
+    assert "Sunset" in response.headers
+    assert "Link" in response.headers
+
+
+def test_openapi_schema_complete_coverage(client: TestClient):
+    """Test that 100% of OpenAPI operations have summaries, descriptions, and operationIds."""
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+    spec = response.json()
+    paths = spec.get("paths", {})
+    total_ops = 0
+    ops_with_desc = 0
+    ops_with_id = 0
+
+    for path, methods in paths.items():
+        for method, op in methods.items():
+            if method.lower() in ("get", "post", "put", "delete", "patch", "options"):
+                total_ops += 1
+                if op.get("summary") or op.get("description"):
+                    ops_with_desc += 1
+                if op.get("operationId"):
+                    ops_with_id += 1
+
+    assert total_ops > 0
+    assert ops_with_desc == total_ops, f"Only {ops_with_desc}/{total_ops} operations have descriptions"
+    assert ops_with_id == total_ops, f"Only {ops_with_id}/{total_ops} operations have operationIds"
+
+

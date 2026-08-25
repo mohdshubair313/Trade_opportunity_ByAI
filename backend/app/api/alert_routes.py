@@ -22,7 +22,12 @@ def _to_alert_item(ev: AlertEvent) -> AlertItem:
     )
 
 
-@router.get("/api/v1/alerts", response_model=AlertsResponse)
+@router.get(
+    "/api/v1/alerts",
+    response_model=AlertsResponse,
+    operation_id="listAlerts",
+    summary="List user sector alerts with seen/unseen filters",
+)
 async def list_alerts(
     include_seen: bool = Query(False),
     limit: int = Query(50, ge=1, le=200),
@@ -34,7 +39,12 @@ async def list_alerts(
     return AlertsResponse(items=[_to_alert_item(e) for e in items], unread=unread)
 
 
-@router.post("/api/v1/alerts/{alert_id}/acknowledge", response_model=AlertItem)
+@router.post(
+    "/api/v1/alerts/{alert_id}/acknowledge",
+    response_model=AlertItem,
+    operation_id="acknowledgeAlert",
+    summary="Acknowledge and mark an alert as read",
+)
 async def acknowledge_alert(
     alert_id: int,
     current_user: User = Depends(get_current_active_user),

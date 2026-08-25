@@ -27,7 +27,12 @@ def _to_watchlist_item(wl: Watchlist) -> WatchlistItem:
     )
 
 
-@router.get("", response_model=WatchlistsResponse)
+@router.get(
+    "",
+    response_model=WatchlistsResponse,
+    operation_id="listWatchlists",
+    summary="List all watchlists created by current user",
+)
 async def list_watchlists(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db_session),
@@ -41,7 +46,12 @@ async def list_watchlists(
     )
 
 
-@router.post("", response_model=WatchlistItem)
+@router.post(
+    "",
+    response_model=WatchlistItem,
+    operation_id="createWatchlist",
+    summary="Create a new automated sector watchlist alert",
+)
 async def create_watchlist(
     payload: WatchlistCreate,
     current_user: User = Depends(get_current_active_user),
@@ -73,7 +83,11 @@ async def create_watchlist(
     return _to_watchlist_item(wl)
 
 
-@router.delete("/{watchlist_id}")
+@router.delete(
+    "/{watchlist_id}",
+    operation_id="deleteWatchlist",
+    summary="Delete a watchlist alert by ID",
+)
 async def delete_watchlist(
     watchlist_id: int,
     current_user: User = Depends(get_current_active_user),

@@ -28,13 +28,26 @@ limiter = Limiter(
 
 
 def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> Response:
-    """Custom handler for rate limit exceeded errors."""
+    """Custom handler for rate limit exceeded errors with RFC headers & resolution hints."""
     logger.warning(f"Rate limit exceeded for IP: {get_remote_address(request)}")
     return JSONResponse(
         status_code=429,
+        headers={
+            "Retry-After": "60",
+            "RateLimit-Limit": "100",
+            "RateLimit-Remaining": "0",
+            "RateLimit-Reset": "60",
+            "RateLimit-Policy": "100;w=60",
+            "X-RateLimit-Limit": "100",
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": "60",
+        },
         content={
             "error": "Rate limit exceeded",
-            "message": "Too many requests. Please try again later.",
-            "retry_after": exc.detail
+            "message": "Too many requests. Please throttle your calls.",
+            "code": "RATE_LIMITED",
+            "retry_after": 60,
+            "hint": "Please wait for the duration specified in the Retry-After header before sending more requests, or upgrade to Pro for higher limits.",
         }
     )
+

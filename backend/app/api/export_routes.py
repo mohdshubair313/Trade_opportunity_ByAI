@@ -13,7 +13,11 @@ from app.services.export_service import export_analysis, CONTENT_TYPES
 router = APIRouter(tags=["Analysis"])
 
 
-@router.get("/api/v1/history/{analysis_id}/export")
+@router.get(
+    "/api/v1/history/{analysis_id}/export",
+    operation_id="exportAnalysis",
+    summary="Export a saved analysis report as PDF, PPTX, XLSX, or Markdown",
+)
 @limiter.limit("20/minute")
 async def export_analysis_by_id(
     request: Request,

@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
 
-@router.post("/send-otp", response_model=OTPSendResponse)
+@router.post("/send-otp", response_model=OTPSendResponse, operation_id="sendOtp", summary="Send email OTP verification code")
 @limiter.limit("5/minute")
 async def send_otp(
     request: Request,
@@ -48,7 +48,7 @@ async def send_otp(
         )
 
 
-@router.post("/verify-otp", response_model=OTPVerifyResponse)
+@router.post("/verify-otp", response_model=OTPVerifyResponse, operation_id="verifyOtp", summary="Verify email OTP code")
 @limiter.limit("10/minute")
 async def verify_otp(
     request: Request,
@@ -58,10 +58,12 @@ async def verify_otp(
     """Verify the 6-digit OTP code sent to an email address."""
     try:
         verified = verify_email_otp(db, payload.email, payload.code)
-        return OTPVerifyResponse(
-            verified=verified,
-            message="Email verified successfully. You can now complete registration.",
-        )
+        if not verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired verification code",
+            )
+        return OTPVerifyResponse(message="Email verified successfully", verified=True)
     except HTTPException:
         raise
     except Exception as e:
@@ -72,7 +74,7 @@ async def verify_otp(
         )
 
 
-@router.post("/register", response_model=Token)
+@router.post("/register", response_model=Token, operation_id="registerUser", summary="Register a new user account")
 @limiter.limit("5/minute")
 async def register(
     request: Request,
@@ -109,7 +111,7 @@ async def register(
         )
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, operation_id="loginUser", summary="Authenticate and get JWT tokens")
 @limiter.limit("10/minute")
 async def login(
     request: Request,
@@ -148,7 +150,7 @@ async def login_legacy(
     return await login(request, login_data, db)
 
 
-@router.post("/refresh", response_model=Token)
+@router.post("/refresh", response_model=Token, operation_id="refreshToken", summary="Refresh access token")
 @limiter.limit("10/minute")
 async def refresh_token(
     request: Request,
@@ -160,7 +162,7 @@ async def refresh_token(
     return Token(**tokens)
 
 
-@router.post("/logout")
+@router.post("/logout", operation_id="logoutUser", summary="Logout and revoke active tokens")
 async def logout(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db_session),

@@ -23,19 +23,33 @@ settings = get_settings()
 router = APIRouter(tags=["Voice"])
 
 
-@router.get("/api/v1/voice/voices", response_model=list[VoiceVoiceOption])
+@router.get(
+    "/api/v1/voice/voices",
+    response_model=list[VoiceVoiceOption],
+    operation_id="listVoiceOptions",
+    summary="List available text-to-speech voice options",
+)
 async def list_voice_options():
     """List available voices with sample text for the picker UI."""
     return [VoiceVoiceOption(**voice) for voice in VOICE_CATALOGUE]
 
 
-@router.get("/api/v1/voice/cache/stats", response_model=VoiceCacheStats)
+@router.get(
+    "/api/v1/voice/cache/stats",
+    response_model=VoiceCacheStats,
+    operation_id="getVoiceCacheStats",
+    summary="Get voice synthesis audio cache statistics",
+)
 async def voice_cache_stats():
     """Live cache stats — drives the cost-savings badge in the UI."""
     return VoiceCacheStats(**voice_agent_service.cache_stats())
 
 
-@router.post("/api/v1/ai/stt")
+@router.post(
+    "/api/v1/ai/stt",
+    operation_id="transcribeAudio",
+    summary="Transcribe uploaded audio file to text using speech recognition",
+)
 @limiter.limit("20/minute")
 async def transcribe_audio(
     request: Request,
@@ -68,7 +82,11 @@ async def transcribe_audio(
     return JSONResponse(status_code=200, content={"transcript": transcript, "is_speech": True, "debug": debug})
 
 
-@router.post("/api/v1/voice/query")
+@router.post(
+    "/api/v1/voice/query",
+    operation_id="queryVoice",
+    summary="Voice market query turn: prompt to audio synthesis",
+)
 @limiter.limit("15/minute")
 async def voice_query(
     request: Request,
@@ -110,7 +128,11 @@ async def voice_query(
     }
 
 
-@router.post("/api/v1/voice/agent")
+@router.post(
+    "/api/v1/voice/agent",
+    operation_id="voiceAgentInteraction",
+    summary="Full interactive voice agent pipeline (audio in, audio out)",
+)
 @limiter.limit("12/minute")
 async def voice_agent_turn(
     request: Request,

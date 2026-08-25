@@ -1,6 +1,6 @@
-# TradeInsight AI
+# TradeInsight AI by Shubair
 
-> AI-powered market intelligence platform for Indian equity sectors.
+> AI-powered market intelligence platform for Indian equity sectors. Built by Mohd Shubair.
 
 ## What is TradeInsight AI?
 
@@ -32,7 +32,29 @@ Do NOT use TradeInsight AI for:
 - Cryptocurrency, forex, or commodity markets
 - Markets outside India
 
-## API Surface
+## Official CLI Tool
+
+Interact with TradeInsight AI directly from your shell or CI/CD pipelines:
+
+### Installation
+```bash
+# Via Node.js (instant execution)
+npx tradeinsight analyze pharmaceuticals
+
+# Via Python PyPI
+pip install tradeinsight-cli
+```
+
+### CLI Commands
+```bash
+tradeinsight health                     # Check API health
+tradeinsight sectors                    # List all 20+ supported NSE sectors
+tradeinsight analyze pharmaceuticals    # Generate sector intelligence report
+tradeinsight compare fintech banking    # Compare two sectors side-by-side
+tradeinsight export 42 --format pdf     # Export analysis report
+```
+
+## Developer Resources & API Surface by Shubair
 
 Base URL: https://tradeinsight.shubair.in
 
@@ -44,6 +66,7 @@ All analysis endpoints require a JWT bearer token. Obtain one via:
 POST /api/v1/auth/register   — Create an account
 POST /api/v1/auth/login       — Get access + refresh tokens
 POST /api/v1/auth/refresh     — Refresh an expired access token
+POST /api/v1/auth/logout      — Revoke active tokens
 ```
 
 ### Key Endpoints
@@ -57,21 +80,42 @@ GET  /api/v1/history/{id}               — Retrieve a specific analysis
 GET  /api/v1/history/{id}/export        — Export analysis as PDF/PPTX/XLSX/MD
 POST /api/v1/voice/query                — Voice-based market query
 GET  /api/v1/voice/voices               — List available TTS voices
-GET  /health                            — Service health check
-GET  /openapi.json                      — Full OpenAPI specification
+GET  /api/health                        — Service health check
+GET  /openapi.json                      — Full OpenAPI 3.0 specification (JSON)
+GET  /openapi.yaml                      — Full OpenAPI 3.0 specification (YAML)
 ```
 
-### Rate Limits
+### Rate Limits & RFC Headers
 
+All API responses include standard IETF/RFC rate-limit headers:
+
+- `RateLimit-Limit`: Maximum requests per window (e.g. 100)
+- `RateLimit-Remaining`: Remaining request quota in current window
+- `RateLimit-Reset`: Seconds remaining until window resets
+- `RateLimit-Policy`: Rate limit policy (e.g. "100;w=60")
+- `Retry-After`: Returned with HTTP 429 when quota is exceeded (seconds to wait)
+
+Rate tier quotas:
 - Free tier: 10 requests/minute, 100 requests/hour
-- Pro tier: Higher limits
-- Enterprise: Custom limits
+- Pro tier: 30 requests/minute, 500 requests/hour
+- Enterprise: Custom quotas with dedicated SLA
+
+### API Versioning & Deprecation Policy
+
+- Semantic URL versioning: `/api/v1/...`
+- Minimum 6 months deprecation notice before retirement
+- Deprecated endpoints return RFC 8594 `Deprecation` and `Sunset` headers:
+  `Deprecation: @1771891200`
+  `Sunset: Wed, 24 Feb 2027 00:00:00 GMT`
+  `Link: <https://tradeinsight.shubair.in/docs/deprecation-policy>; rel="deprecation"`
+- Policy documentation: https://tradeinsight.shubair.in/docs/deprecation-policy
 
 ### Example: Analyze a Sector
 
 ```bash
 curl -X GET "https://tradeinsight.shubair.in/api/v1/analyze/pharmaceuticals" \
-  -H "Authorization: Bearer YOUR_TOKEN"
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
 ```
 
 Response includes: executive summary, top opportunities, primary risks,
@@ -79,21 +123,26 @@ actionable recommendations, and cited sources.
 
 ## Machine-Readable Resources
 
-- OpenAPI Specification: https://tradeinsight.shubair.in/openapi.json
-- Sitemap: https://tradeinsight.shubair.in/sitemap.xml
-- Health Check: https://tradeinsight.shubair.in/api/health
+- OpenAPI JSON Specification: https://tradeinsight.shubair.in/openapi.json
+- OpenAPI YAML Specification: https://tradeinsight.shubair.in/openapi.yaml
+- XML Sitemap: https://tradeinsight.shubair.in/sitemap.xml
+- Robots Configuration: https://tradeinsight.shubair.in/robots.txt
+- Health Check API: https://tradeinsight.shubair.in/api/health
+- LLM Agent Guide: https://tradeinsight.shubair.in/llms.txt
 
 ## Human-Readable Resources
 
 - Homepage: https://tradeinsight.shubair.in
-- API Documentation: https://tradeinsight.shubair.in/docs/api
+- Developer API Docs: https://tradeinsight.shubair.in/docs/api
+- Deprecation Policy: https://tradeinsight.shubair.in/docs/deprecation-policy
 - Pricing: https://tradeinsight.shubair.in/pricing
-- About: https://tradeinsight.shubair.in/about
-- Contact: https://tradeinsight.shubair.in/contact
+- About Mohd Shubair: https://tradeinsight.shubair.in/about
+- Contact Sales: https://tradeinsight.shubair.in/contact
 - Privacy Policy: https://tradeinsight.shubair.in/privacy
 
-## Contact
+## Maintainer & Contact
 
+- Author: Mohd Shubair
 - Email: shubair313@gmail.com
 - Twitter/X: https://x.com/Shubair313
 - GitHub: https://github.com/mohdshubair313

@@ -49,7 +49,12 @@ def _to_order_response(order: Order) -> OrderResponse:
 router = APIRouter(prefix="/api/v1/payments", tags=["Payments"])
 
 
-@router.get("/catalog", response_model=list[PaymentCatalogItemResponse])
+@router.get(
+    "/catalog",
+    response_model=list[PaymentCatalogItemResponse],
+    operation_id="getPaymentCatalog",
+    summary="List active subscription pricing items and plans",
+)
 async def list_payment_catalog(db: Session = Depends(get_db_session)):
     """Expose active checkout SKUs so the frontend can render real purchasable plans."""
     return [
@@ -62,7 +67,12 @@ async def list_payment_catalog(db: Session = Depends(get_db_session)):
     ]
 
 
-@router.post("/create-order", response_model=CreateOrderResponse)
+@router.post(
+    "/create-order",
+    response_model=CreateOrderResponse,
+    operation_id="createPaymentOrder",
+    summary="Create a new payment order with Razorpay",
+)
 @limiter.limit("10/minute")
 async def create_payment_order(
     request: Request,
@@ -88,7 +98,12 @@ async def create_payment_order(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
-@router.post("/verify", response_model=OrderResponse)
+@router.post(
+    "/verify",
+    response_model=OrderResponse,
+    operation_id="verifyPayment",
+    summary="Verify Razorpay checkout signature and complete order",
+)
 @limiter.limit("20/minute")
 async def verify_payment(
     request: Request,
@@ -110,7 +125,12 @@ async def verify_payment(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
-@router.get("/orders/{local_order_id}", response_model=OrderResponse)
+@router.get(
+    "/orders/{local_order_id}",
+    response_model=OrderResponse,
+    operation_id="getOrderStatus",
+    summary="Get status and details of a payment order by local ID",
+)
 async def get_payment_order(
     local_order_id: int,
     current_user: Optional[User] = Depends(get_current_user_optional),
@@ -131,7 +151,11 @@ async def get_payment_order(
     return _to_order_response(order)
 
 
-@router.post("/razorpay-webhook")
+@router.post(
+    "/razorpay-webhook",
+    operation_id="handleRazorpayWebhook",
+    summary="Handle incoming Razorpay payment webhooks with HMAC validation",
+)
 async def razorpay_webhook(
     request: Request,
     db: Session = Depends(get_db_session),

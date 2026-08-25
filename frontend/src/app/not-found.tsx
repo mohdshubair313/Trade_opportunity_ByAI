@@ -38,9 +38,11 @@ export default function NotFound() {
               { href: "/", label: "Homepage", desc: "TradeInsight AI landing page" },
               { href: "/dashboard", label: "Dashboard", desc: "Start analyzing sectors" },
               { href: "/docs/api", label: "API Documentation", desc: "Endpoints, auth, examples" },
-              { href: "/openapi.json", label: "OpenAPI Spec", desc: "Machine-readable API schema" },
+              { href: "/openapi.json", label: "OpenAPI JSON Spec", desc: "Machine-readable API schema" },
+              { href: "/openapi.yaml", label: "OpenAPI YAML Spec", desc: "YAML format API specification" },
               { href: "/sitemap.xml", label: "Sitemap", desc: "All indexable pages" },
               { href: "/llms.txt", label: "llms.txt", desc: "Agent instructions & guidance" },
+              { href: "/docs/deprecation-policy", label: "Deprecation Policy", desc: "API lifecycle and sunset timeline" },
             ].map((link) => (
               <li key={link.href}>
                 <Link

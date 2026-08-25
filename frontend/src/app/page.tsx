@@ -20,9 +20,9 @@ export const metadata: Metadata = {
 };
 
 /**
- * JSON-LD structured data for AI and search engines (audit items 9 + 14).
- * SoftwareApplication identifies the product; Organization provides
- * contactPoint and address for business legitimacy verification.
+ * JSON-LD structured data for AI and search engines (audit items 4, 5, 9, 14).
+ * SoftwareApplication identifies the product; Organization & Person provide
+ * business legitimacy, author verification, and developer discoverability.
  */
 function JsonLd() {
   const jsonLd = {
@@ -30,38 +30,51 @@ function JsonLd() {
     "@graph": [
       {
         "@type": "SoftwareApplication",
+        "@id": "https://tradeinsight.shubair.in/#software",
         name: "TradeInsight AI",
+        alternateName: [
+          "TradeInsight",
+          "Trade Insight",
+          "TradeInsight by Shubair",
+          "TradeInsight AI by Mohd Shubair",
+          "Trade Opportunity By AI",
+        ],
         url: "https://tradeinsight.shubair.in",
         description:
-          "AI-powered market intelligence platform for Indian equity sectors. Generates cited, persona-tuned sector reports covering 20+ NSE sectors in under 15 seconds.",
+          "Agentic market intelligence platform for Indian equity sectors by Mohd Shubair. Generates cited, persona-tuned sector reports covering 20+ NSE sectors in under 15 seconds.",
         applicationCategory: "FinanceApplication",
-        operatingSystem: "Web",
+        operatingSystem: "Web, CLI, API",
         offers: {
           "@type": "Offer",
           price: "0",
           priceCurrency: "INR",
           description: "Free tier available — no credit card required",
         },
-        author: { "@id": "#organization" },
+        author: { "@id": "https://tradeinsight.shubair.in/#organization" },
+        creator: { "@id": "https://tradeinsight.shubair.in/#person" },
+        publisher: { "@id": "https://tradeinsight.shubair.in/#organization" },
         screenshot: "https://tradeinsight.shubair.in/opengraph-image.png",
         featureList: [
           "AI-powered sector analysis for 20+ NSE sectors",
-          "Cited sources on every claim",
+          "Cited sources on every claim with verifiable references",
           "Persona-tuned reports (retail investor, exporter, SME founder, consultant)",
           "Export to PDF, PPTX, XLSX, Markdown",
-          "Voice agent for hands-free market briefings",
+          "Voice agent for hands-free market briefings in Indian English",
           "Watchlist alerts with configurable cadence",
+          "Official CLI tool and REST API with OpenAPI specification",
           "JWT-scoped privacy — reports never surface to another account",
         ],
       },
       {
         "@type": "Organization",
-        "@id": "#organization",
+        "@id": "https://tradeinsight.shubair.in/#organization",
         name: "TradeInsight AI",
+        alternateName: "TradeInsight",
         url: "https://tradeinsight.shubair.in",
         logo: "https://tradeinsight.shubair.in/icon.png",
         description:
-          "TradeInsight AI builds agentic market intelligence tools for the Indian equity market.",
+          "TradeInsight AI builds agentic market intelligence tools and developer APIs for Indian financial markets.",
+        founder: { "@id": "https://tradeinsight.shubair.in/#person" },
         contactPoint: {
           "@type": "ContactPoint",
           email: "shubair313@gmail.com",
@@ -79,8 +92,21 @@ function JsonLd() {
         ],
       },
       {
+        "@type": "Person",
+        "@id": "https://tradeinsight.shubair.in/#person",
+        name: "Mohd Shubair",
+        alternateName: ["Shubair", "Mohd Shubair Developer"],
+        url: "https://github.com/mohdshubair313",
+        jobTitle: "Founder & AI Engineer",
+        sameAs: [
+          "https://x.com/Shubair313",
+          "https://github.com/mohdshubair313",
+          "https://www.linkedin.com/in/mohd-shubair-b1a454250/",
+        ],
+      },
+      {
         "@type": "WebSite",
-        name: "TradeInsight AI",
+        name: "TradeInsight AI by Shubair",
         url: "https://tradeinsight.shubair.in",
       },
     ],
@@ -101,43 +127,142 @@ export default function HomePage() {
       <JsonLd />
 
       {/*
-        Server-rendered semantic content — visible to AI crawlers without JS.
-        Visually hidden (sr-only) so it doesn't compete with the animated hero,
-        but fully present in raw HTML for agents that can't execute JavaScript.
+        Server-rendered semantic content with full heading hierarchy (H1 -> H2 -> H3).
+        Visible to AI crawlers and search engines in raw HTML without JavaScript.
+        Visually hidden (sr-only) so it doesn't collide with the client animated canvas.
       */}
       <div className="sr-only">
-        <h1>TradeInsight AI — AI-Powered Market Intelligence for Indian Equity Sectors</h1>
-        <p>
-          TradeInsight AI is an agentic market intelligence platform that helps retail investors,
-          exporters, SME founders, and consultants discover trade opportunities in Indian markets.
-          Pick any of our 20+ NSE sectors — from Pharmaceuticals and Technology to Renewable Energy,
-          Fintech, Automotive, FMCG, Banking, Healthcare, Real Estate, Infrastructure, Metals &amp; Mining,
-          and more — and receive a comprehensive, cited sector report in under fifteen seconds.
-        </p>
-        <p>
-          Our AI reads the latest filings, news, and market tape, then writes a structured report
-          tailored to your persona, capital allocation, and risk appetite. Every claim is backed by
-          cited sources so you can verify before you act. Reports include an executive summary,
-          top opportunities, primary risks, actionable recommendations, and can be exported to PDF,
-          PPTX, XLSX, or Markdown.
-        </p>
-        <p>
-          Key features include real-time NSE sector data with benchmark deltas, a voice agent for
-          hands-free market briefings in Indian English, watchlist alerts that re-analyse sectors on
-          your cadence, side-by-side sector comparison, and JWT-scoped privacy ensuring your reports
-          never surface to another account. TradeInsight AI is free to start with no credit card
-          required — upgrade to Pro or Enterprise for higher limits, white-label exports, and SSO.
-        </p>
-        <nav aria-label="Main sections">
-          <ul>
-            <li><a href="/dashboard">Dashboard — Start analyzing sectors</a></li>
-            <li><a href="/pricing">Pricing — Free, Pro, and Enterprise plans</a></li>
-            <li><a href="/docs/api">API Documentation — Integrate TradeInsight programmatically</a></li>
-            <li><a href="/about">About TradeInsight AI</a></li>
-            <li><a href="/contact">Contact Sales</a></li>
-            <li><a href="/privacy">Privacy Policy</a></li>
-          </ul>
-        </nav>
+        <header>
+          <h1>TradeInsight AI by Shubair — AI-Powered Market Intelligence for Indian Equity Sectors</h1>
+          <p>
+            TradeInsight AI, built by Mohd Shubair, is an agentic market intelligence platform
+            for analyzing 20+ National Stock Exchange of India (NSE) sectors in under 15 seconds.
+          </p>
+        </header>
+
+        <main>
+          <section>
+            <h2>Overview &amp; Core Value Proposition</h2>
+            <p>
+              TradeInsight AI reads financial filings, live market tape, and news sentiment, then
+              generates structured, persona-tuned reports backed by cited sources. Whether you are a
+              retail investor managing a personal portfolio, an exporter monitoring foreign exchange
+              impacts, an SME founder planning capital allocation, or an equity research consultant,
+              TradeInsight produces actionable sector intelligence on demand.
+            </p>
+          </section>
+
+          <section>
+            <h2>Platform Capabilities &amp; Key Features</h2>
+
+            <article>
+              <h3>1. AI-Powered Sector Analysis</h3>
+              <p>
+                Cascading AI models analyze macroeconomic factors, industry trends, and corporate filings
+                to synthesize cited reports with executive summaries, top trade opportunities, primary risks,
+                and concrete next steps.
+              </p>
+            </article>
+
+            <article>
+              <h3>2. Real-Time NSE Sector Data</h3>
+              <p>
+                Continuous tracking of Indian equity sector indices, benchmark deltas against Nifty 50,
+                and news sentiment scored with natural language processing.
+              </p>
+            </article>
+
+            <article>
+              <h3>3. Multi-Format Report Export</h3>
+              <p>
+                Export complete research dossiers into PDF, Microsoft PowerPoint (PPTX), Microsoft Excel (XLSX),
+                or Markdown for team presentations and quantitative modeling.
+              </p>
+            </article>
+
+            <article>
+              <h3>4. Interactive Voice Briefing Agent</h3>
+              <p>
+                Hands-free market query agent offering spoken briefings in Indian English, powered by speech-to-text,
+                multimodal AI reasoning, and low-latency voice synthesis.
+              </p>
+            </article>
+
+            <article>
+              <h3>5. Automated Watchlist Alerts</h3>
+              <p>
+                Monitor prioritized sectors on customizable schedules (daily, weekly, or event-driven)
+                with alerts triggered whenever material developments occur.
+              </p>
+            </article>
+
+            <article>
+              <h3>6. Side-by-Side Sector Comparison</h3>
+              <p>
+                Rank multiple sectors across opportunity scores, risk metrics, capital intensity, and time-to-ROI
+                for optimal portfolio weighting.
+              </p>
+            </article>
+          </section>
+
+          <section>
+            <h2>Covered Indian Equity Sectors</h2>
+            <p>
+              TradeInsight covers 20+ major NSE industry sectors including:
+            </p>
+            <ul>
+              <li>Pharmaceuticals &amp; Active Pharmaceutical Ingredients (API / CDMO)</li>
+              <li>Information Technology, Cloud &amp; Software Services</li>
+              <li>Fintech &amp; Digital Payments</li>
+              <li>Renewable Energy, Solar &amp; Clean Technology</li>
+              <li>Automotive &amp; Electric Vehicles (EV)</li>
+              <li>Fast-Moving Consumer Goods (FMCG)</li>
+              <li>Banking, Financial Services &amp; Insurance (BFSI)</li>
+              <li>Healthcare &amp; Diagnostics</li>
+              <li>Metals &amp; Mining</li>
+              <li>Infrastructure, Roads &amp; Ports</li>
+              <li>Real Estate &amp; Construction</li>
+              <li>Textiles, Agriculture, Chemicals &amp; Telecommunications</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Developer Resources &amp; API Integration by Shubair</h2>
+            <p>
+              Programmatic access is available for AI agents, quant developers, and automated workflows.
+            </p>
+            <ul>
+              <li><a href="/docs/api">API Documentation — Endpoints, JWT authentication, and examples</a></li>
+              <li><a href="/openapi.json">OpenAPI 3.0 Specification (JSON)</a></li>
+              <li><a href="/openapi.yaml">OpenAPI Specification (YAML)</a></li>
+              <li><a href="/llms.txt">llms.txt — Machine-readable Agent Integration Handbook</a></li>
+              <li><a href="/docs/deprecation-policy">API Versioning and Deprecation Policy</a></li>
+              <li><a href="/api/health">System Health Check API</a></li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Subscription Plans &amp; Pricing</h2>
+            <ul>
+              <li><strong>Free Plan:</strong> 3 analyses per day, access to all 20+ sectors, standard AI routing. No credit card required.</li>
+              <li><strong>Pro Plan:</strong> Unlimited analyses, priority LLM execution, PDF/PPTX/XLSX exports, 20 watchlist slots.</li>
+              <li><strong>Enterprise Plan:</strong> Custom sector feeds, dedicated Slack channels, white-label decks, SSO, and team volume licensing.</li>
+            </ul>
+          </section>
+
+          <nav aria-label="Quick Links">
+            <h2>Site Navigation</h2>
+            <ul>
+              <li><a href="/dashboard">Launch Dashboard</a></li>
+              <li><a href="/pricing">View Pricing Plans</a></li>
+              <li><a href="/docs/api">Developer API Docs</a></li>
+              <li><a href="/about">About TradeInsight AI &amp; Mohd Shubair</a></li>
+              <li><a href="/contact">Contact Enterprise Sales</a></li>
+              <li><a href="/privacy">Privacy &amp; Data Security Policy</a></li>
+              <li><a href="/sitemap.xml">XML Sitemap</a></li>
+            </ul>
+          </nav>
+        </main>
       </div>
 
       {/* Animated thread background — kept as the hero of the page */}

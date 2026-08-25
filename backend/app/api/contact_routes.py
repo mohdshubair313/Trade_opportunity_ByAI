@@ -12,7 +12,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Contact"])
 
 
-@router.post("/api/v1/contact", response_model=ContactResponse)
+@router.post(
+    "/api/v1/contact",
+    response_model=ContactResponse,
+    operation_id="submitContact",
+    summary="Accept a contact or sales inquiry",
+)
 @limiter.limit("5/minute")
 async def submit_contact(
     request: Request,
