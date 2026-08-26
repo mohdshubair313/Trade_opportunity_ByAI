@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,506 +9,401 @@ import {
   Mail,
   Lock,
   User,
-  Sparkles,
   ShieldCheck,
-  RefreshCw,
-  ArrowLeft,
-  TrendingUp,
-  LogIn,
+  ArrowRight,
+  Sun,
+  Moon,
+  Eye,
+  EyeOff,
   KeyRound,
+  CheckCircle2,
 } from "lucide-react";
-import {
-  AuthBackground,
-  AuthVisualPanel,
-  AuthCard,
-  AuthInput,
-  GradientButton,
-  AuthToggle,
-  SocialAuthButtons,
-} from "@/components/auth";
-import { OtpInput } from "@/components/auth/OtpInput";
-import { login, register, sendOtp, verifyOtp } from "@/lib/api";
+import { AuthLeftPanel } from "@/components/auth/AuthLeftPanel";
+import { Button } from "@/components/ui/Button";
+import { login, sendOtp, verifyOtp } from "@/lib/api";
 import { useStore } from "@/store/useStore";
-
-type AuthMode = "login" | "register";
+import { useTheme } from "@/components/ui/ThemeProvider";
 
 interface FormErrors {
   username?: string;
-  email?: string;
   password?: string;
-  full_name?: string;
+  resetEmail?: string;
+  resetOtp?: string;
 }
 
-const fadeUp = {
-  initial: { opacity: 0, y: 14 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -10 },
-  transition: { duration: 0.35, ease: "easeOut" as const },
-};
-
 export default function LoginPage() {
-  const [mode, setMode] = useState<AuthMode>("login");
   const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // OTP Verification state
-  const [otpStep, setOtpStep] = useState(false);
-  const [otpCode, setOtpCode] = useState("");
-  const [resendTimer, setResendTimer] = useState(0);
+  // Forgot password OTP modal / drawer state
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotStep, setForgotStep] = useState<1 | 2>(1);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotOtp, setForgotOtp] = useState("");
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
 
   const router = useRouter();
   const { setToken, setUser, resetUserScoped } = useStore();
+  const { theme, toggleTheme } = useTheme();
 
-  useEffect(() => {
-    if (resendTimer <= 0) return;
-    const interval = setInterval(() => {
-      setResendTimer((prev) => prev - 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [resendTimer]);
-
-  const validateLogin = (): boolean => {
-    const newErrors: FormErrors = {};
-    if (!username || username.length < 3) {
-      newErrors.username = "Username must be at least 3 characters";
-    }
-    if (!password || password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const validateRegister = (): boolean => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     const newErrors: FormErrors = {};
 
-    if (!username || username.length < 3) {
-      newErrors.username = "Username must be at least 3 characters";
-    } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      newErrors.username = "Username can only contain letters, numbers, and underscores";
+    if (!username.trim()) {
+      newErrors.username = "Please enter your username or email";
     }
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
-
-    if (!password || password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-    } else {
-      if (!/[A-Z]/.test(password)) {
-        newErrors.password = "Password must contain at least one uppercase letter";
-      } else if (!/[a-z]/.test(password)) {
-        newErrors.password = "Password must contain at least one lowercase letter";
-      } else if (!/[0-9]/.test(password)) {
-        newErrors.password = "Password must contain at least one digit";
-      }
+    if (!password) {
+      newErrors.password = "Please enter your password";
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSendOtp = async () => {
-    if (!validateRegister()) return;
-    setIsLoading(true);
-    try {
-      await sendOtp(email);
-      setOtpStep(true);
-      setResendTimer(60);
-      toast.success("Verification code sent to your email!");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to send verification code";
-      if (msg.includes("Email already")) {
-        setErrors({ email: "Email already registered" });
-      } else if (msg.includes("Username already")) {
-        setErrors({ username: "Username already taken" });
-      } else {
-        toast.error(msg);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (resendTimer > 0) return;
-    setIsLoading(true);
-    try {
-      await sendOtp(email);
-      setResendTimer(60);
-      toast.success("New verification code sent!");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to resend OTP");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleVerifyAndRegister = async () => {
-    if (!otpCode || otpCode.length !== 6) {
-      toast.error("Please enter the complete 6-digit OTP code");
-      return;
-    }
+    if (Object.keys(newErrors).length > 0) return;
 
     setIsLoading(true);
     try {
-      // 1. Verify OTP
-      await verifyOtp(email, otpCode);
-
-      // 2. Register user
-      resetUserScoped();
-      const response = await register({
-        username,
-        email,
+      const tokenData = await login({
+        username: username.trim(),
         password,
-        full_name: fullName || undefined,
       });
 
-      setToken(response.access_token);
-      setUser({ username, isGuest: false });
-      toast.success("Registration successful! Welcome to TradeInsight.");
+      resetUserScoped();
+      setToken(tokenData.access_token);
+      setUser({
+        username: username.trim(),
+        isGuest: false,
+      });
+
+      toast.success("Welcome back! Redirecting to workspace...");
       router.push("/dashboard");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Verification or registration failed");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Invalid credentials. Please check and retry.";
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSubmit = async (e: { preventDefault?: () => void }) => {
-    e.preventDefault?.();
-
-    if (mode === "login") {
-      if (!validateLogin()) return;
-
-      setIsLoading(true);
-      try {
-        const response = await login({ username, password });
-        resetUserScoped();
-        setToken(response.access_token);
-        setUser({ username, isGuest: false });
-        toast.success("Login successful!");
-        router.push("/dashboard");
-      } catch {
-        toast.error("Invalid credentials. Try demo_user / Demo@123");
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      if (otpStep) {
-        await handleVerifyAndRegister();
-      } else {
-        await handleSendOtp();
-      }
+  // Forgot password step 1: send OTP
+  const handleForgotSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    setIsForgotLoading(true);
+    try {
+      await sendOtp(forgotEmail);
+      toast.success(`Verification code sent to ${forgotEmail}`);
+      setForgotStep(2);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to send reset code";
+      toast.error(msg);
+    } finally {
+      setIsForgotLoading(false);
     }
   };
 
-  const handleGuestAccess = () => {
-    resetUserScoped();
-    setUser({ username: "guest", isGuest: true });
-    toast.success("Welcome! Using guest mode.");
-    router.push("/dashboard");
+  // Forgot password step 2: verify OTP
+  const handleForgotVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotOtp || forgotOtp.length !== 6) {
+      toast.error("Please enter the 6-digit code");
+      return;
+    }
+    setIsForgotLoading(true);
+    try {
+      const res = await verifyOtp(forgotEmail, forgotOtp);
+      if (res.verified) {
+        toast.success("Code verified! Temporary password reset link sent.");
+        setShowForgotModal(false);
+        setForgotStep(1);
+      } else {
+        toast.error("Invalid verification code. Please check and retry.");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Verification failed";
+      toast.error(msg);
+    } finally {
+      setIsForgotLoading(false);
+    }
   };
-
-  const passwordStrength = (): { text: string; color: string; width: string } => {
-    if (!password) return { text: "", color: "", width: "0%" };
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/[a-z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[^A-Za-z0-9]/.test(password)) strength++;
-
-    if (strength <= 2) return { text: "Weak", color: "bg-rose-500", width: "33%" };
-    if (strength <= 3) return { text: "Medium", color: "bg-amber-400", width: "66%" };
-    return { text: "Strong", color: "bg-emerald-400", width: "100%" };
-  };
-
-  const strength = passwordStrength();
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#070710] text-white font-sans selection:bg-violet-500/30">
-      <AuthBackground />
+    <div className="relative min-h-screen w-full flex items-center justify-center p-4 sm:p-6 lg:p-10 bg-background text-foreground transition-colors duration-300">
+      
+      {/* Background Ambient Spotlight */}
+      <div className="fixed inset-0 z-0 pointer-events-none" aria-hidden="true">
+        <div
+          className="absolute top-1/4 left-1/4 w-[600px] h-[400px] rounded-full blur-[140px] opacity-15"
+          style={{
+            background: "radial-gradient(circle, var(--primary) 0%, transparent 70%)",
+          }}
+        />
+        <div className="terminal-grid absolute inset-0 opacity-20" />
+      </div>
 
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1440px] flex-col items-center justify-center gap-10 px-5 py-10 sm:px-8 lg:flex-row lg:gap-16 lg:px-12">
-        <AuthVisualPanel />
+      {/* Floating Split-Screen Card */}
+      <div className="relative z-10 w-full max-w-6xl rounded-3xl border border-border bg-card shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[600px]">
+        
+        {/* ================================================================
+            LEFT BRAND PANEL: Artwork + Headline + Live Ticker
+           ================================================================ */}
+        <div className="lg:col-span-6 xl:col-span-5 h-full">
+          <AuthLeftPanel
+            title="Welcome back to the terminal."
+            subtitle="Real-time Indian market intelligence grounded in exchange filings, macroeconomic data, and cited research."
+          />
+        </div>
 
-        {/* Right side - Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center">
-          <AuthCard>
-            {/* Mobile logo (left panel hidden on small screens) */}
-            <Link href="/" className="lg:hidden flex items-center justify-center gap-2.5 mb-6">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-400 flex items-center justify-center shadow-[0_0_18px_rgba(168,85,247,0.4)]">
-                <TrendingUp className="h-5 w-5 text-white" />
-              </div>
-              <span className="font-bold text-lg tracking-tight">TradeInsight</span>
-            </Link>
+        {/* ================================================================
+            RIGHT FORM PANEL: Fast Credentials Form & OTP Reset Flow
+           ================================================================ */}
+        <div className="lg:col-span-6 xl:col-span-7 flex flex-col justify-between p-8 sm:p-10 md:p-12 bg-card">
+          
+          {/* Top Bar: Kicker + Theme Switcher */}
+          <div className="flex items-center justify-between pb-6 border-b border-border">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-bold text-primary px-2.5 py-1 rounded bg-primary/10 border border-primary/20">
+                SECURE AUTH
+              </span>
+              <span className="font-kalam text-xs sm:text-sm text-muted-foreground">
+                Terminal Access
+              </span>
+            </div>
 
-            {/* Toggle */}
-            {!otpStep && (
-              <motion.div {...fadeUp} className="mb-7">
-                <AuthToggle
-                  mode={mode}
-                  onChange={(m) => {
-                    setMode(m);
-                    setErrors({});
-                  }}
-                />
-              </motion.div>
-            )}
-
-            {/* Header */}
-            <motion.div {...fadeUp} className="text-center mb-8">
-              <p className="text-[11px] uppercase tracking-[0.28em] text-violet-300/80 font-semibold mb-3">
-                {otpStep
-                  ? "Security Check"
-                  : mode === "login"
-                    ? "Welcome back"
-                    : "Welcome to TradeInsight"}
-              </p>
-              <h1 className="text-3xl font-bold tracking-tight text-white">
-                {otpStep ? (
-                  <span className="bg-gradient-to-r from-violet-300 to-cyan-300 bg-clip-text text-transparent">
-                    Verify Your Email
-                  </span>
-                ) : mode === "login" ? (
-                  "Log In To Your Account"
-                ) : (
-                  "Create An Account"
-                )}
-              </h1>
-              <p className="mt-2 text-sm text-white/45">
-                {otpStep
-                  ? `We sent a 6-digit code to ${email}`
-                  : mode === "login"
-                    ? "Your AI market intelligence is one step away"
-                    : "Start discovering AI-powered market opportunities"}
-              </p>
-            </motion.div>
-
-            <AnimatePresence mode="wait">
-              {otpStep ? (
-                // OTP STEP
-                <motion.div key="otp" {...fadeUp} className="space-y-6">
-                  <div>
-                    <div className="relative mb-4">
-                      <div className="absolute inset-0 rounded-3xl bg-violet-500/10 blur-xl" />
-                      <OtpInput
-                        value={otpCode}
-                        onChange={(val) => setOtpCode(val)}
-                        onComplete={(val) => {
-                          setOtpCode(val);
-                          if (val.length === 6 && !isLoading) {
-                            void handleVerifyAndRegister();
-                          }
-                        }}
-                        disabled={isLoading}
-                      />
-                    </div>
-                    <p className="text-xs text-white/40 text-center">
-                      Check your inbox or spam folder. Code valid for 5 minutes.
-                    </p>
-                  </div>
-
-                  <GradientButton
-                    isLoading={isLoading}
-                    loadingText="Verifying…"
-                    disabled={otpCode.length !== 6}
-                    onClick={() => void handleVerifyAndRegister()}
-                  >
-                    <ShieldCheck className="h-4 w-4" />
-                    Verify &amp; Create Account
-                  </GradientButton>
-
-                  <div className="flex items-center justify-between text-sm pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setOtpStep(false)}
-                      className="text-white/45 hover:text-white flex items-center gap-1.5 transition-colors"
-                    >
-                      <ArrowLeft className="h-3.5 w-3.5" />
-                      Change Email
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={resendTimer > 0 || isLoading}
-                      onClick={() => void handleResendOtp()}
-                      className="text-violet-300 hover:text-violet-200 font-medium disabled:opacity-50 flex items-center gap-1.5 transition-colors"
-                    >
-                      <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
-                      {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend code"}
-                    </button>
-                  </div>
-                </motion.div>
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              title="Toggle theme"
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4 text-[#E8A33D]" />
               ) : (
-                <motion.div
-                  key={mode}
-                  {...fadeUp}
-                  role="form"
-                  aria-label={`${mode === "login" ? "Log in" : "Sign up"} form`}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !isLoading) void handleSubmit(e);
-                  }}
-                  className="space-y-4"
-                >
-                  <AnimatePresence mode="popLayout" initial={false}>
-                    {mode === "register" && (
-                      <motion.div
-                        key="name-fields"
-                        initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                        animate={{ opacity: 1, height: "auto", marginBottom: 16 }}
-                        exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                        transition={{ duration: 0.25, ease: "easeOut" }}
-                        className="overflow-hidden"
-                      >
-                        <div className="flex gap-3">
-                          <AuthInput
-                            label="Username"
-                            icon={<User className="h-4 w-4" />}
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            error={errors.username}
-                            autoComplete="username"
-                          />
-                          <AuthInput
-                            label="Full Name"
-                            icon={<User className="h-4 w-4" />}
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            error={errors.full_name}
-                            autoComplete="name"
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                <Moon className="h-4 w-4 text-[#d97757]" />
+              )}
+            </button>
+          </div>
 
-                  {mode === "login" && (
-                    <AuthInput
-                      label="Username"
-                      icon={<User className="h-4 w-4" />}
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      error={errors.username}
-                      autoComplete="username"
-                    />
-                  )}
+          {/* Form Body */}
+          <div className="my-auto py-6">
+            <div className="mb-6 space-y-1">
+              <h3 className="text-2xl sm:text-3xl font-kalam-bold text-foreground">
+                Sign in to your account
+              </h3>
+              <p className="text-sm text-muted-foreground font-kalam">
+                Enter your credentials to access your market workspace and saved dossiers.
+              </p>
+            </div>
 
-                  {mode === "register" && (
-                    <AuthInput
-                      label="Email Address"
-                      type="email"
-                      icon={<Mail className="h-4 w-4" />}
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      error={errors.email}
-                      autoComplete="email"
-                    />
-                  )}
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              
+              {/* Username Input */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-kalam font-semibold text-foreground">
+                  Username or Email
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="e.g. rajesh_trader or name@domain.in"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm font-kalam focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                    required
+                  />
+                </div>
+                {errors.username && (
+                  <p className="text-xs text-rose-500 font-kalam">{errors.username}</p>
+                )}
+              </div>
 
-                  <AuthInput
-                    label="Password"
-                    type="password"
-                    icon={<Lock className="h-4 w-4" />}
+              {/* Password Input */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-kalam font-semibold text-foreground">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(true)}
+                    className="text-xs font-kalam text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    error={errors.password}
-                    autoComplete={mode === "register" ? "new-password" : "current-password"}
+                    placeholder="••••••••"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm font-kalam focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                    required
                   />
-
-                  {/* Password strength (register only) */}
-                  <AnimatePresence>
-                    {mode === "register" && password && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="h-1.5 flex-1 bg-white/10 rounded-full overflow-hidden">
-                            <motion.div
-                              className={`h-full rounded-full ${strength.color}`}
-                              initial={{ width: 0 }}
-                              animate={{ width: strength.width }}
-                              transition={{ duration: 0.4, ease: "easeOut" }}
-                            />
-                          </div>
-                          <span className="text-[11px] font-medium text-white/50 w-12 text-right">
-                            {strength.text}
-                          </span>
-                        </div>
-                      </motion.div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
                     )}
-                  </AnimatePresence>
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-xs text-rose-500 font-kalam">{errors.password}</p>
+                )}
+              </div>
 
-                  <div className="pt-3">
-                    <GradientButton
-                      isLoading={isLoading}
-                      loadingText={mode === "login" ? "Logging in…" : "Sending…"}
-                      onClick={() => void handleSubmit({})}
-                    >
-                      {mode === "login" ? (
-                        <>
-                          <LogIn className="h-4 w-4" />
-                          Log In
-                        </>
-                      ) : (
-                        <>
-                          <KeyRound className="h-4 w-4" />
-                          Send Verification Code
-                        </>
-                      )}
-                    </GradientButton>
-                  </div>
+              {/* Submit CTA */}
+              <Button
+                type="submit"
+                isLoading={isLoading}
+                className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-kalam-bold text-sm shadow-md transition-all mt-4"
+              >
+                <span>Log in to Terminal</span>
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </form>
+          </div>
 
-                  {/* Divider */}
-                  <div className="relative py-2">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-white/[0.08]" />
-                    </div>
-                    <div className="relative flex justify-center">
-                      <span className="bg-[#0c0c17] px-4 text-[11px] uppercase tracking-widest text-white/35">
-                        Or continue with
-                      </span>
-                    </div>
-                  </div>
+          {/* Bottom Trust Line & Sign Up Link */}
+          <div className="pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-kalam text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              Secure session · End-to-end encrypted · JWT-scoped
+            </span>
 
-                  <SocialAuthButtons disabled={isLoading} />
+            <div>
+              Don&apos;t have an account?{" "}
+              <Link href="/signup" className="text-primary font-bold hover:underline">
+                Sign up
+              </Link>
+            </div>
+          </div>
 
-                  {/* Guest / Demo logic */}
-                  <div className="pt-2 text-center space-y-3">
-                    <button
-                      type="button"
-                      disabled={isLoading}
-                      onClick={handleGuestAccess}
-                      className="text-white/45 hover:text-white text-sm transition-colors flex items-center justify-center gap-2 mx-auto disabled:opacity-50"
-                    >
-                      <Sparkles className="h-4 w-4 text-violet-300" />
-                      Continue as Guest
-                    </button>
-                    <p className="text-xs text-white/30">
-                      Demo:{" "}
-                      <span className="bg-white/[0.07] border border-white/10 px-1.5 py-0.5 rounded-md text-white/60 font-mono text-[11px]">
-                        demo_user
-                      </span>{" "}
-                      /{" "}
-                      <span className="bg-white/[0.07] border border-white/10 px-1.5 py-0.5 rounded-md text-white/60 font-mono text-[11px]">
-                        Demo@123
-                      </span>
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </AuthCard>
         </div>
+
       </div>
+
+      {/* ================================================================
+          FORGOT PASSWORD OTP RESET MODAL
+         ================================================================ */}
+      <AnimatePresence>
+        {showForgotModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowForgotModal(false)}
+              className="absolute inset-0 bg-background/80 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative z-10 w-full max-w-md p-6 sm:p-8 rounded-3xl border border-border bg-card shadow-2xl space-y-5"
+            >
+              <div className="flex items-center justify-between border-b border-border pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    <KeyRound className="h-4 w-4" />
+                  </div>
+                  <h4 className="text-lg font-kalam-bold text-foreground">
+                    Reset Password
+                  </h4>
+                </div>
+                <button
+                  onClick={() => setShowForgotModal(false)}
+                  className="text-muted-foreground hover:text-foreground text-sm font-mono"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {forgotStep === 1 ? (
+                <form onSubmit={handleForgotSendOtp} className="space-y-4">
+                  <p className="text-xs sm:text-sm text-muted-foreground font-kalam">
+                    Enter your account email. We&apos;ll send you a 6-digit OTP verification code to securely reset your password.
+                  </p>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-kalam font-semibold text-foreground">
+                      Account Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <input
+                        type="email"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="rajesh@company.in"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm font-kalam focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    type="submit"
+                    isLoading={isForgotLoading}
+                    className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-kalam-bold text-sm shadow-md"
+                  >
+                    <span>Send Reset Code</span>
+                    <ArrowRight className="ml-1.5 h-4 w-4" />
+                  </Button>
+                </form>
+              ) : (
+                <form onSubmit={handleForgotVerifyOtp} className="space-y-4">
+                  <p className="text-xs sm:text-sm text-muted-foreground font-kalam">
+                    Enter the 6-digit code sent to <span className="text-foreground font-bold">{forgotEmail}</span>
+                  </p>
+                  <div className="space-y-1">
+                    <label className="block text-xs font-kalam font-semibold text-foreground">
+                      6-Digit Code
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={forgotOtp}
+                      onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ""))}
+                      placeholder="123456"
+                      className="w-full text-center text-xl font-mono font-bold py-2.5 rounded-xl border border-border bg-background text-foreground tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                      required
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setForgotStep(1)}
+                      className="flex-1 h-11 rounded-xl border-border text-foreground font-kalam text-xs"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="submit"
+                      isLoading={isForgotLoading}
+                      className="flex-1 h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-kalam-bold text-xs shadow-md"
+                    >
+                      <span>Verify &amp; Reset</span>
+                      <CheckCircle2 className="ml-1 h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
