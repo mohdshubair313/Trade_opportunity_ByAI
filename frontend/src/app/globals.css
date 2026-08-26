@@ -1,41 +1,52 @@
+@import url('/css/kalam.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    /* Light Mode (Creamy Claude Aesthetic) */
-    --background: #FDFCF8;
-    --foreground: #2D2A26;
-    --card: #FDFCF8;
-    --card-foreground: #2D2A26;
+  :root,
+  .light {
+    /* =========================================================================
+       CLAUDE / ANTHROPIC LIGHT MODE — Warm parchment, Ivory, and Clay accent
+       Reference: DESIGN.md lines 155-330
+       ========================================================================= */
+    --background: #f0eee6;        /* Ivory Medium — Page Canvas */
+    --foreground: #141413;        /* Slate Dark — Primary Text */
+    --card: #faf9f5;              /* Ivory Light — Elevated Cards */
+    --card-foreground: #141413;
+    --card-muted: #e3dacc;        /* Oat Warm */
+    --card-feature: #f5e3c7;      /* Manilla */
     
-    --primary: #059669;
-    --primary-soft: #10b981;
-    --primary-deep: #047857;
-    --primary-foreground: #FDFCF8;
-    --on-primary: #ffffff;
+    --primary: #d97757;           /* Clay — Primary Action */
+    --primary-soft: #e28e73;
+    --primary-deep: #c6613f;      /* Clay Deep — Hover state */
+    --primary-foreground: #faf9f5;
+    --on-primary: #faf9f5;
     
-    --border: #E8E6DD;
-    --input: #F4F3ED;
-    --ring: #059669;
+    --secondary: #e3dacc;
+    --secondary-foreground: #141413;
     
-    --canvas: #FDFCF8;
-    --canvas-soft: #F4F3ED;
-    --canvas-text-soft: #2D2A26;
-    --ink: #2D2A26;
-    --ink-strong: #181715;
-    --body: #4A4641;
-    --mute: #7A756D;
-    --hairline: #E8E6DD;
-    --hairline-soft: #D5D2C8;
+    --border: #cccbc8;            /* Stone — Hairline borders */
+    --input: #faf9f5;
+    --ring: #d97757;
+    
+    --canvas: #f0eee6;
+    --canvas-soft: #faf9f5;
+    --canvas-text-soft: #141413;
+    --ink: #141413;
+    --ink-strong: #000000;
+    --body: #141413;
+    --mute: #87867f;              /* Cloud Dark */
+    --hairline: #cccbc8;
+    --hairline-soft: #b0aea5;     /* Cloud Medium */
 
-    --muted: #F4F3ED;
-    --muted-foreground: #7A756D;
-    --accent: #F4F3ED;
-    --accent-foreground: #2D2A26;
-    --destructive: #ef4444;
-    --destructive-foreground: #FDFCF8;
+    --muted: #e3dacc;
+    --muted-foreground: #87867f;
+    --accent: #f5e3c7;
+    --accent-foreground: #141413;
+    --destructive: #d9534f;
+    --destructive-foreground: #faf9f5;
 
     /* Custom Easing Curves */
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -44,36 +55,46 @@
   }
 
   .dark {
-    /* Dark Mode */
-    --background: #101010;
-    --foreground: #f2f2f2;
-    --card: #101010;
-    --card-foreground: #f2f2f2;
+    /* =========================================================================
+       DARK MODE — Financial Terminal Meets Editorial Calm
+       ========================================================================= */
+    --background: #05080A;
+    --foreground: #EDEFEF;
+    --card: #0D1518;
+    --card-foreground: #EDEFEF;
+    --card-muted: #142024;
+    --card-feature: #101c20;
     
-    --primary: #00d992;
-    --primary-soft: #2fd6a1;
-    --primary-deep: #10b981;
-    --primary-foreground: #101010;
-    --on-primary: #101010;
-    
-    --border: #3d3a39;
-    --input: #1a1a1a;
-    --ring: #00d992;
-    
-    --canvas: #101010;
-    --canvas-soft: #1a1a1a;
-    --canvas-text-soft: #f5f6f7;
-    --ink: #f2f2f2;
-    --ink-strong: #ffffff;
-    --body: #bdbdbd;
-    --mute: #8b949e;
-    --hairline: #3d3a39;
-    --hairline-soft: #b8b3b0;
+    --primary: #1FE0A8;           /* Teal Accent */
+    --primary-soft: #34F5BC;
+    --primary-deep: #0D9E75;
+    --primary-foreground: #05080A;
+    --on-primary: #05080A;
 
-    --muted: #1a1a1a;
-    --muted-foreground: #8b949e;
-    --accent: #1a1a1a;
-    --accent-foreground: #f2f2f2;
+    --amber: #E8A33D;
+    --amber-soft: #F5B95F;
+    
+    --secondary: #0D1518;
+    --secondary-foreground: #EDEFEF;
+
+    --border: rgba(255, 255, 255, 0.08);
+    --input: #0D1518;
+    --ring: #1FE0A8;
+    
+    --canvas: #05080A;
+    --canvas-soft: #0D1518;
+    --canvas-text-soft: #EDEFEF;
+    --ink: #EDEFEF;
+    --ink-strong: #FFFFFF;
+    --body: #8B98A0;
+    --mute: #62707B;
+    --hairline: rgba(255, 255, 255, 0.06);
+    --hairline-soft: rgba(255, 255, 255, 0.12);
+
+    --muted: #0D1518;
+    --muted-foreground: #8B98A0;
+    --accent: #0D1518;
+    --accent-foreground: #EDEFEF;
     --destructive: #ff4d4f;
     --destructive-foreground: #ffffff;
   }
@@ -83,10 +104,35 @@
   * {
     @apply border-border;
   }
+
+  html,
+  body,
+  button,
+  input,
+  select,
+  textarea,
+  nav,
+  p,
+  span,
+  a {
+    font-family: 'Kalam-Regular', 'Kalam-Variable', cursive, sans-serif !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Kalam-Bold', 'Kalam-Variable', cursive, sans-serif !important;
+    font-weight: 700;
+  }
+
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
     overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
   
   .main-container {
@@ -96,239 +142,26 @@
     padding-left: 1.5rem;
     padding-right: 1.5rem;
   }
-  
-  @media (min-width: 1024px) {
+
+  @media (min-width: 768px) {
     .main-container {
-      padding-left: 4rem;
-      padding-right: 4rem;
+      padding-left: 2rem;
+      padding-right: 2rem;
     }
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Utilities */
+.glass-panel {
+  background: var(--card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
 }
 
-::-webkit-scrollbar-track {
-  background: #1a1a1a;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #3d3a39;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #8b949e;
-}
-
-/* Prose styling for markdown */
-.prose-custom {
-  @apply text-foreground font-sans;
-}
-
-.prose-custom h1 {
-  @apply text-display-md mb-4 text-ink-strong;
-}
-
-.prose-custom h2 {
-  @apply text-display-sm mb-3 mt-6 text-ink-strong;
-}
-
-.prose-custom h3 {
-  @apply text-body-lg font-semibold mb-2 mt-4 text-ink;
-}
-
-.prose-custom p {
-  @apply mb-4 leading-relaxed text-body;
-}
-
-.prose-custom ul {
-  @apply list-disc list-inside mb-4 space-y-2;
-}
-
-.prose-custom li {
-  @apply text-body;
-}
-
-.prose-custom strong {
-  @apply text-ink font-semibold;
-}
-
-.prose-custom a {
-  @apply text-primary-deep hover:underline;
-}
-
-.prose-custom blockquote {
-  @apply border-l-4 border-hairline pl-4 text-mute my-4;
-}
-
-.prose-custom code {
-  @apply bg-canvas-soft text-canvas-text-soft px-sm py-xxs rounded-xs font-mono text-code;
-}
-
-.prose-custom pre {
-  @apply bg-canvas-soft border border-hairline p-xl rounded-md overflow-x-auto my-4 text-code;
-}
-
-/* ==================== Auth / Web3 Aesthetic ==================== */
-
-/* Web3 grid pattern overlay */
-.auth-grid {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
-  background-size: 44px 44px;
-  -webkit-mask-image: radial-gradient(ellipse at 50% 40%, black 10%, transparent 72%);
-  mask-image: radial-gradient(ellipse at 50% 40%, black 10%, transparent 72%);
-}
-
-/* Soft floating motion for decorative elements */
-@keyframes auth-float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-14px) rotate(2deg); }
-}
-.animate-auth-float {
-  animation: auth-float 6s ease-in-out infinite;
-}
-.animation-delay-2000 { animation-delay: 2s; }
-.animation-delay-4000 { animation-delay: 4s; }
-
-/* Gradient border helper (wrap a solid inner card) */
-.auth-gradient-border {
-  background: linear-gradient(
-    150deg,
-    rgba(255, 255, 255, 0.18),
-    rgba(139, 92, 246, 0.25) 30%,
-    rgba(6, 182, 212, 0.12) 60%,
-    rgba(255, 255, 255, 0.06)
-  );
-}
-
-/* Shine sweep used on primary CTA */
-@keyframes auth-shine {
-  0% { transform: translateX(-120%) skewX(-12deg); }
-  60%, 100% { transform: translateX(220%) skewX(-12deg); }
-}
-.animate-auth-shine {
-  animation: auth-shine 3.2s ease-in-out infinite;
-}
-
-/* Slow pulse for live indicators */
-@keyframes auth-ping-slow {
-  0% { transform: scale(1); opacity: 0.8; }
-  70%, 100% { transform: scale(2.4); opacity: 0; }
-}
-.animate-auth-ping {
-  animation: auth-ping-slow 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-/* Prevent autofill from ruining the dark glass inputs */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #f5f5f7;
-  -webkit-box-shadow: 0 0 0px 1000px #14141f inset;
-  transition: background-color 5000s ease-in-out 0s;
-}
-
-/* ==================== Landing animation keyframes ==================== */
-
-/* Infinite marquee (used by Marquee component) */
-@keyframes marquee-scroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-
-/* Shiny sweep for ShinyText */
-@keyframes shine {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-.animate-shine {
-  animation: shine 6s linear infinite;
-}
-
-/* Border beam orbiting arc (used by BorderBeam) */
-@keyframes border-beam {
-  0% { offset-distance: 0%; }
-  100% { offset-distance: 100%; }
-}
-.animate-border-beam {
-  animation: border-beam var(--duration, 8s) linear infinite;
-}
-
-/* Meteor streaks */
-@keyframes meteor {
-  0% { transform: rotate(215deg) translateX(0); opacity: 1; }
-  70% { opacity: 1; }
-  100% { transform: rotate(215deg) translateX(-500px); opacity: 0; }
-}
-.animate-meteor {
-  animation: meteor var(--duration, 5s) linear infinite;
-}
-
-/* Gentle float for decorative orbs */
-@keyframes float {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(20px, -24px); }
-}
-.animate-float {
-  animation: float var(--duration, 8s) ease-in-out infinite;
-}
-
-/* Gradient shift for GradientText */
-@keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-/* Aurora drift for AuroraBackground */
-@keyframes aurora {
-  0% { background-position: 50% 50%, 50% 50%; }
-  50% { background-position: 80% 50%, 30% 60%; }
-  100% { background-position: 50% 50%, 50% 50%; }
-}
-.animate-aurora {
-  animation: aurora 60s linear infinite;
-}
-
-/* Web3 grid pattern overlay for hero/CTA accents */
-.landing-grid {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  background-size: 56px 56px;
-  -webkit-mask-image: radial-gradient(ellipse at 50% 30%, black 10%, transparent 70%);
-  mask-image: radial-gradient(ellipse at 50% 30%, black 10%, transparent 70%);
-}
-
-/* LiveVisitors floating pill */
-.viewer-pill {
-  background: rgba(13, 12, 23, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 24px rgba(139, 92, 246, 0.12);
-}
-
-@keyframes viewer-pulse {
-  0% { transform: scale(1); opacity: 0.9; }
-  70%, 100% { transform: scale(2.6); opacity: 0; }
-}
-.viewer-pulse-ring {
-  animation: viewer-pulse 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-.viewer-shimmer-text {
-  background: linear-gradient(110deg, rgba(255,255,255,0.6) 30%, #ffffff 50%, rgba(255,255,255,0.6) 70%);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: shine 5s linear infinite;
+.terminal-grid {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(120, 120, 120, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(120, 120, 120, 0.05) 1px, transparent 1px);
 }

@@ -2,37 +2,50 @@
 
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
-import { Search, Sparkles, FileText, TrendingUp } from "lucide-react";
-import { SectionHeader } from "./Features";
+import { Clock } from "lucide-react";
+import {
+  SectorScannerIcon,
+  PipelineClusterIcon,
+  SynthesizerIcon,
+  OmnichannelIcon,
+} from "@/components/icons/CustomIcons";
 
-const steps = [
+const LIFECYCLE_STEPS = [
   {
-    number: "01",
-    icon: Search,
-    title: "Pick a sector",
+    timestamp: "07:00:00",
+    step: "STEP 01",
+    title: "Query Received",
     description:
-      "Choose from 20+ mapped NSE sectors — pharma, tech, renewables, fintech and more.",
+      "Natural-language question parsed for equity sector focus, risk parameters, and active user persona.",
+    badge: "INTENT: PARSED",
+    icon: SectorScannerIcon,
   },
   {
-    number: "02",
-    icon: Sparkles,
-    title: "AI reads everything",
+    timestamp: "07:00:03",
+    step: "STEP 02",
+    title: "Research & Score",
     description:
-      "Our agentic AI pipeline scans news, filings and the tape with grounded web search.",
+      "6 real-time market pipelines queried concurrently across live NSE filings, macroeconomic releases, and tape flow.",
+    badge: "6 SERVICES / 41 APIS",
+    icon: PipelineClusterIcon,
   },
   {
-    number: "03",
-    icon: FileText,
-    title: "Get a real report",
+    timestamp: "07:00:11",
+    step: "STEP 03",
+    title: "Narrate & Tone",
     description:
-      "Structured sections with cited sources — opportunities, risks, recommendations.",
+      "Specialized AI cascade synthesizes cited sector opportunities, primary risks, and tone-specific takeaways.",
+    badge: "VERIFIED & CITED",
+    icon: SynthesizerIcon,
   },
   {
-    number: "04",
-    icon: TrendingUp,
-    title: "Act with conviction",
+    timestamp: "07:00:15",
+    step: "STEP 04",
+    title: "Delivered Everywhere",
     description:
-      "Export to the format your team expects, or pin the sector for watchlist alerts.",
+      "Instantaneous broadcast to interactive web report, hands-free voice stream, and exportable PDF/XLSX decks.",
+    badge: "WEB · VOICE · DOC",
+    icon: OmnichannelIcon,
   },
 ];
 
@@ -41,64 +54,93 @@ export function HowItWorks() {
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="relative py-28 px-4 bg-transparent border-y border-white/[0.06]">
-      <div className="container mx-auto">
-        <SectionHeader
-          eyebrow="How it works"
-          title={
-            <>
-              From sector to{" "}
-              <span className="font-display italic text-violet-300">
-                decision
-              </span>{" "}
-              in four steps.
-            </>
-          }
-          subtitle="No drag-and-drop nodes. No chat transcripts to scroll. Just answers, structured."
-        />
+    <section
+      id="product"
+      ref={ref}
+      className="relative py-24 md:py-32 px-4 border-t border-border bg-background"
+    >
+      <div className="main-container mx-auto">
+        
+        {/* Section Header */}
+        <div className="max-w-3xl mx-auto text-center mb-16 md:mb-24">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded border border-border bg-card text-primary text-xs font-mono font-semibold uppercase tracking-[0.18em] mb-4">
+            <Clock className="h-3.5 w-3.5" />
+            // FLIGHT RECORDER LOG
+          </div>
+          
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-tight">
+            7 AM. One question.{" "}
+            <span className="font-kalam text-primary block sm:inline">
+              Answered in 15 seconds.
+            </span>
+          </h2>
+          
+          <p className="mt-4 text-base md:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto font-kalam">
+            A deterministic agent pipeline designed for institutional speed and verifiable accuracy.
+            <span className="block font-kalam text-primary text-sm mt-2">
+              (zero manual searching, audited citations)
+            </span>
+          </p>
+        </div>
 
-        <div className="relative mt-16">
-          {/* Horizontal dashed line through the middle (desktop only) */}
-          <div
-            className="hidden lg:block absolute top-[36px] left-8 right-8 h-px"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(to right, rgba(255,255,255,0.14) 0 6px, transparent 6px 14px)",
-            }}
-          />
+        {/* Flight Recorder Timeline */}
+        <div className="relative">
+          
+          {/* Glowing horizontal connection line on Desktop */}
+          <div className="hidden lg:block absolute top-[28px] left-[10%] right-[10%] h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent z-0" />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative">
-            {steps.map((s, i) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+            {LIFECYCLE_STEPS.map((s, i) => (
               <motion.div
-                key={s.number}
-                initial={{ opacity: 0, y: 12 }}
+                key={s.timestamp}
+                initial={{ opacity: 0, y: 16 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.4, delay: i * 0.08 }}
-                className="group relative"
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                className="group relative h-full flex flex-col justify-between p-6 rounded-2xl border border-border bg-card hover:border-primary/40 transition-all shadow-md"
               >
-                {/* Step marker */}
-                <div className="relative flex items-start gap-4 mb-8">
-                  <div className="relative flex-shrink-0 flex h-[72px] w-[72px] items-center justify-center rounded-[1.5rem] border border-white/10 bg-white/[0.05] backdrop-blur-md transition-all shadow-[0_0_18px_rgba(139,92,246,0.1)] group-hover:border-violet-400/40 group-hover:shadow-[0_0_28px_rgba(139,92,246,0.3)]">
-                    <s.icon className="h-6 w-6 text-violet-300" />
-                    <span className="absolute -top-3 -right-3 inline-flex h-7 min-w-[28px] px-2 items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-[10px] font-mono font-bold text-white shadow-lg shadow-violet-500/40">
-                      § 0{i + 1}
+                <div>
+                  {/* Timestamp & Step Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-primary shadow-sm" />
+                      <span className="font-mono text-xs font-bold text-primary tracking-wider">
+                        {s.timestamp}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[10px] font-semibold text-muted-foreground uppercase">
+                      {s.step}
                     </span>
                   </div>
-                </div>
 
-                {/* Text */}
-                <div className="pl-6 border-l-2 border-white/10 group-hover:border-violet-400/50 transition-colors mt-2 space-y-3">
-                  <h3 className="text-xl font-display font-semibold text-white tracking-tight">
-                    {s.title}
-                  </h3>
-                  <p className="text-sm text-white/70 leading-relaxed">
+                  {/* Step Title with Custom Icon */}
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-background border border-border flex items-center justify-center text-primary group-hover:border-primary/40 transition-colors">
+                      <s.icon className="h-4 w-4" />
+                    </div>
+                    <h3 className="text-base font-bold text-foreground tracking-tight group-hover:text-primary transition-colors">
+                      {s.title}
+                    </h3>
+                  </div>
+
+                  {/* Step Description */}
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed font-kalam mt-2">
                     {s.description}
                   </p>
+                </div>
+
+                {/* Status Telemetry Tag at Card Bottom */}
+                <div className="mt-6 pt-4 border-t border-border/50 flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-medium text-foreground px-2 py-0.5 rounded bg-muted/60 border border-border">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    {s.badge}
+                  </span>
                 </div>
               </motion.div>
             ))}
           </div>
+
         </div>
+
       </div>
     </section>
   );

@@ -3,33 +3,36 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  TrendingUp,
   Menu,
   X,
   ChevronDown,
   User,
   LogOut,
+  ArrowRight,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { LogoGlyph } from "@/components/icons/CustomIcons";
 import { Button } from "@/components/ui/Button";
-import { ExpandToggle } from "@/components/ui/ExpandToggle";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useStore } from "@/store/useStore";
+import { useTheme } from "@/components/ui/ThemeProvider";
 
 const navItems = [
-  { href: "/", label: "Home" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/pricing", label: "Pricing" },
+  { href: "#product", label: "Product" },
   {
     label: "Sectors",
     children: [
-      { href: "/dashboard?sector=technology", label: "Technology" },
-      { href: "/dashboard?sector=pharmaceuticals", label: "Pharmaceuticals" },
-      { href: "/dashboard?sector=fintech", label: "Fintech" },
-      { href: "/dashboard?sector=healthcare", label: "Healthcare" },
-      { href: "/dashboard?sector=renewable-energy", label: "Renewable Energy" },
+      { href: "/dashboard?sector=technology", label: "Technology (IT)" },
+      { href: "/dashboard?sector=pharmaceuticals", label: "Pharma & CDMO" },
+      { href: "/dashboard?sector=fintech", label: "Fintech & Payments" },
+      { href: "/dashboard?sector=renewable-energy", label: "Renewables & CleanTech" },
+      { href: "/dashboard?sector=automotive", label: "Automotive & EV" },
+      { href: "/dashboard?sector=banking", label: "Banking & BFSI" },
     ],
   },
+  { href: "/pricing", label: "Pricing" },
 ];
 
 export function Header() {
@@ -37,10 +40,11 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const { isAuthenticated, user, logout } = useStore();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      setIsScrolled(window.scrollY > 40);
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
@@ -49,28 +53,32 @@ export function Header() {
   return (
     <>
       <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
+        initial={{ y: -60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-in-out",
+          "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
           isScrolled
-            ? "top-3 mx-auto max-w-[95%] lg:max-w-5xl rounded-full bg-[#0d0c17]/85 backdrop-blur-xl border border-white/12 shadow-[0_8px_40px_rgba(0,0,0,0.5)] px-2 sm:px-4"
-            : "bg-gradient-to-b from-black/60 to-transparent py-2"
+            ? "py-3 bg-background/90 backdrop-blur-xl border-b border-border shadow-[0_8px_32px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
+            : "py-5 bg-gradient-to-b from-background/90 to-transparent"
         )}
       >
-        <div className="container mx-auto px-4">
-          <div className="flex h-16 items-center justify-between">
-            {/* Logo */}
+        <div className="main-container mx-auto">
+          <div className="flex items-center justify-between">
+            {/* Logo: Bespoke IconsRoom Glyph + Wordmark with Kalam font badge */}
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="relative">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-cyan-400 flex items-center justify-center shadow-[0_0_18px_rgba(168,85,247,0.4)]">
-                  <TrendingUp className="h-4 w-4 text-white" strokeWidth={2.5} />
-                </div>
-                <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-br from-violet-500/40 to-cyan-400/40 blur-md -z-10" />
+              <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-card border border-border text-primary group-hover:border-primary/50 group-hover:shadow-[0_0_16px_rgba(217,119,87,0.2)] dark:group-hover:shadow-[0_0_16px_rgba(31,224,168,0.3)] transition-all">
+                <LogoGlyph className="h-4 w-4" />
+                <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
               </div>
-              <span className="font-semibold tracking-tight text-base hidden sm:inline text-white">
-                TradeInsight
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold tracking-tight text-base text-foreground group-hover:text-primary transition-colors">
+                  TradeInsight
+                </span>
+                <span className="font-kalam text-xs text-primary font-bold tracking-wide">
+                  ai
+                </span>
+              </div>
             </Link>
 
             {/* Desktop Navigation */}
@@ -83,23 +91,27 @@ export function Header() {
                     onMouseEnter={() => setActiveDropdown(item.label)}
                     onMouseLeave={() => setActiveDropdown(null)}
                   >
-                    <button className="flex items-center gap-1 px-4 py-2 text-sm text-white/70 hover:text-white transition-colors">
+                    <button className="flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-card">
                       {item.label}
-                      <ChevronDown className="h-4 w-4" />
+                      <ChevronDown className="h-3.5 w-3.5 opacity-60" />
                     </button>
                     <AnimatePresence>
                       {activeDropdown === item.label && (
                         <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          className="absolute top-full left-0 w-48 py-2 mt-1 rounded-xl border border-white/10 bg-[#0d0c17]/95 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
+                          initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute top-full left-0 w-52 py-2 mt-1 rounded-xl border border-border bg-card/95 backdrop-blur-xl shadow-xl"
                         >
+                          <div className="px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                            Covered Sectors
+                          </div>
                           {item.children.map((child) => (
                             <Link
                               key={child.href}
                               href={child.href}
-                              className="block px-4 py-2 text-sm text-white/70 hover:text-white hover:bg-white/[0.06] transition-colors"
+                              className="block px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                             >
                               {child.label}
                             </Link>
@@ -112,7 +124,7 @@ export function Header() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="px-4 py-2 text-sm text-white/70 hover:text-white transition-colors"
+                    className="px-3.5 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-card"
                   >
                     {item.label}
                   </Link>
@@ -120,55 +132,78 @@ export function Header() {
               )}
             </nav>
 
-            {/* Right side */}
+            {/* Right Action Buttons */}
             <div className="flex items-center gap-3">
-              {/* Expand Light/Dark Mode Toggle */}
-              <ExpandToggle size="sm" />
+              {/* Theme Toggle Button (Light Parchment vs Dark Terminal) */}
+              <button
+                onClick={toggleTheme}
+                aria-label="Toggle theme"
+                className="p-2 rounded-lg border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                title={theme === "dark" ? "Switch to Claude Light Parchment Mode" : "Switch to Dark Terminal Mode"}
+              >
+                {theme === "dark" ? (
+                  <Sun className="h-4 w-4 text-[#E8A33D]" />
+                ) : (
+                  <Moon className="h-4 w-4 text-[#d97757]" />
+                )}
+              </button>
 
               {isAuthenticated ? (
                 <div className="hidden md:flex items-center gap-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500/30 to-fuchsia-500/30 flex items-center justify-center ring-1 ring-violet-400/30">
-                      <User className="h-4 w-4 text-violet-200" />
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-foreground hover:border-primary/40 transition-colors"
+                  >
+                    <div className="w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center text-primary">
+                      <User className="h-3 w-3" />
                     </div>
-                    <span className="text-white/75">
-                      {user?.username || "User"}
+                    <span className="font-mono text-foreground">
+                      {user?.username || "Terminal"}
                     </span>
-                  </div>
+                  </Link>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={logout}
-                    className="gap-2 text-white/70 hover:text-white"
+                    className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
                   >
-                    <LogOut className="h-4 w-4" />
-                    Logout
+                    <LogOut className="h-3.5 w-3.5" />
+                    Exit
                   </Button>
                 </div>
               ) : (
                 <div className="hidden md:flex items-center gap-3">
                   <Link href="/login">
-                    <Button variant="ghost" size="sm" className="text-white/80 hover:text-white">
-                      Sign In
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-transparent"
+                    >
+                      Log in
                     </Button>
                   </Link>
                   <Link href="/dashboard">
-                    <Button size="sm" className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white shadow-[0_4px_20px_rgba(168,85,247,0.35)] border-none">
-                      Get started
+                    <Button
+                      size="sm"
+                      className="h-9 px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold tracking-tight shadow-md transition-all"
+                    >
+                      <span>Ask the market</span>
+                      <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                     </Button>
                   </Link>
                 </div>
               )}
 
-              {/* Mobile menu button */}
+              {/* Mobile Menu Toggle */}
               <button
-                className="md:hidden p-2 text-white/80 hover:text-white"
+                className="md:hidden p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-card"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Toggle menu"
               >
                 {isMobileMenuOpen ? (
-                  <X className="h-6 w-6" />
+                  <X className="h-5 w-5" />
                 ) : (
-                  <Menu className="h-6 w-6" />
+                  <Menu className="h-5 w-5" />
                 )}
               </button>
             </div>
@@ -176,31 +211,31 @@ export function Header() {
         </div>
       </motion.header>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu Drawer */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 z-40 md:hidden pt-16"
+            className="fixed inset-0 z-40 md:hidden pt-20"
           >
             <div
-              className="absolute inset-0 bg-[#0a0a12]/95 backdrop-blur-2xl"
+              className="absolute inset-0 bg-background/95 backdrop-blur-2xl"
               onClick={() => setIsMobileMenuOpen(false)}
             />
-            <nav className="relative p-6 space-y-4">
+            <nav className="relative p-6 space-y-4 max-w-sm mx-auto">
               {navItems.map((item) =>
                 item.children ? (
-                  <div key={item.label} className="space-y-2">
-                    <div className="text-sm font-semibold text-white/60">
+                  <div key={item.label} className="space-y-2 py-2">
+                    <div className="text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider">
                       {item.label}
                     </div>
                     {item.children.map((child) => (
                       <Link
                         key={child.href}
                         href={child.href}
-                        className="block pl-4 py-2 text-white hover:text-violet-300 transition-colors"
+                        className="block pl-3 py-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         {child.label}
@@ -211,35 +246,46 @@ export function Header() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="block py-2 text-lg font-medium text-white hover:text-violet-300 transition-colors"
+                    className="block py-2 text-base font-medium text-foreground hover:text-primary transition-colors"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     {item.label}
                   </Link>
                 )
               )}
-              <div className="pt-4 space-y-3 border-t border-white/10">
+              <div className="pt-6 space-y-3 border-t border-border">
                 {isAuthenticated ? (
                   <Button
                     variant="outline"
-                    className="w-full border-white/15 text-white hover:bg-white/[0.06]"
+                    className="w-full border-border text-foreground hover:bg-muted"
                     onClick={() => {
                       logout();
                       setIsMobileMenuOpen(false);
                     }}
                   >
-                    Logout
+                    Log out
                   </Button>
                 ) : (
                   <>
-                    <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button variant="outline" className="w-full border-white/15 text-white hover:bg-white/[0.06]">
-                        Sign In
+                    <Link
+                      href="/login"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block"
+                    >
+                      <Button
+                        variant="outline"
+                        className="w-full border-border text-foreground hover:bg-muted"
+                      >
+                        Log in
                       </Button>
                     </Link>
-                    <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 border-none text-white shadow-[0_4px_20px_rgba(168,85,247,0.35)]">
-                        Get started
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="block"
+                    >
+                      <Button className="w-full rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md">
+                        Ask the market
                       </Button>
                     </Link>
                   </>

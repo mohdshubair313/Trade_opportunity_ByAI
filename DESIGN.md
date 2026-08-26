@@ -1,521 +1,531 @@
----
-version: alpha
-name: Voltagent-Inspired-design-analysis
-description: An inspired interpretation of Voltagent's design language — a developer-focused AI agent engineering platform whose surface is an unrelenting near-black canvas broken only by a single electric-green brand accent, code-editor mockups inside the hero, and a precise grid of dark feature cards that read like a documentation site dressed as marketing.
+TradeInsight AI — Landing / Signup / Login Redesign Brief
+How to use this
+Attach the reference image listed for each prompt below when you generate that page (see "Reference Map").
+Paste the Design DNA block first — it's shared context — then paste the page-specific prompt right after it. Most AI design tools (v0, Lovable, Galileo, Figma First Draft, Uizard) generate better results one screen at a time rather than all three at once.
+Swap any bracketed detail if your real copy/numbers have changed since this was written.
+Reference Map — which image goes where, and why
+Image	Use it for	Borrow this	Don't borrow this
+DAXLAGO (dark bull)	Landing hero mood	Cinematic full-bleed dark photography, monospace terminal type, blinking-cursor motif, one accent color used sparingly	The literal bull statue or orange brand color
+Say. (flowers)	Landing typography + final CTA	Oversized 3-line stacked headline rhythm, asymmetric photo bleed, the "framed poster" card treatment, outlined ghost buttons, monospace trust microcopy	The light outer frame, the floral photography itself
+Alpha (signup)	Signup + Login structure	Split-screen brand-panel/form-panel layout, floating rounded card on the page background, clean labeled inputs	The silver/chrome metallic palette — replace with your teal
+co.me (pixel mountains)	Not used for style	Only the layout idea of a centered dual-CTA + trust-logo strip, if you add press/partner logos later	The pixel-art illustration and pastel palette — clashes with a fintech brand
+Your current hero	What to evolve, not copy	Keep the teal accent, the copy structure, the persona-card content	Replace the generic gradient background and uniform flat icon-cards
+Design DNA (paste once, before any page prompt)
+You are redesigning the marketing site and auth flow for TradeInsight AI, an
+agentic-AI market-intelligence platform for Indian equity sectors. It researches,
+scores, and narrates sector reports in ~15 seconds, tuned to the user's persona
+(Day Trader, Investor, Exporter, SME Founder, Strategy Consultant), delivered via
+web, voice, or exported document (PDF/XLSX/PPTX/MD).
 
-colors:
-  primary: "#00d992"
-  primary-soft: "#2fd6a1"
-  primary-deep: "#10b981"
-  on-primary: "#101010"
-  ink: "#f2f2f2"
-  ink-strong: "#ffffff"
-  body: "#bdbdbd"
-  mute: "#8b949e"
-  hairline: "#3d3a39"
-  hairline-soft: "#b8b3b0"
-  canvas: "#101010"
-  canvas-soft: "#1a1a1a"
-  canvas-text-soft: "#f5f6f7"
+Brand feel: "financial terminal meets editorial calm." Serious and data-grounded
+like a trading terminal, but with the whitespace and typographic confidence of a
+premium consumer product — not a cluttered dashboard.
 
-typography:
-  display-xl:
-    fontFamily: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif
-    fontSize: 60px
-    fontWeight: 400
-    lineHeight: 60px
-    letterSpacing: -0.65px
-  display-lg:
-    fontFamily: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif
-    fontSize: 36px
-    fontWeight: 400
-    lineHeight: 40px
-    letterSpacing: -0.9px
-  display-md:
-    fontFamily: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif
-    fontSize: 24px
-    fontWeight: 700
-    lineHeight: 32px
-    letterSpacing: -0.6px
-  display-sm:
-    fontFamily: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif
-    fontSize: 20px
-    fontWeight: 600
-    lineHeight: 28px
-  eyebrow-mono:
-    fontFamily: Inter, system-ui, -apple-system, sans-serif
-    fontSize: 14px
-    fontWeight: 600
-    lineHeight: 20px
-    letterSpacing: 2.52px
-  eyebrow-uppercase:
-    fontFamily: Inter, system-ui, -apple-system, sans-serif
-    fontSize: 18px
-    fontWeight: 600
-    lineHeight: 28px
-    letterSpacing: 0.45px
-  body-lg:
-    fontFamily: Inter, system-ui, -apple-system, sans-serif
-    fontSize: 18px
-    fontWeight: 400
-    lineHeight: 28px
-  body-md:
-    fontFamily: Inter, system-ui, -apple-system, sans-serif
-    fontSize: 16px
-    fontWeight: 400
-    lineHeight: 26px
-  body-md-strong:
-    fontFamily: Inter, system-ui, -apple-system, sans-serif
-    fontSize: 16px
-    fontWeight: 600
-    lineHeight: 24px
-  body-sm:
-    fontFamily: Inter, system-ui, -apple-system, sans-serif
-    fontSize: 14px
-    fontWeight: 400
-    lineHeight: 20px
-  body-sm-strong:
-    fontFamily: Inter, system-ui, -apple-system, sans-serif
-    fontSize: 14px
-    fontWeight: 600
-    lineHeight: 23px
-  caption:
-    fontFamily: Inter, system-ui, -apple-system, sans-serif
-    fontSize: 12px
-    fontWeight: 400
-    lineHeight: 16px
-  caption-strong:
-    fontFamily: Inter, system-ui, -apple-system, sans-serif
-    fontSize: 12px
-    fontWeight: 500
-    lineHeight: 16px
-  code:
-    fontFamily: SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace
-    fontSize: 13px
-    fontWeight: 400
-    lineHeight: 18px
-  code-strong:
-    fontFamily: SFMono-Regular, Menlo, Monaco, Consolas, monospace
-    fontSize: 13px
-    fontWeight: 550
-    lineHeight: 16px
-  button-md:
-    fontFamily: Inter, system-ui, -apple-system, sans-serif
-    fontSize: 16px
-    fontWeight: 600
-    lineHeight: 24px
+COLOR SYSTEM (dark theme only):
+- Background: near-black with a cool green-blue tint, #05080A to #0A1214
+- Surface/cards: #0D1518, 1px hairline border rgba(255,255,255,0.06), very
+  subtle grain/noise texture — never flat solid color
+- Primary accent: teal/emerald #1FE0A8 — used for CTAs, key numbers, and one
+  "glow" element per screen, nothing else
+- Secondary accent (sparing — alerts/highlights only): warm amber #E8A33D
+- Text: off-white #EDEFEF primary, #8B98A0 muted secondary
 
-rounded:
-  none: 0px
-  xs: 4px
-  sm: 6px
-  md: 8px
-  pill: 9999px
-  full: 9999px
+TYPOGRAPHY — three-font system:
+- Instrument Serif — big emotional/statement headlines, stacked in short lines
+- Inter — all body copy, UI labels, buttons
+- A monospace font (JetBrains Mono or IBM Plex Mono) — kickers, stats,
+  timestamps, terminal/ticker elements, citation numbers. This is the signature
+  typographic device and should appear on every page.
 
-spacing:
-  xxs: 2px
-  xs: 4px
-  sm: 8px
-  md: 12px
-  lg: 16px
-  xl: 20px
-  2xl: 24px
-  3xl: 32px
-  4xl: 40px
-  5xl: 48px
-  6xl: 64px
+SIGNATURE MOTIFS — reuse across all pages:
+1. A blinking terminal cursor after a key headline word, or inside a small
+   "live query" card — nods to the product's real query-to-answer flow.
+2. Monospace stat strips like `20+ SECTORS · 7 AI MODELS · ~15s RESPONSE` as
+   connective tissue between sections.
+3. Cards read like system-status panels — a small monospace tag in the corner
+   (e.g. ACTIVE, CACHED, LIVE) instead of colorful icon badges.
+4. Never more than 2 accent colors on screen at once. No purple/blue/pink
+   icon-grid rainbow — that is the generic AI-SaaS look this brief avoids.
 
-components:
-  nav-bar:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body-sm}"
-    padding: "{spacing.md} {spacing.3xl}"
-  nav-link:
-    textColor: "{colors.body}"
-    typography: "{typography.body-sm}"
-  button-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.button-md}"
-    rounded: "{rounded.sm}"
-    padding: "{spacing.md} {spacing.lg}"
-  button-outline-on-dark:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    borderColor: "{colors.hairline}"
-    typography: "{typography.button-md}"
-    rounded: "{rounded.sm}"
-    padding: "{spacing.md} {spacing.lg}"
-  button-ghost-green:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.primary-soft}"
-    typography: "{typography.button-md}"
-    rounded: "{rounded.sm}"
-    padding: "{spacing.md} {spacing.lg}"
-  button-pill-tag:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    borderColor: "{colors.hairline}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.pill}"
-    padding: "{spacing.xs} {spacing.md}"
-  text-input:
-    backgroundColor: "{colors.canvas-soft}"
-    textColor: "{colors.ink}"
-    borderColor: "{colors.hairline}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.sm}"
-    padding: "{spacing.md} {spacing.lg}"
-  card-feature:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    borderColor: "{colors.hairline}"
-    typography: "{typography.body-md}"
-    rounded: "{rounded.md}"
-    padding: "{spacing.2xl}"
-  card-feature-emphasized:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    borderColor: "{colors.hairline}"
-    typography: "{typography.body-md}"
-    rounded: "{rounded.md}"
-    padding: "{spacing.xl}"
-  code-mockup:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    borderColor: "{colors.hairline}"
-    typography: "{typography.code}"
-    rounded: "{rounded.md}"
-    padding: "{spacing.xl}"
-  code-inline-chip:
-    backgroundColor: "{colors.canvas-soft}"
-    textColor: "{colors.canvas-text-soft}"
-    typography: "{typography.code}"
-    rounded: "{rounded.sm}"
-    padding: "{spacing.xxs} {spacing.sm}"
-  hero-band:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.display-xl}"
-    padding: "{spacing.5xl} {spacing.3xl}"
-  content-band:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.display-lg}"
-    padding: "{spacing.5xl} {spacing.3xl}"
-  green-divider-band:
-    backgroundColor: "{colors.canvas}"
-    borderColor: "{colors.primary}"
-  footer:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.body}"
-    typography: "{typography.body-sm}"
-    padding: "{spacing.4xl} {spacing.3xl}"
+TECH CONSTRAINTS: build with Tailwind CSS utility classes, Lucide icon names
+only, Radix UI primitives for interactive elements (dialogs/dropdowns/tabs),
+and flag where Framer Motion should drive an animation (cursor blink, number
+count-up, ticker scroll).
+Prompt 1 — Landing Page
 
-  # ─── Examples (illustrative) — auto-derived; resolve any TO_FILL markers below ───
-  ex-pricing-tier:
-    description: "Default Pricing tier card. Re-uses feature-card chrome with brand canvas-soft surface."
-    backgroundColor: "{colors.canvas-soft}"
-    textColor: "{colors.ink}"
-    borderColor: "{colors.hairline}"
-    rounded: "{rounded.md}"
-    padding: "{spacing.2xl}"
-  ex-pricing-tier-featured:
-    description: "Featured/highlighted tier — polarity-flipped surface (dark fill + light text in light mode, light fill + dark text in dark mode)."
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.on-primary}"
-    rounded: "{rounded.md}"
-    padding: "{spacing.2xl}"
-  ex-product-selector:
-    description: "What's Included summary card — re-purposed for SaaS / B2B verticals (NOT a literal product gallery)."
-    backgroundColor: "{colors.canvas-soft}"
-    rounded: "{rounded.md}"
-    padding: "{spacing.2xl}"
-  ex-cart-drawer:
-    description: "Subscription summary — re-purposed for SaaS / B2B (line items per add-on, not literal cart)."
-    backgroundColor: "{colors.canvas}"
-    rounded: "{rounded.md}"
-    padding: "{spacing.2xl}"
-    item-divider: "{colors.hairline}"
-  ex-app-shell-row:
-    description: "Sidebar nav row inside the App Shell example. Active state uses brand primary as the indicator."
-    backgroundColor: "{colors.canvas}"
-    activeIndicator: "{colors.primary}"
-    rounded: "{rounded.sm}"
-    padding: "{spacing.md} {spacing.lg}"
-  ex-data-table-cell:
-    description: "Default data-table th + td chrome. Header uses mono-caps eyebrow typography; body uses body-sm."
-    headerBackground: "{colors.canvas-soft}"
-    headerTypography: "{typography.caption}"
-    bodyTypography: "{typography.body-sm}"
-    cellPadding: "{spacing.md} {spacing.lg}"
-    rowBorder: "{colors.hairline}"
-  ex-auth-form-card:
-    description: "Sign-in / sign-up card. Re-uses feature-card chrome with text-input primitives inside."
-    backgroundColor: "{colors.canvas-soft}"
-    rounded: "{rounded.md}"
-    padding: "{spacing.2xl}"
-  ex-modal-card:
-    description: "Modal dialog surface — same chrome as feature-card with elevated shadow."
-    backgroundColor: "{colors.canvas}"
-    rounded: "{rounded.md}"
-    padding: "{spacing.2xl}"
-  ex-empty-state-card:
-    description: "Empty-state illustration frame."
-    backgroundColor: "{colors.canvas-soft}"
-    rounded: "{rounded.md}"
-    padding: "{spacing.3xl}"
-    captionTypography: "{typography.body-md}"
-  ex-toast:
-    description: "Toast notification surface — feature-card shape + medium shadow."
-    backgroundColor: "{colors.canvas}"
-    rounded: "{rounded.md}"
-    padding: "{spacing.md} {spacing.lg}"
-    typography: "{typography.body-sm}"
+(attach: DAXLAGO image + Say. image + your current hero screenshot)
 
----
+Redesign the TradeInsight AI landing page using the Design DNA above.
+
+1. NAV — minimal: small geometric/monospace logomark + "TradeInsight" wordmark,
+   3 links (Product, Sectors, Pricing), ghost "Log in" button, filled teal pill
+   "Ask the market" CTA. Nav goes transparent-to-solid on scroll.
+
+2. HERO — asymmetric two-column. Left: monospace kicker in tracked caps
+   ("AGENTIC MARKET INTELLIGENCE"), then a 2–3 line stacked headline mixing
+   Inter with one Instrument Serif emphasis line — e.g. "One question. /
+   Answered in 15 seconds. / Cited, not guessed." (reference the Say. image
+   for this stacked rhythm). One line of subcopy, a dual CTA (filled teal +
+   outline ghost), then a monospace stat strip. Right/background: NOT a
+   gradient blob — a moody dark visual (abstract data-flow glow, or an angled
+   screenshot of the real report UI with a soft teal edge-glow), with a small
+   floating "live query" card overlaid: `$ auto sector today_` with a
+   blinking cursor, streaming into an answer (reference the DAXLAGO image for
+   this cinematic/terminal mood).
+
+3. "7 AM. ONE QUESTION." SECTION — restyle as a horizontal flight-recorder log
+   instead of generic numbered cards: 4 steps (Query received → Research &
+   score → Narrate & tone → Delivered everywhere), each with a monospace
+   timestamp (07:00:00 / 07:00:03 / 07:00:11 / 07:00:15) connected by a thin
+   glowing teal line.
+
+4. "BUILT FOR RESILIENCE" FEATURE SECTION — 4 cards styled like system-status
+   panels: dark surface, hairline border, small monospace status tag top-right
+   (e.g. "4-LAYER FALLBACK", "CACHE: 2s"), line-style Lucide icons only — no
+   colorful icon blobs.
+
+5. PERSONA SECTION — 4 cards (Day Trader, Investor, Exporter/SME Founder,
+   Strategy Consultant) styled like boarding-pass/ID cards: persona name in
+   Instrument Serif, monospace subtitle, 2-line description, a thin desaturated
+   accent underline unique per card (muted teal/amber/blue/violet) — restrained,
+   not saturated.
+
+6. DELIVERY FORMAT SECTION ("Web. Voice. Document.") — 3 cards, consistent
+   line-icon style, a small waveform visual for the voice card.
+
+7. FINAL CTA — reference the Say. image directly: a large bordered "framed
+   poster" panel, generous padding, subtle radial glow/grain texture, a big
+   stacked Instrument Serif headline ("Intelligence should be / accessible, /
+   not gatekept."), one primary CTA pill, and a small monospace trust line
+   underneath ("Grounded in real data. Cited, not guessed.").
+
+8. FOOTER — minimal, monospace small print, keep the "Made in India" detail.
+Prompt 2 — Signup Page
+
+(attach: Alpha image)
+
+Design the TradeInsight AI signup page using the Design DNA above, as a
+split-screen (reference the Alpha image for the overall shell):
+
+- The whole layout is one large rounded card floating on the page background
+  (not edge-to-edge), split roughly 55/45.
+
+- LEFT BRAND PANEL: dark, subtle grain texture, soft radial spotlight
+  top-left. Logo top-left. Big Instrument Serif headline ("Ask the market
+  anything."). One subcopy line. At the bottom — instead of user avatars —
+  a horizontal monospace stat strip that reads like a ticker:
+  `20+ SECTORS · 7 AI MODELS · 41 ENDPOINTS · ~15s RESPONSE`, slow-scrolling
+  via Framer Motion.
+
+- RIGHT FORM PANEL, on a slightly lighter dark surface, generous padding.
+  This is a 3-step flow (design all 3 steps, one visible at a time with a
+  subtle progress indicator), because this product uses email-OTP
+  verification, not a plain password-only signup:
+    1. Email input → "Send code" button.
+    2. 6-digit OTP — 6 segmented monospace input boxes with auto-advance,
+       "Verify" button, "Resend code" link with a countdown.
+    3. Set password + pick primary persona — persona choice as 4 compact
+       selectable chip-tiles (Day Trader / Investor / Exporter / SME Founder
+       / Strategy Consultant), then a teal filled "Create account" CTA.
+
+- Small monospace trust microcopy under the form: "Bank-grade encryption.
+  No spam. Cancel anytime."
+
+- No OAuth row — this product only uses email + OTP.
+Prompt 3 — Login Page
+
+(attach: Alpha image — reuse the same shell as signup for consistency)
+
+Design the TradeInsight AI login page, same split-screen shell as the signup
+page for visual consistency (reuse the left brand panel; swap the stat strip
+or subcopy line for variety).
+
+RIGHT FORM PANEL: simple email + password fields, teal filled "Log in" CTA,
+"Forgot password?" link. The forgot-password flow should visually hint it
+leads to an OTP-based reset, not a plain reset link — small monospace note:
+"We'll email you a code." Include a small "Don't have an account? Sign up"
+link at the bottom.
+Explicitly tell the AI designer to avoid
+A purple-to-blue gradient hero — that's the generic AI-SaaS cliché this brief exists to escape.
+Rounded icon badges in 5+ different colors.
+Persona/feature cards that look like a stock Notion or Linear template — the monospace status-tag device and hairline borders are what make it yours.
+Dropping real product facts (OTP-based auth, "Made in India", the specific numbers) in favor of generic placeholder copy.
 
 
-## Overview
+# For Light mode please refer this
 
-Voltagent is an AI agent engineering platform built for developers, and the brand wears that audience proudly: a near-black `{colors.canvas}` (`#101010`) page background that runs edge-to-edge with no light-mode counterpart, a single electric-green accent (`{colors.primary}` `#00d992`) reserved for CTAs, status pills, and the brand lightning glyph, and a typography system that pairs sentence-case Inter with SF Mono for inline code and command snippets. The whole page reads like polished documentation that decided to also sell something.
+# Anthropic — Style Reference
+> scientific field journal on warm parchment — quiet ivory surfaces, editorial serif headlines, and a single clay accent that only appears when you must act
 
-The decorative system is restrained. There is no gradient mesh, no atmospheric backdrop, no illustration suite. Instead, the brand uses small typographic moments — a green code chip (`npx voltagent ...`), a 3-px outlined feature card sitting against the same near-black canvas, a green hairline divider between section bands — to mark its identity. The result is a page that feels engineered: every card has a hairline border, every snippet has a copy-to-clipboard button, every metric is rendered in a numeric monospace.
+**Theme:** light
 
-Type stays calm. Hero display sits at 60 px in regular weight with `-0.65 px` tracking — not a billboard headline, more like a documentation H1. Section headings step down to 36 px / 24 px in similar weights. Body copy is 16 px Inter at line-height 1.65 for the kind of legibility long-form devs expect. Uppercase eyebrows are common — `EVERYTHING YOU NEED` style mono-cap labels above section headlines — and they use Inter at weight 600 with wide positive tracking (`2.52 px` at 14 px).
+Anthropic's interface reads like a curated research publication on warm parchment paper. Ivory and oat neutrals replace the typical cool-gray tech palette, giving every surface a paper-like quality that pairs with a custom serif used at unprecedented scale for both body and display text. A single clay-toned accent surfaces only at moments of action; everything else stays quiet and editorial. Components are flat — hairline borders and selective bottom-corner radii replace shadows as the elevation language, sans-serif handles UI chrome, and the serif carries voice.
 
-**Key Characteristics:**
-- A single electric-green accent `{colors.primary}` (`#00d992`) carries every CTA, every status pill, and the brand's lightning logo. No second accent.
-- Dark canvas (`{colors.canvas}` `#101010`) is the only page surface — there is no light-mode rhythm; the entire site reads as one continuous dark surface broken by feature-card boundaries.
-- Hairline-bordered feature cards (`{colors.hairline}` `#3d3a39`, 1 px solid) are the brand's primary chrome — no shadows, no fills, just precise hairline rectangles.
-- A signature dashed-border accent (`1px dashed rgba(79, 93, 117, 0.4)`) appears between sections as a quiet rhythm cue — the brand's only ornamental line.
-- Inter + SF Mono pair carries every typographic role. SF Mono is reserved for code blocks, inline command snippets, and metric counters.
-- Buttons are tight 6 px rounded rectangles (not pills); only inline status tags use the 9999 px full pill.
+## Tokens — Colors
 
-## Colors
+| Name | Value | Token | Role |
+|------|-------|-------|------|
+| Slate Dark | `#141413` | `--color-slate-dark` | Primary text, headings, footer background, hairline borders — near-black with a hint of warmth, never pure black |
+| Ivory Medium | `#f0eee6` | `--color-ivory-medium` | Page canvas and large surface fills — the parchment background that sets the entire warm tone |
+| Ivory Light | `#faf9f5` | `--color-ivory-light` | Card surfaces, elevated panels, skip-link buttons — one step brighter than canvas for subtle layering without shadows |
+| Cloud Medium | `#b0aea5` | `--color-cloud-medium` | Muted helper text, inactive nav items, secondary labels — the neutral that recedes without disappearing |
+| Cloud Dark | `#87867f` | `--color-cloud-dark` | Outlined button borders, mid-contrast dividers |
+| Stone | `#cccbc8` | `--color-stone` | Hairline borders and dividers between sections — visible but never assertive |
+| Slate Medium | `#3d3d3a` | `--color-slate-medium` | Dark-on-dark borders inside the footer |
+| Oat Warm | `#e3dacc` | `--color-oat-warm` | Secondary warm surface for grouped panels and feature containers — a deeper paper tone for variety |
+| Manilla | `#f5e3c7` | `--color-manilla` | Featured hero card background — vintage paper tone that signals editorial importance without color shouting |
+| Clay | `#d97757` | `--color-clay` | Filled CTA buttons (e.g. cookie consent accept) — the single chromatic accent in the system, a terracotta warmth that belongs to the earth-tone family rather than typical UI blue |
+| Clay Deep | `#c6613f` | `--color-clay-deep` | Hover/pressed state for Clay CTAs and the canonical accent token — deeper version of the primary accent |
 
-### Brand & Accent
-- **Electric Green** (`{colors.primary}` — `#00d992`): The single brand accent. Every primary CTA, every status pill, every "live" indicator, the brand's lightning glyph itself. Reserved.
-- **Primary Soft** (`{colors.primary-soft}` — `#2fd6a1`): A slightly more muted green used inside button-ghost variants and tooltip / focus indicators.
-- **Primary Deep** (`{colors.primary-deep}` — `#10b981`): The darker green used for inline link colour in body copy.
+## Tokens — Typography
 
-### Surface
-- **Canvas** (`{colors.canvas}` — `#101010`): The default near-black page background. The only surface mode in the brand's marketing system.
-- **Canvas Soft** (`{colors.canvas-soft}` — `#1a1a1a`): A slightly lighter dark fill used inside code blocks and form inputs to mark them visually distinct against the canvas.
-- **Hairline** (`{colors.hairline}` — `#3d3a39`): 1 px solid borders — feature cards, buttons, dividers between rows. The brand's universal "edge" colour.
-- **Hairline Soft** (`{colors.hairline-soft}` — `#b8b3b0`): A lighter divider tint used in rare on-light secondary contexts.
+### Anthropic Serif — Editorial voice — used for the display heading at 68px, all body copy at 20px, card titles, and supporting paragraphs. The serif carries personality; its presence in body text (unusual for tech sites) signals research-publication DNA. Weight 400 is default, 600 for emphasis. · `--font-anthropic-serif`
+- **Substitute:** Georgia, Source Serif Pro, Charter
+- **Weights:** 400, 600
+- **Sizes:** 14px, 18px, 20px, 24px, 68px
+- **Line height:** 1.10, 1.40, 1.43
+- **Letter spacing:** normal
+- **Role:** Editorial voice — used for the display heading at 68px, all body copy at 20px, card titles, and supporting paragraphs. The serif carries personality; its presence in body text (unusual for tech sites) signals research-publication DNA. Weight 400 is default, 600 for emphasis.
 
-### Text
-- **Ink** (`{colors.ink}` — `#f2f2f2`): Default text colour on the dark canvas — slightly off-white to reduce contrast strain.
-- **Ink Strong** (`{colors.ink-strong}` — `#ffffff`): Pure-white text for hero headlines and high-emphasis copy.
-- **Body** (`{colors.body}` — `#bdbdbd`): Secondary text — supporting copy, body paragraphs in long-form sections.
-- **Mute** (`{colors.mute}` — `#8b949e`): Lowest-priority on-dark text — captions, fine print, footer secondary lines.
-- **Canvas Text Soft** (`{colors.canvas-text-soft}` — `#f5f6f7`): Used inside code mockups to keep code colour just slightly cooler than the surrounding body text.
+### Anthropic Sans — UI chrome and display sans — nav links, buttons, footers, badges, and the bold sans display heading at 61px weight 700. The 61px sans display sits beside the 68px serif display as a deliberate dual-system: sans shouts declarative statements, serif reads as editorial essay. · `--font-anthropic-sans`
+- **Substitute:** Inter, system-ui, Arial
+- **Weights:** 400, 500, 600, 700
+- **Sizes:** 12px, 15px, 16px, 20px, 24px, 61px
+- **Line height:** 1.00, 1.10, 1.25, 1.30, 1.40
+- **Letter spacing:** -0.0200em at 12px (tight nav/caption tracking), -0.0050em at 15-16px (subtle UI tightening), -0.0020em at larger sizes
+- **Role:** UI chrome and display sans — nav links, buttons, footers, badges, and the bold sans display heading at 61px weight 700. The 61px sans display sits beside the 68px serif display as a deliberate dual-system: sans shouts declarative statements, serif reads as editorial essay.
 
-### Semantic
-The brand doesn't surface a separate error / warning palette in its public marketing pages — the underlying Docusaurus default semantic palette exists in the design system but is reserved for in-product / docs contexts. Validation cues on the marketing surface use the primary green for success and a muted body grey for missing states.
+### Anthropic Mono — Reserved for code or technical snippets — appears sparingly · `--font-anthropic-mono`
+- **Substitute:** JetBrains Mono, SF Mono, Menlo
+- **Weights:** 400
+- **Sizes:** 16px
+- **Line height:** 1.40
+- **Role:** Reserved for code or technical snippets — appears sparingly
 
-## Typography
+### Type Scale
 
-### Font Family
-Two faces carry the system:
-1. **Inter** for every display, body, button, and link role. Weights 400 / 500 / 600 / 700 are the working set. Used with OpenType features `"calt"` and `"rlig"` enabled across the page so the geometric Inter ligatures and contextual alternates render correctly.
-2. **SF Mono** (`SFMono-Regular` with Menlo / Monaco / Consolas / Liberation Mono fallbacks) for inline code, command snippets, terminal mockups, and the brand's numeric counters. Weights 400 / 549 / 550 / 700 are present — the unusual 549 / 550 sub-bold weight gives the mono a "slightly heavier than regular" voice for emphasis.
+| Role | Size | Line Height | Letter Spacing | Token |
+|------|------|-------------|----------------|-------|
+| caption | 12px | 1.4 | -0.24px | `--text-caption` |
+| body-sm | 16px | 1 | -0.08px | `--text-body-sm` |
+| body | 20px | 1.4 | — | `--text-body` |
+| subheading | 24px | 1.3 | -0.05px | `--text-subheading` |
+| heading | 61px | 1.1 | -0.12px | `--text-heading` |
+| display | 68px | 1.1 | — | `--text-display` |
 
-### Hierarchy
+## Tokens — Spacing & Shapes
 
-| Token | Size | Weight | Line Height | Letter Spacing | Use |
-|---|---|---|---|---|---|
-| `{typography.display-xl}` | 60px | 400 | 60px | -0.65px | Hero headline ("AI Agent Engineering Platform"). |
-| `{typography.display-lg}` | 36px | 400 | 40px | -0.9px | Section headlines. |
-| `{typography.display-md}` | 24px | 700 | 32px | -0.6px | Sub-section / card-title displays. |
-| `{typography.display-sm}` | 20px | 600 | 28px | 0 | Card titles in dense grids. |
-| `{typography.eyebrow-mono}` | 14px | 600 | 20px | 2.52px | UPPERCASE eyebrow tags ("EVERYTHING YOU NEED"). |
-| `{typography.eyebrow-uppercase}` | 18px | 600 | 28px | 0.45px | Larger uppercase eyebrows above hero subsections. |
-| `{typography.body-lg}` | 18px | 400 | 28px | 0 | Lead paragraphs. |
-| `{typography.body-md}` | 16px | 400 | 26px | 0 | Default body paragraph. |
-| `{typography.body-md-strong}` | 16px | 600 | 24px | 0 | Bolded inline body. |
-| `{typography.body-sm}` | 14px | 400 | 20px | 0 | Secondary body. |
-| `{typography.body-sm-strong}` | 14px | 600 | 23px | 0 | Bold caption / pill-tag labels. |
-| `{typography.caption}` | 12px | 400 | 16px | 0 | Fine print. |
-| `{typography.caption-strong}` | 12px | 500 | 16px | 0 | Bold caption. |
-| `{typography.code}` | 13px | 400 | 18px | 0 | Code blocks, inline command snippets. |
-| `{typography.code-strong}` | 13px | 550 | 16px | 0 | Emphasised inline code (the SF Mono "almost-bold" weight). |
-| `{typography.button-md}` | 16px | 600 | 24px | 0 | Button labels. |
+**Base unit:** 4px
 
-### Principles
-- **Inter regular at 60 px display** is the brand's calming counter to AI marketing's tendency to shout. The light tracking and modest weight read like documentation.
-- **Two-face contrast carries the technical voice.** Inter for narrative; SF Mono for anything that could be typed at a terminal.
-- **Uppercase eyebrow with tracking is the brand's signature label style.** `2.52 px` at 14 px is the documented value.
+**Density:** compact
 
-### Note on Font Substitutes
-- **Sans** — *Inter* is the brand's actual face; substitute is the brand itself when self-hosting is not available.
-- **Mono** — *SF Mono* is Apple-system; *JetBrains Mono* or *Geist Mono* are the best free substitutes.
+### Spacing Scale
 
-## Layout
+| Name | Value | Token |
+|------|-------|-------|
+| 4 | 4px | `--spacing-4` |
+| 8 | 8px | `--spacing-8` |
+| 12 | 12px | `--spacing-12` |
+| 16 | 16px | `--spacing-16` |
+| 24 | 24px | `--spacing-24` |
+| 32 | 32px | `--spacing-32` |
+| 76 | 76px | `--spacing-76` |
+| 100 | 100px | `--spacing-100` |
 
-### Spacing System
-- **Base unit**: 4 px; small 5 / 6.4 px values appear inside code-mockup line-height compensation.
-- **Tokens**: `{spacing.xxs}` 2 px · `{spacing.xs}` 4 px · `{spacing.sm}` 8 px · `{spacing.md}` 12 px · `{spacing.lg}` 16 px · `{spacing.xl}` 20 px · `{spacing.2xl}` 24 px · `{spacing.3xl}` 32 px · `{spacing.4xl}` 40 px · `{spacing.5xl}` 48 px · `{spacing.6xl}` 64 px.
-- **Section padding**: hero + content bands use `{spacing.5xl}` 48 px top/bottom.
-- **Card interior padding**: feature cards sit at `{spacing.2xl}` 24 px.
+### Border Radius
 
-### Grid & Container
-- Marketing container centres at roughly 1200 – 1400 px; content stays edge-to-edge in colour with horizontal gutters of `{spacing.3xl}` on desktop.
-- Feature-card grids: 2-up to 3-up at desktop, 1-up at mobile.
+| Element | Value |
+|---------|-------|
+| nav | 0px |
+| cards | 24px |
+| links | 0px |
+| badges | 0px |
+| buttons | 8px (bottom-only on filled variants), 12px (outlined) |
 
-### Responsive Strategy
+### Layout
 
-#### Breakpoints
-
-| Name | Width | Key Changes |
-|---|---|---|
-| Mobile | < 768px | Hero 60→32 px; cards 1-up; nav hamburger. |
-| Tablet | 768–1023px | Cards 2-up; nav stays horizontal. |
-| Desktop | ≥ 1024px | Full 3-up card grids. |
-
-#### Touch Targets
-Buttons render at ~44 px tall (12 px vertical padding + 24 px line-height). Meet WCAG AAA at all breakpoints.
-
-#### Collapsing Strategy
-Nav collapses to hamburger at mobile; the menu overlay keeps the same green CTA pinned at the bottom. Feature-card grids drop to 1-up; hero typography scales fluidly.
-
-#### Image Behavior
-Code-editor mockups render as image-like cards with copy-to-clipboard affordances. No photography in the brand's marketing surface.
-
-## Elevation & Depth
-
-| Level | Treatment | Use |
-|---|---|---|
-| Level 0 — Flat | No shadow, no border. | Full-bleed bands. |
-| Level 1 — Hairline | 1 px solid `{colors.hairline}` border on `{colors.canvas}`. | Default for every feature card and button. |
-| Level 2 — Inset Glow | `0 0 15px rgba(92, 88, 85, 0.2)` subtle outer glow. | Hovering / featured cards. |
-| Level 3 — Modal Stack | `0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(148,163,184,0.1) inset` heavy drop + inset ring. | Modal / dialog surfaces in-product. |
-
-### Decorative Depth
-- Hairline cards on dark canvas — the brand's only true elevation mode.
-- A 2 px solid `{colors.primary}` green border occasionally marks "featured" or "active" status on a card.
-- A 1 px dashed `rgba(79, 93, 117, 0.4)` divider sits between section bands as a quiet rhythm cue.
-
-## Shapes
-
-### Border Radius Scale
-
-| Token | Value | Use |
-|---|---|---|
-| `{rounded.none}` | 0px | Full-bleed bands. |
-| `{rounded.xs}` | 4px | Smallest inline pills, code inline chips. |
-| `{rounded.sm}` | 6px | Default button and input radius. |
-| `{rounded.md}` | 8px | Card chrome, code-block chrome. |
-| `{rounded.pill}` | 9999px | Inline status tags ("Live", "Beta"). |
-| `{rounded.full}` | 9999px | Circular icon containers. |
+- **Page max-width:** 1280px
+- **Section gap:** 80-120px
+- **Card padding:** 24-32px
+- **Element gap:** 8px
 
 ## Components
 
-### Buttons
+### Text Link Button
+**Role:** Primary inline link styled as a button — used for navigation and inline actions
 
-**`button-primary`** — the electric-green CTA.
-- Background `{colors.primary}`, text `{colors.on-primary}` (near-black), label `{typography.button-md}`, padding `{spacing.md} {spacing.lg}`, shape `{rounded.sm}` 6 px.
+Transparent background, #141413 text color, no border, 0px radius, padding 22px 12px. Underline appears on hover. No background fill at any state — this is text that happens to be clickable, not a container.
 
-**`button-outline-on-dark`** — the hairline-on-dark secondary button.
-- Background `{colors.canvas}`, text `{colors.ink}`, 1 px solid `{colors.hairline}` border, same typography / padding / shape.
+### Filled Ivory Button
+**Role:** Primary action button on light surfaces
 
-**`button-ghost-green`** — text-only with green label, for tertiary actions.
-- Background `{colors.canvas}`, text `{colors.primary-soft}`, no border.
+Background #faf9f5, text #141413, bottom-only border-radius 8px (top corners sharp), padding 12px 31px. The bottom-only radius is a signature choice — the button reads like a tab or card pulled from a stack, not a generic pill. No border, no shadow.
 
-**`button-pill-tag`** — the inline pill for category tags / status labels.
-- Background `{colors.canvas}`, text `{colors.ink}`, hairline border, body in `{typography.body-sm}`, padding `{spacing.xs} {spacing.md}`, shape `{rounded.pill}` 9999 px.
+### Outlined Dark Button
+**Role:** Secondary action on dark backgrounds (cookie consent, modal footer)
 
-### Cards & Containers
+Transparent background, #ffffff text, 1px border in #87867f, 12px radius, padding 8px 16px. Compact size, ghost treatment that lets the dark background show through.
 
-**`card-feature`** — the default feature card.
-- Background `{colors.canvas}`, text `{colors.ink}`, 1 px solid `{colors.hairline}` border, padding `{spacing.2xl}`, shape `{rounded.md}` 8 px. The brand's most-repeated card chrome.
+### Clay Filled Button
+**Role:** The single chromatic CTA — used sparingly for the most consequential actions
 
-**`card-feature-emphasized`** — the same card with a 3 px hairline border for emphasis.
-- Same chrome as `card-feature` with 3 px solid `{colors.hairline}`.
+Background #d97757, white text, 8px radius, padding matching Filled Ivory Button proportions. Reserved for moments where acceptance must be visually distinct from the rest of the editorial interface. Deepens to #c6613f on hover.
 
-**`code-mockup`** — the dark code-editor card with copy-to-clipboard affordance.
-- Background `{colors.canvas}`, text `{colors.ink}`, 1 px solid `{colors.hairline}`, body in `{typography.code}` (SF Mono 13 px), padding `{spacing.xl}`, shape `{rounded.md}`.
+### Featured Hero Card
+**Role:** Large editorial card for announcements and story highlights
 
-**`code-inline-chip`** — the inline command snippet pill.
-- Background `{colors.canvas-soft}`, text `{colors.canvas-text-soft}`, body in `{typography.code}`, padding `{spacing.xxs} {spacing.sm}`, shape `{rounded.sm}`.
+Background #f5e3c7 (manilla), 24px border-radius, no shadow, no border. Generous internal padding (~48-64px) to accommodate large serif display text and editorial illustration. The warm paper tone separates it from ivory cards without using color.
 
-### Inputs & Forms
+### Release Card
+**Role:** Compact card for latest releases grid
 
-**`text-input`** — the standard text input on dark.
-- Background `{colors.canvas-soft}`, text `{colors.ink}`, 1 px solid `{colors.hairline}`, body in `{typography.body-sm}`, padding `{spacing.md} {spacing.lg}`, shape `{rounded.sm}` 6 px.
+Background #faf9f5, 24px radius, 1px border in #cccbc8 or no border, padding ~24px. Title in Anthropic Sans 24px weight 600 or Anthropic Serif 20px, body in serif 20px. Three-column grid layout.
 
-### Navigation
+### Top Navigation Bar
+**Role:** Sticky site navigation
 
-**`nav-bar`** — the sticky top nav on dark.
-- Background `{colors.canvas}`, text `{colors.ink}`, padding `{spacing.md} {spacing.3xl}`.
+Transparent or #f0eee6 background, logo left in Anthropic Sans 12px weight 700 all-caps letter-spaced, nav links right-aligned at 12px sans with #b0aea5 hover-to-#141413 transition. Dropdown indicators as chevrons. The 'Try Claude' button on the right uses Filled Ivory Button styling. No background blur, no shadow.
 
-**`nav-link`** — link items in nav.
-- Text `{colors.body}`, set in `{typography.body-sm}`.
+### Footer
+**Role:** Dark closing section with link columns
 
-**`footer`** — the dark footer band.
-- Background `{colors.canvas}`, text `{colors.body}`, padding `{spacing.4xl} {spacing.3xl}`. Body in `{typography.body-sm}`.
+Full-bleed #141413 background, #faf9f5 text, multi-column link grid with 8px link gaps. Section headings in sans 12px weight 600, link items in sans 12px at #b0aea5. The dark footer is the only inversion in the system — a final grounded anchor after all the parchment above.
 
-### Signature Components
+### Hero Heading Block
+**Role:** Asymmetric first-screen composition
 
-**`hero-band`** — the dark hero band with the 60-px Inter headline.
-- Background `{colors.canvas}`, text `{colors.ink}` (with the headline at `{colors.ink-strong}` white), padding `{spacing.5xl} {spacing.3xl}`. Headline in `{typography.display-xl}` (60 px / weight 400 / `-0.65 px` tracking). Eyebrow above headline in `{typography.eyebrow-mono}` (uppercase, tracked).
+Two-column layout: left holds Anthropic Sans 61px weight 700 heading with inline underlined links mid-phrase; right holds supporting serif paragraph at 20px. Generous whitespace around the block. Headings use #141413, supporting text #141413 at reduced visual weight.
 
-**`content-band`** — the standard content band hosting feature grids.
-- Background `{colors.canvas}`, text `{colors.ink}`, padding `{spacing.5xl} {spacing.3xl}`. Section headline in `{typography.display-lg}`.
+### Inline Underlined Link
+**Role:** Text link embedded in paragraphs and headings
 
-**`green-divider-band`** — a thin green-glow band that occasionally separates major sections.
-- Background `{colors.canvas}`, 2 px solid `{colors.primary}` top/bottom border. The brand's only chromatic divider.
+No background, text inherits parent color (#141413), 1px underline always visible (not just on hover) in #141413. The persistent underline is editorial — it matches print convention where links are typeset with underlines, not the UI convention of reveal-on-hover.
 
-### Examples (illustrative)
+### Badge / Inline Label
+**Role:** Small tag for categories and metadata
 
-> Auto-derived kit-mirror demonstration surfaces (`scripts/derive-examples-block.mjs`). Each `ex-*` entry references brand-native primitives so downstream consumers (`/preview-design`, `/generate-kit`) re-skin the same 10 surfaces consistently. `TO_FILL` markers indicate missing primitives — resolve in the LLM judgment pass.
+Transparent background, #141413 text, 0px radius, no padding above/below the text baseline. Effectively just bold or weighted text in flow — not a container. Used sparingly.
 
-**`ex-pricing-tier`** — Default Pricing tier card. Re-uses feature-card chrome with brand canvas-soft surface.
-- Properties: `backgroundColor`, `textColor`, `borderColor`, `rounded`, `padding`
+### Cookie Consent Bar
+**Role:** Bottom-pinned consent prompt
 
-**`ex-pricing-tier-featured`** — Featured/highlighted tier — polarity-flipped surface (dark fill + light text in light mode, light fill + dark text in dark mode).
-- Properties: `backgroundColor`, `textColor`, `rounded`, `padding`
+Dark band (#141413 background) or dark overlay containing body text and three action buttons: Filled Ivory Button (Accept), Outlined Dark Button (Customize, Reject). The contrast inversion makes consent legible against the parchment above.
 
-**`ex-product-selector`** — What's Included summary card — re-purposed for SaaS / B2B verticals (NOT a literal product gallery).
-- Properties: `backgroundColor`, `rounded`, `padding`
+### Skip Link
+**Role:** Accessibility utility for keyboard navigation
 
-**`ex-cart-drawer`** — Subscription summary — re-purposed for SaaS / B2B (line items per add-on, not literal cart).
-- Properties: `backgroundColor`, `rounded`, `padding`, `item-divider`
-
-**`ex-app-shell-row`** — Sidebar nav row inside the App Shell example. Active state uses brand primary as the indicator.
-- Properties: `backgroundColor`, `activeIndicator`, `rounded`, `padding`
-
-**`ex-data-table-cell`** — Default data-table th + td chrome. Header uses mono-caps eyebrow typography; body uses body-sm.
-- Properties: `headerBackground`, `headerTypography`, `bodyTypography`, `cellPadding`, `rowBorder`
-
-**`ex-auth-form-card`** — Sign-in / sign-up card. Re-uses feature-card chrome with text-input primitives inside.
-- Properties: `backgroundColor`, `rounded`, `padding`
-
-**`ex-modal-card`** — Modal dialog surface — same chrome as feature-card with elevated shadow.
-- Properties: `backgroundColor`, `rounded`, `padding`
-
-**`ex-empty-state-card`** — Empty-state illustration frame.
-- Properties: `backgroundColor`, `rounded`, `padding`, `captionTypography`
-
-**`ex-toast`** — Toast notification surface — feature-card shape + medium shadow.
-- Properties: `backgroundColor`, `rounded`, `padding`, `typography`
-
+Background #faf9f5, text #141413, small padding, visible only on focus. Positioned absolutely at the top edge.
 
 ## Do's and Don'ts
 
 ### Do
-- Reserve `{colors.primary}` (`#00d992`) for every primary CTA, the lightning logo glyph, and live-status indicators. The green is the brand's centre of gravity.
-- Use the dark `{colors.canvas}` (`#101010`) as the only page surface. There is no light-mode rhythm.
-- Build cards with 1 px `{colors.hairline}` borders, not shadows. Hairlines on dark IS the brand's elevation system.
-- Pair Inter (sentence-case) with SF Mono (inline code, command snippets). Every uppercase moment uses Inter at weight 600 with `2.52 px` tracking — not a separate mono.
-- Use `{rounded.sm}` 6 px for buttons, `{rounded.md}` 8 px for cards, `{rounded.pill}` 9999 px only for inline status tags.
+- Use Anthropic Serif at 20px for all body copy and Anthropic Sans at 12-16px for UI chrome — the serif/sans split defines the system's voice.
+- Use #f0eee6 as the page canvas and #faf9f5 for cards; reach for #f5e3c7 only when a card needs to feel like a featured editorial spread.
+- Use the bottom-only 8px radius on filled buttons (Filled Ivory Button); this signature corner treatment replaces the generic pill.
+- Use #d97757 Clay exclusively for the most consequential single CTA on any given page; never apply it to multiple actions or decorative elements.
+- Keep underlines persistent on inline links — editorial print convention, not reveal-on-hover.
+- Reach for 24px radius on all card-level surfaces to maintain the paper-stacked feel.
+- Use the 61px sans weight 700 paired with the 68px serif weight 400 as the dual display system — sans for declarative statements, serif for editorial reflection.
 
 ### Don't
-- Don't introduce a light-mode counterpart. The brand is dark-canvas only.
-- Don't use the primary green as a body-text fill. It's CTA-only.
-- Don't drop a soft drop-shadow on cards. The brand uses hairlines + occasional glow, never material shadows.
-- Don't render the hero headline in heavy weight (700+). The brand's display is intentionally calm at weight 400.
-- Don't replace Inter or SF Mono with a different family — both faces are part of the brand's voice and pairing.
+- Don't introduce cool grays, blues, or any color outside the warm earth-tone family — the palette is ivory/oat/clay, period.
+- Don't use box-shadow for elevation — this system elevates through surface tone (#f0eee6 → #faf9f5 → #f5e3c7) and 1px borders only.
+- Don't use the Clay accent for decoration, icons, hover states, or non-CTA elements; reserve #d97757 for filled action buttons only.
+- Don't set body text in sans-serif — body must be serif at 20px; sans is UI chrome only.
+- Don't apply uniform border-radius to buttons; the bottom-only 8px is a signature, not a default that should be rounded everywhere.
+- Don't use bright white (#ffffff) as a surface — the system is ivory-tinted throughout (#faf9f5, #f0eee6, #f5e3c7); pure white would feel clinical and break the paper metaphor.
+- Don't add gradients, glows, or color washes to backgrounds; surfaces are flat solid fills only.
+
+## Surfaces
+
+| Level | Name | Value | Purpose |
+|-------|------|-------|---------|
+| 0 | Canvas | `#f0eee6` | Page-level background — the parchment that everything sits on |
+| 1 | Card Surface | `#faf9f5` | Standard card and elevated panel — one tonal step above canvas |
+| 2 | Warm Feature Surface | `#f5e3c7` | Featured hero card and editorial highlights — manilla paper tone for visual emphasis |
+| 3 | Deep Warm Surface | `#e3dacc` | Secondary grouped panels and deeper warm containers |
+| 4 | Inversion Surface | `#141413` | Footer and dark utility bands — the only dark surface in the system |
+
+## Elevation
+
+- **Card:** `none — elevated through surface tone shift, not shadow`
+- **Button:** `none — identity through fill color and bottom-corner radius`
+- **Navigation:** `none — flat, relies on tonal difference from page canvas`
+
+## Imagery
+
+Imagery leans heavily into vintage scientific illustration: the hero feature card contains a dense botanical/zoological collage of butterflies and moths rendered in classic naturalist plate style, evoking 19th-century field guides. Illustrations are warm-toned to harmonize with the parchment background rather than pop against it. No photography, no product screenshots, no abstract gradients. Iconography is minimal — small chevrons for dropdowns and sparse line indicators, always in the same warm-neutral family as text. The visual density is low: large blocks of text and whitespace dominate, with imagery appearing only at hero-feature scale.
+
+## Agent Prompt Guide
+
+## Quick Color Reference
+- text: #141413 (Slate Dark)
+- background: #f0eee6 (Ivory Medium)
+- card surface: #faf9f5 (Ivory Light)
+- border: #cccbc8 (Stone)
+- muted text: #b0aea5 (Cloud Medium)
+- primary action: #d97757 (filled action)
+
+## Example Component Prompts
+
+1. **Hero section**: Canvas #f0eee6. Left column: headline at 61px Anthropic Sans weight 700, #141413, letter-spacing -0.12px. Inline links within the headline underlined persistently in #141413. Right column: supporting paragraph at 20px Anthropic Serif weight 400, #141413. Two-column layout, max-width 1280px centered, generous vertical padding (~120px top).
+
+2. Create a Primary Action Button: #d97757 background, #141413 text, 9999px radius, compact pill padding. Use this filled treatment for the main CTA.
+
+3. **Three-column release grid**: Three cards on #f0eee6 canvas, each card #faf9f5 with 24px radius and 24px padding. Card title at 24px Anthropic Sans weight 600, #141413. Card body at 20px Anthropic Serif weight 400, #141413. Inline link at bottom: 'Model details →' in #141413 with persistent underline.
+
+
+5. **Dark footer**: Full-bleed #141413 background, #faf9f5 text, max-width 1280px content centered. Column headings at 12px Anthropic Sans weight 600, #faf9f5. Link items at 12px sans weight 400, #b0aea5 with 8px vertical gaps.
+
+## Similar Brands
+
+- **Arc Browser** — Same warm parchment neutrals and nature-inspired accent palette, editorial type treatment, and rejection of cold tech-blue UI conventions
+- **Stripe** — Editorial documentation aesthetic with serif body text paired with sans UI, warm grays instead of cool blues, and section-based max-width reading layout
+- **Notion** — Type-driven minimal interface where typography carries hierarchy more than color or shadow, generous whitespace, restrained palette
+- **Linear** — Monochrome restraint and the discipline of using a single accent color only at decisive action moments
+- **Cursor** — Contemporary AI-product visual language with custom sans + serif type pairing and minimal decorative chrome
+
+## Quick Start
+
+### CSS Custom Properties
+
+```css
+:root {
+  /* Colors */
+  --color-slate-dark: #141413;
+  --color-ivory-medium: #f0eee6;
+  --color-ivory-light: #faf9f5;
+  --color-cloud-medium: #b0aea5;
+  --color-cloud-dark: #87867f;
+  --color-stone: #cccbc8;
+  --color-slate-medium: #3d3d3a;
+  --color-oat-warm: #e3dacc;
+  --color-manilla: #f5e3c7;
+  --color-clay: #d97757;
+  --color-clay-deep: #c6613f;
+
+  /* Typography — Font Families */
+  --font-anthropic-serif: 'Anthropic Serif', ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-anthropic-sans: 'Anthropic Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-anthropic-mono: 'Anthropic Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Typography — Scale */
+  --text-caption: 12px;
+  --leading-caption: 1.4;
+  --tracking-caption: -0.24px;
+  --text-body-sm: 16px;
+  --leading-body-sm: 1;
+  --tracking-body-sm: -0.08px;
+  --text-body: 20px;
+  --leading-body: 1.4;
+  --text-subheading: 24px;
+  --leading-subheading: 1.3;
+  --tracking-subheading: -0.05px;
+  --text-heading: 61px;
+  --leading-heading: 1.1;
+  --tracking-heading: -0.12px;
+  --text-display: 68px;
+  --leading-display: 1.1;
+
+  /* Typography — Weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Spacing */
+  --spacing-unit: 4px;
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-76: 76px;
+  --spacing-100: 100px;
+
+  /* Layout */
+  --page-max-width: 1280px;
+  --section-gap: 80-120px;
+  --card-padding: 24-32px;
+  --element-gap: 8px;
+
+  /* Border Radius */
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+
+  /* Named Radii */
+  --radius-nav: 0px;
+  --radius-cards: 24px;
+  --radius-links: 0px;
+  --radius-badges: 0px;
+  --radius-buttons: 8px (bottom-only on filled variants), 12px (outlined);
+
+  /* Surfaces */
+  --surface-canvas: #f0eee6;
+  --surface-card-surface: #faf9f5;
+  --surface-warm-feature-surface: #f5e3c7;
+  --surface-deep-warm-surface: #e3dacc;
+  --surface-inversion-surface: #141413;
+}
+```
+
+### Tailwind v4
+
+```css
+@theme {
+  /* Colors */
+  --color-slate-dark: #141413;
+  --color-ivory-medium: #f0eee6;
+  --color-ivory-light: #faf9f5;
+  --color-cloud-medium: #b0aea5;
+  --color-cloud-dark: #87867f;
+  --color-stone: #cccbc8;
+  --color-slate-medium: #3d3d3a;
+  --color-oat-warm: #e3dacc;
+  --color-manilla: #f5e3c7;
+  --color-clay: #d97757;
+  --color-clay-deep: #c6613f;
+
+  /* Typography */
+  --font-anthropic-serif: 'Anthropic Serif', ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-anthropic-sans: 'Anthropic Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-anthropic-mono: 'Anthropic Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Typography — Scale */
+  --text-caption: 12px;
+  --leading-caption: 1.4;
+  --tracking-caption: -0.24px;
+  --text-body-sm: 16px;
+  --leading-body-sm: 1;
+  --tracking-body-sm: -0.08px;
+  --text-body: 20px;
+  --leading-body: 1.4;
+  --text-subheading: 24px;
+  --leading-subheading: 1.3;
+  --tracking-subheading: -0.05px;
+  --text-heading: 61px;
+  --leading-heading: 1.1;
+  --tracking-heading: -0.12px;
+  --text-display: 68px;
+  --leading-display: 1.1;
+
+  /* Spacing */
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-76: 76px;
+  --spacing-100: 100px;
+
+  /* Border Radius */
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+}
+```

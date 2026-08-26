@@ -3,7 +3,6 @@
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import { Quote, Star } from "lucide-react";
-import { SectionHeader } from "./Features";
 import { MagicCard } from "@/components/animations";
 
 const testimonials = [
@@ -42,21 +41,22 @@ export function Testimonials() {
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
   return (
-    <section ref={ref} className="relative py-28 px-4">
-      <div className="container mx-auto">
-        <SectionHeader
-          eyebrow="Customers"
-          title={
-            <>
-              Trusted by analysts who{" "}
-              <span className="font-display italic text-violet-300">
-                used to hate
-              </span>{" "}
-              AI.
-            </>
-          }
-          subtitle="Built for the people who'd rather be wrong themselves than read another generic AI executive summary."
-        />
+    <section ref={ref} className="relative py-24 md:py-32 px-4 border-t border-white/[0.06] bg-[#05080A]">
+      <div className="main-container mx-auto">
+        <div className="max-w-3xl mx-auto text-center mb-16">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded border border-white/[0.08] bg-[#0D1518] text-[#1FE0A8] text-xs font-mono font-semibold uppercase tracking-[0.18em] mb-4">
+            // OPERATIONAL REPUTATION
+          </div>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#EDEFEF] leading-tight">
+            Trusted by analysts who{" "}
+            <span className="font-display italic font-normal text-[#1FE0A8] block sm:inline">
+              need citations, not guesses.
+            </span>
+          </h2>
+          <p className="mt-4 text-base md:text-lg text-[#8B98A0] leading-relaxed max-w-2xl mx-auto font-sans">
+            Built for operators who would rather be wrong themselves than rely on unverified AI summaries.
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-20 max-w-6xl mx-auto">
           {testimonials.map((t, i) => (
