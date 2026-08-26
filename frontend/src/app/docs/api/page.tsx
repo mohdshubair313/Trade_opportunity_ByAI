@@ -330,11 +330,11 @@ tradeinsight analyze technology --format json`}</CodeBlock>
               Every API response includes IETF/RFC standard rate limit headers enabling AI agents to self-throttle dynamically:
             </p>
             <div className="rounded-xl border border-white/10 bg-[#0c0c16] p-4 text-xs font-mono space-y-1.5 text-white/80">
-              <div><span className="text-violet-300 font-semibold">RateLimit-Limit:</span> 100 <span className="text-white/40">// Maximum allowed requests in window</span></div>
-              <div><span className="text-violet-300 font-semibold">RateLimit-Remaining:</span> 98 <span className="text-white/40">// Requests remaining in current window</span></div>
-              <div><span className="text-violet-300 font-semibold">RateLimit-Reset:</span> 42 <span className="text-white/40">// Seconds until quota window resets</span></div>
-              <div><span className="text-violet-300 font-semibold">RateLimit-Policy:</span> 100;w=60 <span className="text-white/40">// 100 requests per 60-second window</span></div>
-              <div><span className="text-amber-300 font-semibold">Retry-After:</span> 60 <span className="text-white/40">// Present when HTTP 429 occurs (seconds to wait)</span></div>
+              <div><span className="text-violet-300 font-semibold">RateLimit-Limit:</span> 100 <span className="text-white/40">{"// Maximum allowed requests in window"}</span></div>
+              <div><span className="text-violet-300 font-semibold">RateLimit-Remaining:</span> 98 <span className="text-white/40">{"// Requests remaining in current window"}</span></div>
+              <div><span className="text-violet-300 font-semibold">RateLimit-Reset:</span> 42 <span className="text-white/40">{"// Seconds until quota window resets"}</span></div>
+              <div><span className="text-violet-300 font-semibold">RateLimit-Policy:</span> 100;w=60 <span className="text-white/40">{"// 100 requests per 60-second window"}</span></div>
+              <div><span className="text-amber-300 font-semibold">Retry-After:</span> 60 <span className="text-white/40">{"// Present when HTTP 429 occurs (seconds to wait)"}</span></div>
             </div>
           </div>
         </section>

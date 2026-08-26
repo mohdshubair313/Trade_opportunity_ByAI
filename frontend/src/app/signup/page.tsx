@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   RefreshCw,
   ArrowRight,
-  ArrowLeft,
   CheckCircle2,
   Sun,
   Moon,

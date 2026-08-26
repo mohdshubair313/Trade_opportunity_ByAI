@@ -65,7 +65,7 @@ export function AuthLeftPanel({
       <div className="relative z-10 my-auto py-10 space-y-4">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#0D1518]/85 border border-white/[0.1] text-[11px] font-mono font-semibold tracking-wider text-[#1FE0A8] uppercase backdrop-blur-md">
           <Activity className="h-3.5 w-3.5" />
-          // AGENTIC MARKET RESEARCH
+          {"// AGENTIC MARKET RESEARCH"}
         </div>
 
         <h2 className="text-3xl sm:text-4xl lg:text-5xl font-kalam-bold text-white leading-tight tracking-tight drop-shadow-md">

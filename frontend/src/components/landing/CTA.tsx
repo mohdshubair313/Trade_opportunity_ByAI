@@ -34,7 +34,7 @@ export function CTA() {
           {/* Kicker with Logo Glyph */}
           <div className="relative z-10 inline-flex items-center gap-2 px-3.5 py-1.5 rounded border border-border bg-background text-primary text-xs font-mono font-semibold uppercase tracking-[0.18em] mb-8">
             <LogoGlyph className="h-3.5 w-3.5" />
-            // DISCOVER SECTOR OPPORTUNITY
+            {"// DISCOVER SECTOR OPPORTUNITY"}
           </div>
 
           {/* Stacked Kalam Headline */}

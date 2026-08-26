@@ -7,7 +7,7 @@ const BACKEND_URL = (
 /**
  * Converts a JSON object to clean YAML string.
  */
-function jsonToYaml(obj: any, indent = 0): string {
+function jsonToYaml(obj: unknown, indent = 0): string {
   const spaces = " ".repeat(indent);
   if (obj === null || obj === undefined) return "null\n";
   if (typeof obj === "boolean" || typeof obj === "number") return `${obj}\n`;

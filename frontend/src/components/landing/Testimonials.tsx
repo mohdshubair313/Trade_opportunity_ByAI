@@ -45,7 +45,7 @@ export function Testimonials() {
       <div className="main-container mx-auto">
         <div className="max-w-3xl mx-auto text-center mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded border border-white/[0.08] bg-[#0D1518] text-[#1FE0A8] text-xs font-mono font-semibold uppercase tracking-[0.18em] mb-4">
-            // OPERATIONAL REPUTATION
+            {"// OPERATIONAL REPUTATION"}
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#EDEFEF] leading-tight">
             Trusted by analysts who{" "}

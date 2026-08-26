@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   Zap,
 } from "lucide-react";
-import { TerminalPromptIcon, LogoGlyph } from "@/components/icons/CustomIcons";
+import { TerminalPromptIcon } from "@/components/icons/CustomIcons";
 import { Button } from "@/components/ui/Button";
 
 // Sample live queries and persona-tuned streaming answers
@@ -86,7 +86,6 @@ export function Hero() {
   const sectionRef = useRef<HTMLElement | null>(null);
   const [activeQueryIndex, setActiveQueryIndex] = useState(0);
   const [displayedText, setDisplayedText] = useState("");
-  const [isTyping, setIsTyping] = useState(true);
 
   const activeQuery = SAMPLE_QUERIES[activeQueryIndex];
 
@@ -100,7 +99,6 @@ export function Hero() {
   // Typing simulator effect
   useEffect(() => {
     setDisplayedText("");
-    setIsTyping(true);
     let i = 0;
     const fullText = activeQuery.output;
     const timer = setInterval(() => {
@@ -108,7 +106,6 @@ export function Hero() {
         setDisplayedText(fullText.slice(0, i + 1));
         i++;
       } else {
-        setIsTyping(false);
         clearInterval(timer);
       }
     }, 16);
@@ -204,7 +201,7 @@ export function Hero() {
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-border bg-card/90 backdrop-blur-md shadow-sm">
                 <Activity className="h-4 w-4 text-primary" />
                 <span className="font-mono text-xs font-bold tracking-[0.16em] text-primary uppercase">
-                  // AGENTIC MARKET INTELLIGENCE
+                  {"// AGENTIC MARKET INTELLIGENCE"}
                 </span>
               </div>
               <span className="font-kalam text-sm font-semibold text-primary px-2 py-0.5 rounded bg-primary/10 border border-primary/20">
