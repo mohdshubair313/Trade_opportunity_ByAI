@@ -294,12 +294,13 @@ export interface VoiceStreamCallbacks {
   onConnectionChange: (connected: boolean) => void;
 }
 
+export interface VoiceStreamOptions {
+  wsUrl?: string;
+}
+
 /**
  * Real-time WebSocket streaming voice agent client.
- *
- * Manages mic capture → resample → WebSocket → Deepgram proxy,
- * then receives AI audio chunks → queue → schedule playback.
- * Tracks AI speaking state to prevent echo feedback loops.
+ * Supports both Deepgram Streaming Agent API and Hugging Face S2S / Realtime endpoints.
  */
 export class VoiceStreamClient {
   private ws: WebSocket | null = null;
@@ -320,11 +321,15 @@ export class VoiceStreamClient {
   private playbackAnimFrame = 0;
   private state: VoiceStreamState = "idle";
   private connected = false;
+  private wsUrl: string = VOICE_WS_URL;
 
   private callbacks: VoiceStreamCallbacks;
 
-  constructor(callbacks: VoiceStreamCallbacks) {
+  constructor(callbacks: VoiceStreamCallbacks, options?: VoiceStreamOptions) {
     this.callbacks = callbacks;
+    if (options?.wsUrl) {
+      this.wsUrl = options.wsUrl;
+    }
   }
 
   isConnected(): boolean {
@@ -480,7 +485,7 @@ export class VoiceStreamClient {
     attempt: number
   ): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      const ws = new WebSocket(VOICE_WS_URL);
+      const ws = new WebSocket(this.wsUrl);
       ws.binaryType = "arraybuffer";
       this.ws = ws;
 

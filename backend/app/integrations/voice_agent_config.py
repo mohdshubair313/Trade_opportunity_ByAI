@@ -1,38 +1,33 @@
+"""
+Configuration and Prompt Schema for Deepgram Voice Agent API & S2S Pipeline.
+Adheres to Deepgram Voice Agent API (wss://agent.deepgram.com/v1/agent/converse).
+"""
+
+from typing import Any, Dict, List
+
 SYSTEM_PROMPT = (
-    "You are TradeInsight AI, a professional, sharp Indian financial and trading assistant. "
-    "You work for the TradeInsight platform — a stock, crypto, and market analysis tool serving Indian retail investors.\n\n"
-    "Rules:\n"
-    "1. Be concise — this is a voice conversation. Keep responses under 3 sentences where possible.\n"
-    "2. Before executing ANY trade, ALWAYS ask for explicit confirmation. "
-    "State the ticker, action (buy/sell), and quantity back to the user before proceeding.\n"
-    "3. If a user asks about an invalid ticker, politely tell them it's not found and suggest checking the symbol.\n"
-    "4. When showing prices, mention both the price and the 24h change direction.\n"
-    "5. Never give financial advice — present data neutrally.\n"
-    "6. Use available functions to fetch real-time data when asked about prices, portfolios, or trades.\n"
-    "7. For Indian stocks (e.g. RELIANCE, TCS, HDFCBANK), note that prices are in INR.\n"
-    "8. If the user asks to 'buy' or 'sell', call the execute_mock_trade function only after confirmation.\n"
-    "9. The user may speak in Hinglish (Hindi + English mix). Understand common Hindi financial terms: "
-    "'bhaav' (price), 'kitna' (how much), 'kharida' (buy), 'bech' (sell), 'upar' (up), 'neeche' (down), "
-    "'mujhe' (I want), 'portfolio' (same), 'shair' (share), 'paise' (money). "
-    "Reply in clear Indian English — never use Hindi script, but occasional common Hindi words are fine "
-    "if the user initiated Hinglish. Keep your replies natural and voice-friendly.\n"
-    "10. VOICE CONSISTENCY — If the user interrupts themselves mid-sentence or the audio is broken, "
-    "do NOT get confused. Assume the user is still formulating their query. Respond naturally: "
-    "acknowledge what you understood, ask a clarifying question, or continue from the partial context. "
-    "Never ask 'what do you mean?' — instead rephrase what you caught and prompt for the rest."
+    "You are TradeInsight AI, an elite Indian financial and trading intelligence voice assistant. "
+    "You provide instantaneous, accurate market analysis, stock quotes, crypto valuations, portfolio reviews, and mock order execution.\n\n"
+    "CRITICAL CONVERSATIONAL RULES:\n"
+    "1. VOICE-OPTIMIZED BREVITY — Keep responses under 2-3 concise sentences. Never output markdown tables, long bullet points, or raw JSON in voice.\n"
+    "2. TRADE CONFIRMATION SAFETY — Before executing ANY trade, state the ticker, action (BUY/SELL), and exact quantity back to the user, then ask for explicit verbal confirmation.\n"
+    "3. INDIAN & GLOBAL MARKET PRECISION — Prices for Indian stocks (e.g. RELIANCE, TCS, HDFCBANK, INFY, TATAMOTORS) and indices (NIFTY 50, SENSEX) are in INR (₹). Crypto and US equities (BTC, ETH, AAPL, TSLA, NVDA) are in USD ($).\n"
+    "4. NEUTRAL DATA DELIVERY — Present facts, trends, and support/resistance data objectively without offering unsolicited financial advice.\n"
+    "5. REAL-TIME TOOL USAGE — Always use the appropriate tool when asked about prices, market indices, sector performance, portfolio balances, or order execution.\n"
+    "6. HINGLISH MASTERY — Fluently understand Indian financial colloquialisms: 'bhaav' (price), 'kitna gira/bhadha' (how much drop/rise), 'kharidna' (buy), 'bechna' (sell), 'kya lagta hai' (what is your outlook), 'target' (target price), 'paise' (funds). Always reply in clear Indian English.\n"
+    "7. INTERRUPTIONS & BARGE-IN — If interrupted or context is partial, remain poised, rephrase concisely, and ask a crisp clarifying question."
 )
 
-
-FUNCTIONS_SCHEMA = [
+FUNCTIONS_SCHEMA: List[Dict[str, Any]] = [
     {
         "name": "get_stock_or_crypto_price",
-        "description": "Get the current mock price, 24-hour change percentage, and volume for a given stock or crypto ticker symbol (e.g., AAPL, TSLA, BTC, RELIANCE).",
+        "description": "Fetch live or real-time mock price, 24-hour percentage change, high/low, and volume for an equity or cryptocurrency ticker symbol.",
         "parameters": {
             "type": "object",
             "properties": {
                 "ticker": {
                     "type": "string",
-                    "description": "The stock or cryptocurrency ticker symbol (e.g., AAPL, TSLA, BTC, ETH, RELIANCE).",
+                    "description": "The stock or crypto ticker symbol (e.g., RELIANCE, TCS, HDFCBANK, AAPL, NVDA, BTC, ETH, SOL).",
                 }
             },
             "required": ["ticker"],
@@ -40,13 +35,13 @@ FUNCTIONS_SCHEMA = [
     },
     {
         "name": "check_user_portfolio",
-        "description": "Check the portfolio holdings, total portfolio value, and available cash balance for a given user.",
+        "description": "Retrieve active portfolio holdings, total valuation in INR/USD, and available cash balance for a user account.",
         "parameters": {
             "type": "object",
             "properties": {
                 "user_name": {
                     "type": "string",
-                    "description": "The registered user name to look up (e.g., demo_user, shubair).",
+                    "description": "The registered user account name (e.g., demo_user, shubair).",
                 }
             },
             "required": ["user_name"],
@@ -54,35 +49,64 @@ FUNCTIONS_SCHEMA = [
     },
     {
         "name": "execute_mock_trade",
-        "description": "Execute a mock buy or sell order for a stock/crypto ticker. Updates the user's portfolio in real-time. Always ask for user confirmation before calling this.",
+        "description": "Execute a paper/mock buy or sell transaction for an equity or crypto ticker. Updates cash and holdings in real time. Always confirm with the user before calling.",
         "parameters": {
             "type": "object",
             "properties": {
                 "user_name": {
                     "type": "string",
-                    "description": "The registered user name placing the trade.",
+                    "description": "The registered user account name placing the trade.",
                 },
                 "ticker": {
                     "type": "string",
-                    "description": "The stock or crypto ticker symbol to trade.",
+                    "description": "The stock or crypto ticker symbol.",
                 },
                 "action": {
                     "type": "string",
                     "enum": ["buy", "sell"],
-                    "description": "Whether to buy or sell the shares.",
+                    "description": "Order action: 'buy' or 'sell'.",
                 },
                 "quantity": {
                     "type": "integer",
-                    "description": "The number of shares/units to buy or sell. Must be a positive integer.",
+                    "description": "Positive integer quantity of units or shares.",
                 },
             },
             "required": ["user_name", "ticker", "action", "quantity"],
         },
     },
+    {
+        "name": "get_market_indices",
+        "description": "Get real-time snapshot of key market indices: Nifty 50, Sensex, Bank Nifty, and India VIX.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+        },
+    },
+    {
+        "name": "get_sector_trends",
+        "description": "Get current performance and top gainers/losers across major Indian sectors (Banking, IT, Renewable Energy, Auto, Pharma).",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "sector": {
+                    "type": "string",
+                    "description": "Sector name or 'all' for an overall summary.",
+                }
+            },
+            "required": ["sector"],
+        },
+    },
 ]
 
 
-def build_settings_config() -> dict:
+def build_settings_config(
+    voice: str = "aura-2-thalia-en",
+    llm_model: str = "gpt-4o-mini",
+    temperature: float = 0.6,
+) -> Dict[str, Any]:
+    """
+    Builds the official Deepgram Agent API handshake Settings packet.
+    """
     return {
         "type": "Settings",
         "audio": {
@@ -107,8 +131,8 @@ def build_settings_config() -> dict:
             "think": {
                 "provider": {
                     "type": "open_ai",
-                    "model": "gpt-4o-mini",
-                    "temperature": 0.7,
+                    "model": llm_model,
+                    "temperature": temperature,
                 },
                 "prompt": SYSTEM_PROMPT,
                 "functions": FUNCTIONS_SCHEMA,
@@ -116,14 +140,12 @@ def build_settings_config() -> dict:
             "speak": {
                 "provider": {
                     "type": "deepgram",
-                    "model": "aura-2-thalia-en",
+                    "model": voice,
                 },
             },
             "greeting": (
                 "Namaste! I am your TradeInsight AI Assistant. "
-                "I can help you check live market prices, Nifty updates, Sensex moves, "
-                "review your portfolio, or execute mock trades. "
-                "Bhaav puchna ho, portfolio dekhna ho, ya trade karna ho — main aapki madad kar sakta hoon. "
+                "I can analyze Nifty trends, check live stock prices, review your portfolio, or execute mock trades. "
                 "How can I assist your trading today?"
             ),
         },

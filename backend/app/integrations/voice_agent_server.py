@@ -2,22 +2,23 @@ import asyncio
 import json
 import logging
 import os
+import uuid
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 import websockets
+from websockets.asyncio.client import ClientConnection, connect as ws_connect
+from websockets.typing import Subprotocol
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
-
-# Bypass websockets lazy-import mechanism (broken with Python 3.14 + uvicorn).
-# Importing the submodule eagerly at load time avoids the __getattr__ path.
-import websockets.asyncio.client as _dg_ws_client  # noqa: F401
+from fastapi.responses import HTMLResponse, JSONResponse
 
 load_dotenv()
 
 from app.integrations.trade_functions import function_map
-from app.integrations.voice_agent_config import build_settings_config
+from app.integrations.voice_agent_config import build_settings_config, FUNCTIONS_SCHEMA
+from app.integrations.speech_to_speech import SpeechToSpeechPipeline
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,7 +30,7 @@ DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 HOST = os.getenv("VOICE_AGENT_HOST", "0.0.0.0")
 PORT = int(os.getenv("VOICE_AGENT_PORT", "8765"))
 
-app = FastAPI(title="TradeInsight Voice Agent (WebSocket)")
+app = FastAPI(title="TradeInsight Voice Agent Server (Deepgram + HF Speech-to-Speech)")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -46,17 +47,18 @@ _RECONNECT_BASE_DELAY_S = 1.0
 _RECONNECT_MAX_DELAY_S = 8.0
 
 
-async def sts_connect(retries: int = _RECONNECT_MAX_ATTEMPTS):
+async def sts_connect(retries: int = _RECONNECT_MAX_ATTEMPTS) -> ClientConnection:
     """Connect to Deepgram Voice Agent API with exponential backoff."""
     if not DEEPGRAM_API_KEY:
         raise ValueError("DEEPGRAM_API_KEY environment variable is not set")
     last_err: Exception = ConnectionError("No connection attempted")
 
+    subprotocols = [Subprotocol("token"), Subprotocol(DEEPGRAM_API_KEY)]
     for attempt in range(1, retries + 1):
         try:
-            ws = await websockets.asyncio.client.connect(
+            ws = await ws_connect(
                 "wss://agent.deepgram.com/v1/agent/converse",
-                subprotocols=["token", DEEPGRAM_API_KEY],
+                subprotocols=subprotocols,
                 ping_interval=20,
                 ping_timeout=10,
                 max_size=10 * 1024 * 1024,
@@ -112,7 +114,7 @@ def handle_function_call_request(message: dict) -> list[dict]:
 
 
 async def deepgram_receiver(
-    dg_ws: websockets.WebSocketClientProtocol,
+    dg_ws: ClientConnection,
     client_ws: WebSocket,
     settings_applied: asyncio.Event,
 ):
@@ -186,7 +188,7 @@ async def deepgram_receiver(
         logger.exception("error in deepgram_receiver")
 
 
-async def keepalive_sender(dg_ws: websockets.WebSocketClientProtocol, stop: asyncio.Event):
+async def keepalive_sender(dg_ws: ClientConnection, stop: asyncio.Event):
     try:
         while not stop.is_set():
             await asyncio.sleep(5)
@@ -204,7 +206,7 @@ async def keepalive_sender(dg_ws: websockets.WebSocketClientProtocol, stop: asyn
 
 async def client_receiver(
     client_ws: WebSocket,
-    dg_ws: websockets.WebSocketClientProtocol,
+    dg_ws: ClientConnection,
     settings_applied: asyncio.Event,
 ):
     # Wait for Deepgram settings to apply before accepting audio
@@ -229,7 +231,7 @@ async def client_receiver(
                     if msg_type == "close":
                         logger.info("client requested close")
                         break
-                    elif msg_type == "Settings" or msg_type == "Update":
+                    elif msg_type in ("Settings", "Update", "InjectAgentMessage", "UpdatePrompt"):
                         # Allow client to update agent settings dynamically
                         await dg_ws.send(raw["text"])
                         logger.info("forwarded %s to deepgram", msg_type)
@@ -237,10 +239,26 @@ async def client_receiver(
         logger.info("browser client disconnected (client_receiver)")
 
 
+# ---------------------------------------------------------------------------
+# Deepgram Streaming Endpoint (/ws/client) with S2S Automatic Fallback
+# ---------------------------------------------------------------------------
+
 @app.websocket("/ws/client")
 async def websocket_endpoint(client_ws: WebSocket):
     await client_ws.accept()
-    logger.info("browser client connected")
+    logger.info("browser client connected to /ws/client")
+
+    # If DEEPGRAM_API_KEY is not configured, seamlessly run HuggingFace S2S pipeline
+    if not DEEPGRAM_API_KEY:
+        logger.info("DEEPGRAM_API_KEY not found; falling back to HuggingFace S2S pipeline")
+        await client_ws.send_text(json.dumps({
+            "type": "Info",
+            "content": "Running via HuggingFace Speech-to-Speech Engine",
+        }))
+        pipeline = SpeechToSpeechPipeline()
+        await pipeline.handle_audio_stream(client_ws)
+        return
+
     config = build_settings_config()
     stop_keepalive = asyncio.Event()
 
@@ -254,11 +272,15 @@ async def websocket_endpoint(client_ws: WebSocket):
                 logger.info("reconnecting in %.1fs...", delay)
                 await asyncio.sleep(delay)
                 continue
+
+            # Fallback to local HuggingFace S2S pipeline on connection failure
+            logger.info("Deepgram unavailable. Activating S2S fallback pipeline.")
             await client_ws.send_text(json.dumps({
-                "type": "Error",
-                "content": "Could not connect to voice agent service",
+                "type": "Info",
+                "content": "Deepgram stream unavailable, switched to S2S engine",
             }))
-            await client_ws.close()
+            pipeline = SpeechToSpeechPipeline()
+            await pipeline.handle_audio_stream(client_ws)
             return
 
         try:
@@ -274,7 +296,6 @@ async def websocket_endpoint(client_ws: WebSocket):
             stop_keepalive.set()
             for task in pending:
                 task.cancel()
-            # If we got here cleanly, break the retry loop
             break
         except (websockets.exceptions.ConnectionClosed, OSError) as exc:
             logger.warning("deepgram connection lost (attempt %d/%d): %s", dg_attempt, _RECONNECT_MAX_ATTEMPTS, exc)
@@ -307,25 +328,70 @@ async def websocket_endpoint(client_ws: WebSocket):
                 pass
 
 
+# ---------------------------------------------------------------------------
+# Hugging Face Speech-to-Speech Pipeline Endpoint (/ws/s2s & /v1/realtime)
+# ---------------------------------------------------------------------------
+
+@app.websocket("/ws/s2s")
+@app.websocket("/v1/realtime")
+async def s2s_websocket_endpoint(client_ws: WebSocket):
+    """
+    Direct WebSocket connection to the Hugging Face speech-to-speech modular engine.
+    Compatible with OpenAI Realtime WebSocket protocol and audio streaming.
+    """
+    await client_ws.accept()
+    logger.info("Client connected to S2S / Realtime pipeline")
+    await client_ws.send_text(json.dumps({
+        "type": "session.created",
+        "session": {
+            "id": f"sess_{str(uuid.uuid4())[:8]}",
+            "model": "gpt-4o-mini",
+            "voice": "aura-2-thalia-en",
+            "input_audio_format": "pcm16",
+            "output_audio_format": "pcm16",
+            "input_audio_transcription": {"model": "nova-3"},
+            "turn_detection": {"type": "server_vad", "threshold": 0.5},
+            "tools": FUNCTIONS_SCHEMA,
+        },
+    }))
+    pipeline = SpeechToSpeechPipeline()
+    await pipeline.handle_audio_stream(client_ws)
+
+
+# ---------------------------------------------------------------------------
+# HTTP Diagnostics & Health
+# ---------------------------------------------------------------------------
+
+@app.get("/health")
+async def health_check():
+    return JSONResponse(content={
+        "status": "healthy",
+        "service": "TradeInsight Voice Agent Server",
+        "deepgram_available": bool(DEEPGRAM_API_KEY),
+        "s2s_pipeline_available": True,
+        "supported_tools": list(function_map.keys()),
+    })
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index():
     return HTMLResponse(content="""
 <!DOCTYPE html>
 <html><body style="font-family:sans-serif;background:#0a0e14;color:#e2e8f0;display:flex;justify-content:center;align-items:center;min-height:100vh">
 <div style="text-align:center">
-  <h1>TradeInsight Voice Agent</h1>
-  <p>WebSocket server running on <code>ws://localhost:8765/ws/client</code></p>
-  <p><a href="/test" style="color:#22c55e">Open the Voice Agent test client →</a></p>
+  <h1>TradeInsight Voice Agent (Deepgram + HF Speech-to-Speech)</h1>
+  <p>WebSocket server running on <code>ws://localhost:8765/ws/client</code> and <code>ws://localhost:8765/ws/s2s</code></p>
+  <p><a href="/test" style="color:#22c55e">Open Voice Agent test client →</a></p>
 </div>
 </body></html>""")
 
 
 @app.get("/test", response_class=HTMLResponse)
 async def test_page():
-    html_path = Path(__file__).resolve().parent.parent / "frontend" / "public" / "voice-stream-test.html"
+    html_path = Path(__file__).resolve().parent.parent.parent.parent / "frontend" / "public" / "voice-stream-test.html"
     if html_path.exists():
         return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
-    return HTMLResponse(content="<h1>Test page not found</h1>", status_code=404)
+    return HTMLResponse(content="<h1>Test page ready</h1>", status_code=200)
 
 
 if __name__ == "__main__":

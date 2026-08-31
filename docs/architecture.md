@@ -30,7 +30,14 @@ Trade_opportunity_ByAI/
 │   │   ├── crud/                  # Dedicated CRUD operations per entity
 │   │   ├── models/                # SQLAlchemy ORM database models
 │   │   ├── services/              # Pure business logic (Analysis, Collectors, Export)
-│   │   ├── integrations/          # External services (Supabase/Cloudinary, Razorpay, Voice)
+│   │   ├── integrations/          # External services (Supabase/Cloudinary, Razorpay, Multimodal AI)
+│   │   │   ├── speech_to_speech.py    # HF Speech-to-Speech cascaded pipeline (VAD + STT + LLM + TTS)
+│   │   │   ├── voice_agent_server.py  # Deepgram & Realtime WebSocket voice server
+│   │   │   ├── voice_agent_config.py  # Voice system instructions & Hinglish financial lexicons
+│   │   │   ├── voice_agent.py         # Voice caching, synthesis, and cost telemetry
+│   │   │   ├── multimodal_ai.py       # Vision analysis, audio analysis, & TTS streaming
+│   │   │   ├── trade_functions.py     # Live market execution tools & portfolio checks
+│   │   │   └── storage.py             # Cloud storage uploads (Supabase / Cloudinary)
 │   │   ├── llm/                   # LLM Router & Agent Harness
 │   │   ├── templates/             # HTML Email templates
 │   │   ├── main.py                # Slim FastAPI app initialization & middleware
@@ -42,8 +49,9 @@ Trade_opportunity_ByAI/
 │
 ├── frontend/                      # Frontend Application (Next.js 14 + TypeScript)
 │   ├── src/
-│   │   ├── app/                   # Next.js App Router (18 pages/routes)
+│   │   ├── app/                   # Next.js App Router (31 pages/routes)
 │   │   ├── components/            # Reusable UI component modules
+│   │   │   └── voice/             # 3D WebGL Aura Orb, Live Audio visualizer, Voice Agent UI
 │   │   ├── hooks/                 # Custom React hooks (useAuth, useAnalysis, useFavorites)
 │   │   ├── lib/                   # API client, Audio streamer, Utils
 │   │   ├── store/                 # Zustand state management

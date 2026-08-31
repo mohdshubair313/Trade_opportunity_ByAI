@@ -168,14 +168,15 @@ Trade_opportunity_ByAI/
 │   │   │   └── report_generator.py   # Report metadata & formatting
 │   │   │
 │   │   ├── 📁 integrations/          # External service adapters
+│   │   │   ├── speech_to_speech.py   # HF Speech-to-Speech pipeline (VAD + STT + LLM + TTS + Barge-in)
+│   │   │   ├── voice_agent_server.py # Real-time WebSocket proxy (Deepgram Converse & HF S2S)
+│   │   │   ├── voice_agent_config.py # Voice system prompts & Hinglish financial lexicons
+│   │   │   ├── voice_agent.py        # Voice caching, synthesis, and telemetry
+│   │   │   ├── trade_functions.py    # Live market execution & portfolio checking tools
+│   │   │   ├── multimodal_ai.py      # Vision analysis + audio transcription + TTS synthesis
 │   │   │   ├── payment_service.py    # Razorpay orders, verification, webhooks
 │   │   │   ├── notifications.py      # Resend email delivery
-│   │   │   ├── storage.py            # Supabase / Cloud file storage facade
-│   │   │   ├── multimodal_ai.py      # Vision analysis + TTS synthesis
-│   │   │   ├── voice_agent.py        # Full STT→LLM→TTS pipeline + cost optimization
-│   │   │   ├── voice_agent_config.py # Voice agent configuration
-│   │   │   ├── voice_agent_server.py # Real-time voice agent server
-│   │   │   └── trade_functions.py    # Trading utility functions
+│   │   │   └── storage.py            # Supabase / Cloud file storage facade
 │   │   │
 │   │   ├── 📁 llm/                   # AI model orchestration
 │   │   │   ├── llm_router.py         # Agentic multi-model router with failover
@@ -192,8 +193,9 @@ Trade_opportunity_ByAI/
 │
 ├── 📁 frontend/                      # Frontend Application (Next.js 14 + TypeScript)
 │   ├── 📁 src/
-│   │   ├── 📁 app/                   # App Router pages (18 static/dynamic routes)
+│   │   ├── 📁 app/                   # App Router pages (31 static/dynamic routes)
 │   │   ├── 📁 components/            # Reusable UI components (landing, dashboard, voice, etc.)
+│   │   │   └── 📁 voice/             # 3D WebGL Aura Orb, Live Audio visualizer, Voice Agent UI
 │   │   ├── 📁 hooks/                 # Custom React hooks (useAuth, useAnalysis, useFavorites)
 │   │   ├── 📁 lib/                   # API client (api.ts), voice-client.ts, utils.ts
 │   │   ├── 📁 store/                 # Zustand global store (useStore.ts)
@@ -613,6 +615,135 @@ To run all tests:
 ```bash
 pytest -v
 ```
+
+---
+
+## 🤝 Contributing & Developer Quickstart
+
+We welcome contributions from developers, quantitative analysts, UI/UX engineers, and AI researchers! Follow this step-by-step guide to get your local environment up and running.
+
+### 📋 Prerequisites
+
+- **Python**: `3.11+` (tested up to `Python 3.14`)
+- **Node.js**: `18.x` or `20.x` with `npm`
+- **Git**
+- Optional: **Docker & Docker Compose**
+
+---
+
+### 💻 1. Clone & Set Up the Repository
+
+```bash
+git clone https://github.com/mohdshubair313/Trade_opportunity_ByAI.git
+cd Trade_opportunity_ByAI
+```
+
+---
+
+### ⚙️ 2. Backend Setup (FastAPI + AI Engine)
+
+1. **Create and activate a virtual environment:**
+   ```bash
+   cd backend
+   python -m venv venv
+
+   # On Windows (PowerShell):
+   .\venv\Scripts\activate
+
+   # On Linux / macOS:
+   source venv/bin/activate
+   ```
+
+2. **Install Python dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Configure environment variables:**
+   ```bash
+   cp .env.example .env
+   ```
+   _Fill in your API keys in `.env` (Gemini, OpenRouter, Deepgram, Razorpay, etc.). Fallbacks operate automatically for missing keys._
+
+4. **Start the backend services:**
+   - **Main REST API (Port 8000):**
+     ```bash
+     uvicorn app.main:app --reload --port 8000
+     ```
+     - API Docs (Swagger): [http://localhost:8000/docs](http://localhost:8000/docs)
+     - Health Status: [http://localhost:8000/api/health](http://localhost:8000/api/health)
+
+   - **Real-Time Voice Agent & Speech-to-Speech Server (Port 8765):**
+     ```bash
+     uvicorn app.integrations.voice_agent_server:app --reload --port 8765
+     ```
+     - WebSocket Deepgram endpoint: `ws://localhost:8765/ws/client`
+     - WebSocket Hugging Face S2S endpoint: `ws://localhost:8765/ws/s2s`
+     - Voice Server Diagnostics: [http://localhost:8765/health](http://localhost:8765/health)
+
+   - **Optional: Background Watchlist Cron Worker:**
+     ```bash
+     python -m app.worker
+     ```
+
+---
+
+### 🎨 3. Frontend Setup (Next.js 14 + WebGL 3D Aura)
+
+1. **Install Node dependencies:**
+   ```bash
+   cd ../frontend
+   npm install
+   ```
+
+2. **Configure environment variables:**
+   ```bash
+   cp .env.example .env.local
+   ```
+
+3. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+### 🧪 4. Running Verification & Quality Checks
+
+Before submitting a PR, ensure all checks pass:
+
+```bash
+# 1. Run Python Unit & Integration Tests
+pytest -v
+
+# 2. Check TypeScript Types in Frontend
+cd frontend
+npx tsc --noEmit
+
+# 3. Test Production Bundle Build
+npm run build
+```
+
+---
+
+### 🚀 5. Contribution Workflow & Standards
+
+1. **Fork the Repository** and create your branch from `main`:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+2. **Follow Code Conventions:**
+   - **Backend**: Strict type annotations, async/await everywhere, graceful degradation with defensive try/except fallbacks, docstrings on exported functions.
+   - **Frontend**: Clean TypeScript types, Radix UI primitives, responsive Tailwind styling, WebGL shader cleanup in useEffect.
+3. **Commit Messages**: Use Conventional Commits format:
+   - `feat: add new sector correlation visualizer`
+   - `fix: resolve voice client audio buffer underrun`
+   - `docs: update voice agent API integration docs`
+   - `test: add unit test for portfolio mock execution`
+4. **Open a Pull Request**: Submit your PR with a clear description of changes, screenshots/recordings for UI updates, and test verification notes.
+
+For detailed architecture diagrams and module guides, refer to [`docs/architecture.md`](docs/architecture.md) and [`docs/endpoints.md`](docs/endpoints.md).
 
 ---
 

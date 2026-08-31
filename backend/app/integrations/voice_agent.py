@@ -261,7 +261,7 @@ class SimpleVAD:
         last = next((i for i, v in enumerate(reversed(voice_frames)) if v), None)
         voice_ms = sum(1 for v in voice_frames if v) * self.frame_ms
 
-        if first is None or voice_ms < self.min_voice_ms:
+        if first is None or last is None or voice_ms < self.min_voice_ms:
             return VADResult(
                 trimmed_pcm=b"",
                 sample_rate=sample_rate,
@@ -1059,7 +1059,13 @@ class VoiceAgent:
                     ),
                 ),
             )
-            return response.candidates[0].content.parts[0].inline_data.data
+            if response and response.candidates:
+                candidate = response.candidates[0]
+                if candidate.content and candidate.content.parts:
+                    for part in candidate.content.parts:
+                        if hasattr(part, "inline_data") and part.inline_data and getattr(part.inline_data, "data", None):
+                            return part.inline_data.data
+            raise VoiceProviderError("Gemini TTS returned no audio data in response")
 
         try:
             pcm_bytes = await loop.run_in_executor(None, _call)
@@ -1132,10 +1138,12 @@ class VoiceAgent:
             client = genai.Client(api_key=settings.gemini_api_key)
             response = client.models.generate_content(
                 model=settings.stt_model,
-                contents=[
-                    types.Part.from_bytes(data=wav_bytes, mime_type="audio/wav"),
-                    instruction,
-                ],
+                contents=types.Content(
+                    parts=[
+                        types.Part.from_bytes(data=wav_bytes, mime_type="audio/wav"),
+                        types.Part.from_text(text=instruction),
+                    ]
+                ),
                 config=types.GenerateContentConfig(
                     temperature=0.0,
                     max_output_tokens=400,

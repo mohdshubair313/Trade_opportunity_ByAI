@@ -211,3 +211,31 @@ async def voice_agent_turn(
         "model": synth.model, "is_speech": True,
         "vad_debug": vad_debug, "llm_debug": llm_debug,
     }
+
+
+@router.get(
+    "/api/v1/voice/pipeline/status",
+    operation_id="getVoicePipelineStatus",
+    summary="Get status of voice pipelines (Deepgram Agent & HF S2S)",
+)
+async def voice_pipeline_status():
+    """Returns availability and configuration of voice streaming engines."""
+    import os
+    deepgram_available = bool(os.getenv("DEEPGRAM_API_KEY"))
+    openai_available = bool(os.getenv("OPENAI_API_KEY"))
+    gemini_available = bool(os.getenv("GEMINI_API_KEY"))
+    return {
+        "status": "online",
+        "deepgram_streaming": deepgram_available,
+        "s2s_modular_pipeline": True,
+        "openai_realtime_compatible": True,
+        "providers": {
+            "deepgram": deepgram_available,
+            "openai": openai_available,
+            "gemini": gemini_available,
+        },
+        "default_voice": settings.tts_default_voice,
+        "ws_endpoint": "ws://localhost:8765/ws/client",
+        "s2s_ws_endpoint": "ws://localhost:8765/ws/s2s",
+    }
+

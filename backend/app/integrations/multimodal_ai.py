@@ -313,10 +313,12 @@ Image metadata: mime_type={mime_type}, dimensions={dimensions[0]}x{dimensions[1]
             client = genai.Client(api_key=settings.gemini_api_key)
             response = client.models.generate_content(
                 model=settings.gemini_vision_model,
-                contents=[
-                    types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
-                    f"{system}\n\n{user_prompt}",
-                ],
+                contents=types.Content(
+                    parts=[
+                        types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                        types.Part.from_text(text=f"{system}\n\n{user_prompt}"),
+                    ]
+                ),
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     temperature=0.1,
@@ -380,6 +382,82 @@ Image metadata: mime_type={mime_type}, dimensions={dimensions[0]}x{dimensions[1]
                 raise
 
         raise ProviderUnavailableError("; ".join(errors) or "No multimodal provider succeeded")
+
+    async def analyze_audio(
+        self,
+        audio_bytes: bytes,
+        mime_type: str = "audio/wav",
+        prompt: str = "Transcribe the audio accurately.",
+    ) -> Dict[str, Any]:
+        """Transcribe and analyze audio payload using Gemini Multimodal."""
+        if not settings.gemini_api_key:
+            raise ProviderUnavailableError("GEMINI_API_KEY is not configured for audio analysis")
+        try:
+            from google import genai
+            from google.genai import types
+            client = genai.Client(api_key=settings.gemini_api_key)
+            response = client.models.generate_content(
+                model=settings.gemini_vision_model,
+                contents=types.Content(
+                    parts=[
+                        types.Part.from_bytes(data=audio_bytes, mime_type=mime_type),
+                        types.Part.from_text(text=prompt),
+                    ]
+                ),
+            )
+            content = (getattr(response, "text", "") or "").strip()
+            return {
+                "provider": "gemini",
+                "content": content,
+                "created_at": _utc_iso(),
+            }
+        except Exception as exc:
+            raise ProviderUnavailableError(f"Gemini audio analysis failed: {exc}") from exc
+
+    async def generate_text(self, prompt: str) -> Dict[str, Any]:
+        """Generate text using Gemini or OpenRouter."""
+        if settings.gemini_api_key:
+            try:
+                from google import genai
+                client = genai.Client(api_key=settings.gemini_api_key)
+                response = client.models.generate_content(
+                    model=settings.gemini_vision_model,
+                    contents=prompt,
+                )
+                return {
+                    "provider": "gemini",
+                    "content": (getattr(response, "text", "") or "").strip(),
+                    "created_at": _utc_iso(),
+                }
+            except Exception as exc:
+                logger.warning("Gemini generate_text failed: %s", exc)
+
+        if settings.openrouter_api_key:
+            try:
+                async with httpx.AsyncClient(timeout=self._openrouter_timeout) as client:
+                    resp = await client.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {settings.openrouter_api_key}",
+                            "Content-Type": "application/json",
+                        },
+                        json={
+                            "model": settings.openrouter_vision_models[0] if settings.openrouter_vision_models else "openai/gpt-4o-mini",
+                            "messages": [{"role": "user", "content": prompt}],
+                        },
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        text = ((data.get("choices") or [{}])[0].get("message") or {}).get("content", "")
+                        return {
+                            "provider": "openrouter",
+                            "content": text.strip(),
+                            "created_at": _utc_iso(),
+                        }
+            except Exception as exc:
+                logger.warning("OpenRouter generate_text failed: %s", exc)
+
+        raise ProviderUnavailableError("No LLM provider available for generate_text")
 
     async def open_tts_stream(
         self,
@@ -504,7 +582,16 @@ Image metadata: mime_type={mime_type}, dimensions={dimensions[0]}x{dimensions[1]
                     ),
                 ),
             )
-            pcm_bytes = response.candidates[0].content.parts[0].inline_data.data
+            pcm_bytes: Optional[bytes] = None
+            if response and response.candidates:
+                candidate = response.candidates[0]
+                if candidate.content and candidate.content.parts:
+                    for part in candidate.content.parts:
+                        if hasattr(part, "inline_data") and part.inline_data and getattr(part.inline_data, "data", None):
+                            pcm_bytes = part.inline_data.data
+                            break
+            if not pcm_bytes:
+                raise ProviderUnavailableError("Gemini TTS returned no audio data in response")
         except Exception as exc:  # noqa: BLE001
             raise ProviderUnavailableError(f"Gemini TTS failed: {exc}") from exc
 

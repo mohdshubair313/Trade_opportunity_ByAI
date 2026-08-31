@@ -25,18 +25,26 @@ if DATABASE_URL.startswith("sqlite"):
 else:
     # PostgreSQL (Neon / Supabase etc.)
     # Force psycopg v3 (installed via psycopg[binary]) instead of v2.
-    # Neon's serverless Postgres has connection limits; keep the pool small.
-    # The pooled connection string (-pooler) uses PgBouncer transaction mode.
-    # pool_recycle=300 prevents holding connections past Neon's 5min idle drop.
     pg_url = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
-    engine = create_engine(
-        pg_url,
-        pool_size=5,
-        max_overflow=2,
-        pool_recycle=300,
-        pool_pre_ping=True,
-        pool_timeout=30,
-    )
+    try:
+        engine = create_engine(
+            pg_url,
+            pool_size=5,
+            max_overflow=2,
+            pool_recycle=300,
+            pool_pre_ping=True,
+            pool_timeout=30,
+        )
+    except Exception as exc:
+        logger.warning(
+            "PostgreSQL engine creation failed (%s) — falling back to local SQLite engine.", exc
+        )
+        engine = create_engine(
+            "sqlite:///./trade_opportunities_v2.db",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
