@@ -10,7 +10,7 @@ import websockets
 from websockets.asyncio.client import ClientConnection, connect as ws_connect
 from websockets.typing import Subprotocol
 from dotenv import load_dotenv
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
@@ -30,6 +30,7 @@ DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 HOST = os.getenv("VOICE_AGENT_HOST", "0.0.0.0")
 PORT = int(os.getenv("VOICE_AGENT_PORT", "8765"))
 
+router = APIRouter(tags=["Voice Realtime"])
 app = FastAPI(title="TradeInsight Voice Agent Server (Deepgram + HF Speech-to-Speech)")
 app.add_middleware(
     CORSMiddleware,
@@ -243,7 +244,7 @@ async def client_receiver(
 # Deepgram Streaming Endpoint (/ws/client) with S2S Automatic Fallback
 # ---------------------------------------------------------------------------
 
-@app.websocket("/ws/client")
+@router.websocket("/ws/client")
 async def websocket_endpoint(client_ws: WebSocket):
     await client_ws.accept()
     logger.info("browser client connected to /ws/client")
@@ -332,8 +333,8 @@ async def websocket_endpoint(client_ws: WebSocket):
 # Hugging Face Speech-to-Speech Pipeline Endpoint (/ws/s2s & /v1/realtime)
 # ---------------------------------------------------------------------------
 
-@app.websocket("/ws/s2s")
-@app.websocket("/v1/realtime")
+@router.websocket("/ws/s2s")
+@router.websocket("/v1/realtime")
 async def s2s_websocket_endpoint(client_ws: WebSocket):
     """
     Direct WebSocket connection to the Hugging Face speech-to-speech modular engine.
@@ -362,6 +363,7 @@ async def s2s_websocket_endpoint(client_ws: WebSocket):
 # HTTP Diagnostics & Health
 # ---------------------------------------------------------------------------
 
+@router.get("/voice-agent/health")
 @app.get("/health")
 async def health_check():
     return JSONResponse(content={
@@ -393,6 +395,8 @@ async def test_page():
         return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
     return HTMLResponse(content="<h1>Test page ready</h1>", status_code=200)
 
+
+app.include_router(router)
 
 if __name__ == "__main__":
     import uvicorn

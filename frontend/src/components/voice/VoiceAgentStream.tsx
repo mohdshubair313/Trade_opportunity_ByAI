@@ -6,8 +6,8 @@ import { Mic, PhoneOff, Phone, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { VoiceOrb, type VoiceOrbState } from "@/components/voice/VoiceOrb";
+import { getDefaultVoiceWsUrl } from "@/lib/voice-client";
 
-const WS_URL = process.env.NEXT_PUBLIC_VOICE_WS_URL || "ws://localhost:8765/ws/client";
 const TARGET_SAMPLE_RATE = 16000;
 
 interface AudioQueueItem {
@@ -144,7 +144,7 @@ export function VoiceAgentStream({ className }: { className?: string }) {
       startMicAnalyser(stream);
       startPlaybackAnalyser();
 
-      const ws = new WebSocket(WS_URL);
+      const ws = new WebSocket(getDefaultVoiceWsUrl("deepgram"));
       ws.binaryType = "arraybuffer";
       wsRef.current = ws;
 

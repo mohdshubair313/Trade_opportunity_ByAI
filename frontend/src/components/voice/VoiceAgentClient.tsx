@@ -28,6 +28,7 @@ import { CostSavingsBadge } from "@/components/voice/CostSavingsBadge";
 import { LiveWaveform } from "@/components/voice/LiveWaveform";
 import { VoiceOrb, type VoiceOrbState } from "@/components/voice/VoiceOrb";
 import {
+  getDefaultVoiceWsUrl,
   listVoices,
   synthesize,
   voiceQuery,
@@ -161,10 +162,7 @@ export function VoiceAgentClient({
     setBusy(true);
 
     try {
-      const wsUrl =
-        engine === "huggingface_s2s"
-          ? process.env.NEXT_PUBLIC_S2S_WS_URL || "ws://localhost:8765/ws/s2s"
-          : process.env.NEXT_PUBLIC_VOICE_WS_URL || "ws://localhost:8765/ws/client";
+      const wsUrl = getDefaultVoiceWsUrl(engine);
 
       const client = new VoiceStreamClient(
         {

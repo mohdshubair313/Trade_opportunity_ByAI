@@ -272,8 +272,34 @@ export async function voiceAgentTurn(
 // WebSocket streaming voice agent client
 // ---------------------------------------------------------------------------
 
-const VOICE_WS_URL =
-  process.env.NEXT_PUBLIC_VOICE_WS_URL || "ws://localhost:8765/ws/client";
+export function getDefaultVoiceWsUrl(
+  mode: "deepgram" | "huggingface_s2s" | "s2s" | "rest" | string = "deepgram"
+): string {
+  const isS2S = mode === "huggingface_s2s" || mode === "s2s";
+  if (isS2S && process.env.NEXT_PUBLIC_S2S_WS_URL) {
+    return process.env.NEXT_PUBLIC_S2S_WS_URL;
+  }
+  if (!isS2S && process.env.NEXT_PUBLIC_VOICE_WS_URL) {
+    return process.env.NEXT_PUBLIC_VOICE_WS_URL;
+  }
+
+  const path = isS2S ? "/ws/s2s" : "/ws/client";
+  const apiBase = process.env.NEXT_PUBLIC_API_URL;
+  if (apiBase) {
+    const wsBase = apiBase
+      .replace(/^http:\/\//, "ws://")
+      .replace(/^https:\/\//, "wss://");
+    return `${wsBase.replace(/\/$/, "")}${path}`;
+  }
+
+  if (typeof window !== "undefined" && window.location) {
+    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${proto}//${window.location.host}${path}`;
+  }
+
+  return `ws://localhost:8765${path}`;
+}
+
 const WS_RECONNECT_MAX_ATTEMPTS = 3;
 const WS_RECONNECT_BASE_DELAY = 1000;
 const STREAM_TARGET_RATE = 16000;
@@ -321,15 +347,13 @@ export class VoiceStreamClient {
   private playbackAnimFrame = 0;
   private state: VoiceStreamState = "idle";
   private connected = false;
-  private wsUrl: string = VOICE_WS_URL;
+  private wsUrl: string;
 
   private callbacks: VoiceStreamCallbacks;
 
   constructor(callbacks: VoiceStreamCallbacks, options?: VoiceStreamOptions) {
     this.callbacks = callbacks;
-    if (options?.wsUrl) {
-      this.wsUrl = options.wsUrl;
-    }
+    this.wsUrl = options?.wsUrl || getDefaultVoiceWsUrl("deepgram");
   }
 
   isConnected(): boolean {

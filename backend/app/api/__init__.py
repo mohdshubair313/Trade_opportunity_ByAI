@@ -18,6 +18,7 @@ from app.api.alert_routes import router as alert_router
 from app.api.contact_routes import router as contact_router
 from app.api.admin_routes import router as admin_router
 from app.api.info_routes import router as info_router
+from app.integrations.voice_agent_server import router as voice_agent_realtime_router
 
 all_routers = [
     auth_router,
@@ -30,6 +31,7 @@ all_routers = [
     payment_router,
     ai_router,
     voice_router,
+    voice_agent_realtime_router,
     watchlist_router,
     alert_router,
     contact_router,
